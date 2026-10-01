@@ -375,7 +375,7 @@ label{font-size:13px !important}
 }
 </style>
 
-<style id="globalDiscoveryV76">
+<style id="globalDiscoveryV76Style">
 /* V76 GLOBAL DISCOVERY: video-first worldwide feed */
 #globalVideoDiscovery{margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,#11131a,#0b0c10)}
 #globalVideoDiscovery .gvd-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -396,7 +396,7 @@ label{font-size:13px !important}
 @media(max-width:360px){.gvd-card{flex-basis:84vw;min-height:400px}.gvf-card{min-height:460px}.gvd-info b{font-size:14px}}
 </style>
 
-<style id="globalFullscreenFeedV77">
+<style id="globalFullscreenFeedV77Style">
 #globalDiscoveryFeedV77{position:fixed;inset:0;z-index:99999;background:#000;display:none;overflow:hidden;touch-action:pan-y}
 #globalDiscoveryFeedV77.active{display:block}
 #globalDiscoveryFeedV77 .g77-track{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
@@ -2204,7 +2204,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   setTimeout(()=>{renderVideos();renderAdminVideoQueue()},100);
 })();</script>
 
-<script id="globalDiscoveryV76">
+<script id="globalDiscoveryV76Script">
 (function(){
   function esc2(v){return typeof window.esc==='function'?window.esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function publishedVideos(){const st=typeof getState==='function'?getState():state;return (st?.videos||[]).filter(v=>['Published','published'].includes(String(v.status||''))&&mediaSrc(v)).sort((a,b)=>Number(b.createdAtTs||0)-Number(a.createdAtTs||0));}
@@ -2278,7 +2278,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
 })();
 </script>
 
-<script id="globalFullscreenFeedV77">
+<script id="globalFullscreenFeedV77Script">
 (function(){
  const root=document.getElementById('globalDiscoveryFeedV77'); if(!root)return;
  const track=document.getElementById('g77Track'); const soundBtn=root.querySelector('.g77-sound');
@@ -2522,7 +2522,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(status)status.textContent='Loading published beats…';
     try{
       if(!window.ALU_CLOUD?.client) throw new Error('Supabase connection is not ready.');
-      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status').eq('status','published').order('created_at',{ascending:false});
+      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_user_id,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status').eq('status','published').not('producer_user_id','is',null).order('created_at',{ascending:false});
       if(q.error)throw q.error;
       marketBeats=Array.isArray(q.data)?q.data:[]; renderBeats();
       if(status)status.textContent=marketBeats.length?marketBeats.length+' published beat'+(marketBeats.length===1?'':'s')+' available.':'No published beats are available yet.';
@@ -2533,7 +2533,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const q=String(document.getElementById('marketplaceSearch')?.value||'').trim().toLowerCase();
     const list=marketBeats.filter(b=>marketFilter==='all'||String(b.genre||'')===marketFilter).filter(b=>!q||[b.title,b.producer_name,b.genre,b.mood].some(x=>String(x||'').toLowerCase().includes(q)));
     if(!list.length){box.innerHTML='<div class="card"><p class="muted">No beats match this search/filter.</p></div>';return;}
-    box.innerHTML=list.map(b=>`<div class="marketbeat"><div class="row"><div class="grow"><h3>${escM(b.title)}</h3><div class="muted">Produced by ${escM(b.producer_name||'Producer')}</div><div class="marketmeta"><span>🎵 ${escM(b.genre||'Music')}</span><span>🌙 ${escM(b.mood||'')}</span>${b.bpm?`<span>⚡ ${escM(b.bpm)} BPM</span>`:''}</div></div><div class="pricebox">${naira(b.price_ngn)}</div></div><div class="tiny muted">Default licence: ${escM(b.default_license||'Premium')}</div>${b.audio_preview_url?`<audio controls preload="none" src="${escM(b.audio_preview_url)}" style="width:100%;margin-top:10px"></audio>`:'<div class="tiny muted" style="margin-top:8px">Preview not uploaded for this beat yet.</div>'}<div class="licence-row"><button class="btn" data-market-buy="${escM(b.id)}" data-market-license="Basic">Basic · ${naira(licensePrice(b.price_ngn,'Basic'))}</button><button class="btn primary" data-market-buy="${escM(b.id)}" data-market-license="Premium">Premium · ${naira(licensePrice(b.price_ngn,'Premium'))}</button><button class="btn" data-market-buy="${escM(b.id)}" data-market-license="Exclusive">Exclusive · ${naira(licensePrice(b.price_ngn,'Exclusive'))}</button></div></div>`).join('');
+    box.innerHTML=list.map(b=>`<div class="marketbeat"><div class="row"><div class="grow"><h3>${escM(b.title)}</h3><div class="muted">Produced by ${escM(b.producer_name||'Producer')}</div><div class="marketmeta"><span>🎵 ${escM(b.genre||'Music')}</span><span>🌙 ${escM(b.mood||'')}</span>${b.bpm?`<span>⚡ ${escM(b.bpm)} BPM</span>`:''}</div></div><div class="pricebox">${naira(b.price_ngn)}</div></div><div class="tiny muted">Default licence: ${escM(b.default_license||'Premium')}</div>${b.audio_preview_url?`<audio controls preload="none" src="${escM(b.audio_preview_url)}" style="width:100%;margin-top:10px"></audio>`:'<div class="tiny muted" style="margin-top:8px">Preview not uploaded for this beat yet.</div>'}<div class="licence-row"><button type="button" class="btn" data-market-buy="${escM(b.id)}" data-market-license="Basic">Basic · ${naira(licensePrice(b.price_ngn,'Basic'))}</button><button type="button" class="btn primary" data-market-buy="${escM(b.id)}" data-market-license="Premium">Premium · ${naira(licensePrice(b.price_ngn,'Premium'))}</button><button type="button" class="btn" data-market-buy="${escM(b.id)}" data-market-license="Exclusive">Exclusive · ${naira(licensePrice(b.price_ngn,'Exclusive'))}</button></div></div>`).join('');
   }
   async function buy(id,license){
     const beat=marketBeats.find(x=>String(x.id)===String(id)); if(!beat)return;
@@ -2622,4 +2622,33 @@ if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arg
     try{await stableSyncSongs();save();return true}catch(e){console.warn('Music cloud retry failed:',e);return false}
   };
 })();
-</script></body></html>
+</script>
+<script id="aluLaunchHardeningV101">
+(function(){
+  'use strict';
+  function hardenMarketplaceButtons(){
+    document.querySelectorAll('#marketplace [data-market-buy]').forEach(function(b){
+      if(b.type!=='button') b.type='button';
+      if(!b.getAttribute('aria-label')) b.setAttribute('aria-label',String(b.textContent||'Buy beat').trim());
+    });
+  }
+  function hardenNav(){
+    document.querySelectorAll('.nav button').forEach(function(b){
+      if(!b.getAttribute('aria-label')) b.setAttribute('aria-label',String(b.textContent||'Open page').replace(/\\s+/g,' ').trim());
+      if(b.type!=='button') b.type='button';
+    });
+  }
+  function refreshCurrentSurface(){
+    try{
+      hardenMarketplaceButtons(); hardenNav();
+      if(window.ALU_ACTIVE_PAGE==='marketplace' && window.ALU_MARKETPLACE?.load) window.ALU_MARKETPLACE.load();
+    }catch(e){console.warn('ALU launch hardening skipped:',e)}
+  }
+  document.addEventListener('DOMContentLoaded',refreshCurrentSurface,{once:true});
+  window.addEventListener('pageshow',refreshCurrentSurface);
+  document.addEventListener('click',function(e){
+    if(e.target?.closest?.('#marketplace [data-market-buy]')) setTimeout(hardenMarketplaceButtons,0);
+  },true);
+})();
+</script>
+</body></html>

@@ -451,7 +451,16 @@ body.g77-open{overflow:hidden}
 #producerDashboard .file-drop{position:relative;border:2px dashed #665b18;border-radius:15px;padding:14px;background:#11110d;cursor:pointer;margin:6px 0 10px}
 #producerDashboard .file-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
 </style>
-</head>
+<style id="avatarSocialStyle">
+.profile-avatar,.header-profile-avatar{border-radius:50%!important;object-fit:cover!important;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.profile-avatar:active,.header-profile-avatar:active{transform:scale(.97)}
+.avatar-viewer{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:24px}
+.avatar-viewer.show{display:flex}
+.avatar-viewer-panel{position:relative;width:min(92vw,460px);height:min(92vw,460px);display:flex;align-items:center;justify-content:center}
+.avatar-viewer-image{width:100%;height:100%;object-fit:contain;border-radius:8px;background:#08090c;box-shadow:0 18px 55px rgba(0,0,0,.65)}
+.avatar-viewer-close{position:absolute;right:-4px;top:-46px;width:38px;height:38px;border:0;border-radius:50%;background:#25262d;color:#fff;font-size:24px;font-weight:900;cursor:pointer}
+@media(max-width:520px){.avatar-viewer{padding:18px}.avatar-viewer-panel{width:min(92vw,430px);height:min(92vw,430px)}.avatar-viewer-close{right:0;top:-44px}}
+</style></head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
   <button class="g77-close" type="button" aria-label="Close">×</button>
@@ -2894,5 +2903,26 @@ const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const 
   const oldGo=window.go;
   if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='ownerDashboard')setTimeout(loadOwnerDashboard,80);return r;};
   window.addEventListener('load',()=>setTimeout(()=>{if(location.hash==='#ownerDashboard')loadOwnerDashboard();},300));
+})();
+</script><script id="avatarSocialViewerV101">
+(function(){
+'use strict';
+function initAvatarViewer(){
+ if(document.getElementById('avatarViewerV101'))return;
+ const wrap=document.createElement('div');wrap.id='avatarViewerV101';wrap.className='avatar-viewer';
+ wrap.innerHTML='<div class="avatar-viewer-panel" role="dialog" aria-modal="true" aria-label="Profile picture"><button class="avatar-viewer-close" type="button" aria-label="Close">×</button><img class="avatar-viewer-image" alt="Profile picture"></div>';
+ document.body.appendChild(wrap);
+ const img=wrap.querySelector('.avatar-viewer-image');
+ const close=()=>{wrap.classList.remove('show');img.removeAttribute('src');};
+ wrap.querySelector('.avatar-viewer-close').addEventListener('click',close);
+ wrap.addEventListener('click',e=>{if(e.target===wrap)close()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+ document.addEventListener('click',e=>{
+  const photo=e.target.closest?.('.profile-avatar,.header-profile-avatar');
+  if(!photo||!photo.src||photo.src.endsWith('/'))return;
+  e.preventDefault();e.stopPropagation();img.src=photo.currentSrc||photo.src;wrap.classList.add('show');
+ },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAvatarViewer,{once:true});else initAvatarViewer();
 })();
 </script>

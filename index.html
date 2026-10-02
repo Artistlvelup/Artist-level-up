@@ -2522,7 +2522,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(status)status.textContent='Loading published beats…';
     try{
       if(!window.ALU_CLOUD?.client) throw new Error('Supabase connection is not ready.');
-      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_user_id,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status').eq('status','published').not('producer_user_id','is',null).order('created_at',{ascending:false});
+      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_user_id,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status').eq('status','published').order('created_at',{ascending:false});
       if(q.error)throw q.error;
       marketBeats=Array.isArray(q.data)?q.data:[]; renderBeats();
       if(status)status.textContent=marketBeats.length?marketBeats.length+' published beat'+(marketBeats.length===1?'':'s')+' available.':'No published beats are available yet.';

@@ -2490,8 +2490,7 @@ async function loadCloudPictures(){
  let cloud=[];
  if(client){
   try{
-   if(typeof window.ALU_CLOUD.ensureSession==='function')await window.ALU_CLOUD.ensureSession();
-   const q=await client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50);
+   const q=await Promise.race([client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Picture feed request timed out')),4000))]);
    if(q.error)throw q.error;
    cloud=(q.data||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
   }catch(e){console.warn('Global cloud picture feed load skipped:',e?.message||e)}
@@ -2569,9 +2568,9 @@ async function render77(){
 }
 async function open77(){
  root.classList.add('active');root.setAttribute('aria-hidden','false');document.body.classList.add('g77-open');soundBtn.textContent=muted?'🔇':'🔊';
- try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await window.ALU_REFRESH_VIDEOS()}catch(e){console.warn('Global video refresh skipped:',e)}
- await syncLocalApprovedPictures();await render77();
+ try{await render77()}catch(e){console.warn('Global feed initial render skipped:',e);track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed is ready</b><div style="opacity:.7;margin-top:8px">Published videos and approved pictures will load here.</div></div></div>'}
  setTimeout(autoplayVisible,80);
+ Promise.resolve().then(async()=>{try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await Promise.race([window.ALU_REFRESH_VIDEOS(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Video refresh timed out')),4000))])}catch(e){console.warn('Global video refresh skipped:',e)}try{await syncLocalApprovedPictures();await render77()}catch(e){console.warn('Global picture sync skipped:',e)}});
 }
 function close77(){if(io)io.disconnect();clearTimeout(scrollTimer);track.querySelectorAll('video').forEach(v=>{try{v.pause();v.currentTime=0}catch(_){}});activeVideo=null;root.classList.remove('active');root.setAttribute('aria-hidden','true');document.body.classList.remove('g77-open')}
 root.querySelector('.g77-close').addEventListener('click',close77);

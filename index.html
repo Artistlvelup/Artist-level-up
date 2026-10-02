@@ -661,7 +661,7 @@ body.g77-open{overflow:hidden}
 })();
 </script>
 <div class="player" id="player"><div class="player-head"><button aria-label="Close player" class="player-cancel" data-action="closePlayer">✕</button></div><div class="row"><div class="cover" id="playerCover">🎵</div><div class="grow"><b id="playerTitle">Nothing playing</b><div class="muted" id="playerArtist">Artist Level Up</div></div><button class="iconbtn" data-action="prev">⏮</button><button class="iconbtn" data-action="play">▶</button><button class="iconbtn" data-action="next">⏭</button></div><div class="progress"><i id="playerProgress"></i></div></div>
-<nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button data-go="discover"><span>🔎</span>Discover</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
+<nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script id="aluSupabaseConfig">
@@ -2486,13 +2486,41 @@ async function syncLocalApprovedPictures(){
  if(changed){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)))}catch(_){}}
 }
 async function loadCloudPictures(){
- const client=window.ALU_CLOUD?.client;if(!client)return[];
+ const client=window.ALU_CLOUD?.client;
+ let cloud=[];
+ if(client){
+  try{
+   if(typeof window.ALU_CLOUD.ensureSession==='function')await window.ALU_CLOUD.ensureSession();
+   const q=await client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50);
+   if(q.error)throw q.error;
+   cloud=(q.data||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
+  }catch(e){console.warn('Global cloud picture feed load skipped:',e?.message||e)}
+ }
+ let local=[];
  try{
-  if(typeof window.ALU_CLOUD.ensureSession==='function')await window.ALU_CLOUD.ensureSession();
-  const q=await client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50);
-  if(q.error)throw q.error;
-  return (q.data||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
- }catch(e){console.warn('Global picture feed load skipped:',e?.message||e);return[]}
+  const raw=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');
+  if(Array.isArray(raw)){
+   local=raw.filter(p=>['approved','published'].includes(String(p.status||'').toLowerCase())).map(p=>({
+    kind:'picture',
+    id:p.cloudId||p.id,
+    image_url:normalizeImageUrl(p.imageUrl||p.image_url||p.image||''),
+    caption:p.caption||'',
+    title:p.caption||'Picture post',
+    artist_name:p.artist||p.artist_name||state?.profile?.name||'Artist Level Up artist',
+    createdAt:p.createdAt||p.created_at||'',
+    createdAtTs:new Date(p.createdAt||p.created_at||0).getTime(),
+    raw:p
+   })).filter(p=>p.image_url);
+  }
+ }catch(e){console.warn('Local approved picture feed load skipped:',e?.message||e)}
+ const seen=new Set(), merged=[];
+ for(const p of [...cloud,...local]){
+  const key=String(p.cloudId||p.id||p.image_url||'');
+  const imageKey=String(p.image_url||'');
+  if(seen.has(key)||seen.has('img:'+imageKey))continue;
+  seen.add(key);seen.add('img:'+imageKey);merged.push(p);
+ }
+ return merged.sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);
 }
 function renderComments(v){
  const list=commentsFor(v);let box=root.querySelector('.g77-comment-panel');

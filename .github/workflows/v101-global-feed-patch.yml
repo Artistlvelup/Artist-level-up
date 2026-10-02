@@ -69,3 +69,5 @@ function close77()"""
           git diff --cached --quiet && exit 0
           git commit -m "V101 harden Global Feed immediate render"
           git push origin main
+
+# trigger patch workflow

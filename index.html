@@ -2940,9 +2940,18 @@ const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const 
 })();
 </script>
 <script>
+function creatorRoomShowPage(){
+  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
+  var create=document.getElementById('create');
+  if(create) create.classList.add('active');
+  window.ALU_ACTIVE_PAGE='create';
+  document.querySelectorAll('.nav button').forEach(function(btn){
+    btn.classList.toggle('active',btn.dataset.go==='create');
+  });
+}
 function showCreatorChoices(e){
-  if(e){e.preventDefault();e.stopPropagation();}
-  if(typeof window.go==='function') window.go('create',false);
+  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  creatorRoomShowPage();
   document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='grid';
@@ -2950,8 +2959,8 @@ function showCreatorChoices(e){
   return false;
 }
 function openCreatorTool(tool,e){
-  if(e){e.preventDefault();e.stopPropagation();}
-  if(typeof window.go==='function') window.go('create',false);
+  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
   document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});

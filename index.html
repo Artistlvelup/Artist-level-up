@@ -2769,7 +2769,7 @@ async function loadBanks(country){
  if(status)status.textContent='Loading the current bank list…';
  if(!country){s.innerHTML='<option value="">Select country first</option>';if(status)status.textContent='';return}
  try{
-  const r=await fetch(window.ALU_CLOUD?.url?window.ALU_CLOUD.url+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country):'',{headers:{apikey:window.ALU_CLOUD?.key||''}});
+  const r=await fetch(window.ALU_SUPABASE_URL+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country),{headers:{apikey:window.ALU_SUPABASE_PUBLISHABLE_KEY||window.ALU_SUPABASE_ANON_KEY||''}});
   const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load banks.');
   const banks=Array.isArray(j.banks)?j.banks:[];
   s.innerHTML='<option value="">Select your bank</option>'+banks.map(x=>'<option value="'+esc(x.name)+'" data-id="'+esc(x.id)+'" data-code="'+esc(x.code)+'">'+esc(x.name)+'</option>').join('');
@@ -2782,7 +2782,7 @@ async function loadBranches(bankId,country){
  s.disabled=true;s.innerHTML='<option value="">Loading branches…</option>';if(code)code.value='';
  if(!bankId||!branchCountries.has(country))return;
  try{
-  const r=await fetch(window.ALU_CLOUD?.url?window.ALU_CLOUD.url+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country)+'&bank_id='+encodeURIComponent(bankId):'',{headers:{apikey:window.ALU_CLOUD?.key||''}});
+  const r=await fetch(window.ALU_SUPABASE_URL+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country)+'&bank_id='+encodeURIComponent(bankId),{headers:{apikey:window.ALU_SUPABASE_PUBLISHABLE_KEY||window.ALU_SUPABASE_ANON_KEY||''}});
   const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load branches.');
   const rows=Array.isArray(j.banks)?j.banks:[];
   s.innerHTML='<option value="">Select your branch</option>'+rows.map(x=>'<option value="'+esc(x.branch_code||x.code)+'" data-code="'+esc(x.branch_code||x.code)+'">'+esc(x.name)+(x.branch_code?' · '+esc(x.branch_code):'')+'</option>').join('');

@@ -2443,178 +2443,123 @@ This will remove the video record and, when permitted, its uploaded Storage file
 
 <script id="globalFullscreenFeedV77Script">
 (function(){
- const root=document.getElementById('globalDiscoveryFeedV77'); if(!root)return;
- const track=document.getElementById('g77Track'); const soundBtn=root.querySelector('.g77-sound');
- let items=[]; let muted=true; let io=null; let activeVideo=null; let scrollTimer=null;
- function esc77(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
- function getPublished77(){
-  let arr=[]; try{arr=Array.isArray(state?.videos)?state.videos:[]}catch(e){}
-  return arr.filter(v=>{const st=String(v.status||'').toLowerCase();const raw=v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'';let src=raw;try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||raw}catch(_){}return ['published','approved'].includes(st)&&!!src})
-   .map(v=>{let src=v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'';try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}return {...v,video_url:src,thumbnail_url:v.thumbnail_url||v.thumbnailUrl||''};});
- }
- function socialState(){try{return JSON.parse(localStorage.getItem('alu_g77_social')||'{}')}catch(e){return {}}}
- function saveSocial(x){try{localStorage.setItem('alu_g77_social',JSON.stringify(x))}catch(e){}}
- function keyFor(v){return String(v.remoteVideoId||v.id||v.video_url||v.title||'')}
- function artistKey(v){return String(v.artist_id||v.artist_name||v.artistName||'artist')}
- function commentsFor(v){const s=socialState();return Array.isArray(s.comments?.[keyFor(v)])?s.comments[keyFor(v)]:[]}
- function renderComments(v){
-  const list=commentsFor(v); let box=root.querySelector('.g77-comment-panel');
-  if(!box){box=document.createElement('div');box.className='g77-comment-panel';root.appendChild(box)}
-  box.innerHTML=`<div class="g77-comment-head"><b>Comments</b><button type="button" class="g77-comment-close">×</button></div><div class="g77-comment-list">${list.length?list.map(c=>`<div class="g77-comment"><b>${esc77(c.name||'You')}</b><div>${esc77(c.text)}</div></div>`).join(''):'<div class="g77-comment-empty">No comments yet. Be the first.</div>'}</div><form class="g77-comment-form"><input maxlength="500" placeholder="Write a comment…" required><button type="submit">Post</button></form>`;
-  box.classList.add('show');
-  box.querySelector('.g77-comment-close').onclick=()=>box.classList.remove('show');
-  box.querySelector('form').onsubmit=e=>{e.preventDefault();const input=e.currentTarget.querySelector('input');const text=input.value.trim();if(!text)return;const s=socialState();s.comments=s.comments||{};s.comments[keyFor(v)]=[...commentsFor(v),{name:(state?.profile?.name||'You'),text,createdAt:new Date().toISOString()}].slice(-100);saveSocial(s);renderComments(v)};
- }
- function stopOtherVideos(except){
-  track.querySelectorAll('video').forEach(v=>{
-   if(v===except)return;
-   try{v.pause();v.currentTime=0}catch(_){try{v.pause()}catch(__){}}
-   v.classList.remove('g77-active-video');
-   markPlayState(v,false);
-  });
-  activeVideo=except||null;
- }
- function markPlayState(v,playing){
-  const item=v?.closest('.g77-item');if(!item)return;
-  item.classList.toggle('g77-playing',!!playing);
-  if(playing) v.classList.add('g77-active-video'); else v.classList.remove('g77-active-video');
- }
- window.ALU_pauseDiscoverVideos=function(except=null){
-  track.querySelectorAll('video').forEach(x=>{
-   if(x===except)return;
-   try{x.pause();x.currentTime=0}catch(_){try{x.pause()}catch(__){}}
-   x.classList.remove('g77-active-video');
-   markPlayState(x,false);
-  });
-  if(!except)activeVideo=null;
- };
- function playVideo(v,allowSound=true){
-  if(!v||!root.classList.contains('active'))return Promise.reject(new Error('feed closed'));
-  if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();
-  stopOtherVideos(v);
-  v.playsInline=true;v.autoplay=true;v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');v.setAttribute('autoplay','');
-  const desiredMuted=allowSound?!!muted:true;
-  v.muted=desiredMuted;v.defaultMuted=desiredMuted;
-  if(desiredMuted)v.setAttribute('muted','');else v.removeAttribute('muted');
-  const attempt=()=>{try{const p=v.play();if(p&&typeof p.then==='function')return p.then(()=>{activeVideo=v;markPlayState(v,true);}).catch(()=>{if(!v.muted){v.muted=true;v.defaultMuted=true;v.setAttribute('muted','');const q=v.play();if(q&&typeof q.then==='function')return q.then(()=>{activeVideo=v;markPlayState(v,true);});return q}throw new Error('autoplay blocked')});activeVideo=v;markPlayState(v,!v.paused);return Promise.resolve()}catch(e){return Promise.reject(e)}};
-  if(v.readyState<2){v.load();return new Promise((resolve,reject)=>{let done=false;const finish=(ok)=>{if(done)return;done=true;v.removeEventListener('canplay',onready);v.removeEventListener('loadeddata',onready);if(ok)resolve();else reject(new Error('autoplay blocked'))};const onready=()=>attempt().then(()=>finish(true)).catch(()=>finish(false));v.addEventListener('canplay',onready,{once:true});v.addEventListener('loadeddata',onready,{once:true});setTimeout(()=>attempt().then(()=>finish(true)).catch(()=>{}),250);setTimeout(()=>finish(false),1800)})}
-  return attempt();
- }
- function playTapped(v){
-  if(!v||!root.classList.contains('active'))return;
-  if(!v.paused){try{v.pause();if(activeVideo===v)activeVideo=null;markPlayState(v,false)}catch(_){}return;}
-  muted=false;
-  playVideo(v,true).catch(()=>{if(typeof toastMsg==='function')toastMsg('Tap again to play this video.')});
- }
- function autoplayVisible(){
-  const v=getVisibleVideo();if(!v)return;
-  if(activeVideo===v&&!v.paused)return;
-  pauseNonVisible();
-  // Respect the user's current sound choice. playVideo() will fall back to muted
-  // autoplay only when the browser blocks autoplay with audio.
-  playVideo(v,true).catch(()=>{});
- }
- function getVisibleVideo(){
-  const videos=[...track.querySelectorAll('.g77-item video')];if(!videos.length)return null;
-  const rootRect=track.getBoundingClientRect();let best=videos[0],bestRatio=0;
-  videos.forEach(v=>{const r=v.getBoundingClientRect();const top=Math.max(r.top,rootRect.top),bottom=Math.min(r.bottom,rootRect.bottom),visible=Math.max(0,bottom-top),ratio=r.height?visible/r.height:0;if(ratio>bestRatio){bestRatio=ratio;best=v}});
-  return best;
- }
- function pauseNonVisible(){
-  const visible=getVisibleVideo();
-  if(visible){track.querySelectorAll('video').forEach(v=>{if(v!==visible){try{v.pause();v.currentTime=0}catch(_){}}});if(activeVideo&&activeVideo!==visible){try{activeVideo.pause();activeVideo.currentTime=0}catch(_){ }activeVideo=null;}return visible;}
-  return null;
- }
- function observe77(){
-  if(io)io.disconnect();
-  const vids=[...track.querySelectorAll('video')]; if(!vids.length)return;
-  if('IntersectionObserver' in window){
-   io=new IntersectionObserver(es=>{
-    let visible=getVisibleVideo();
-    es.forEach(e=>{if(!e.isIntersecting||e.intersectionRatio<.55){try{e.target.pause();e.target.currentTime=0}catch(_){}}});
-    visible=pauseNonVisible()||visible;
-    if(root.classList.contains('active')&&visible)setTimeout(()=>{if(getVisibleVideo()===visible)autoplayVisible()},30);
-   },{root:track,threshold:[.25,.55,.75]});
-   vids.forEach(v=>io.observe(v));
-  }
-  track.addEventListener('scroll',()=>{clearTimeout(scrollTimer);pauseNonVisible();scrollTimer=setTimeout(autoplayVisible,100)},{passive:true});
-  setTimeout(autoplayVisible,60);
- }
- function render77(){
-  items=getPublished77(); activeVideo=null;
-  if(!items.length){track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>No published videos yet</b><div style="opacity:.7;margin-top:8px">Publish an artist video and it will appear here automatically.</div></div></div>';return}
-  const s=socialState();
-  track.innerHTML=items.map((v,i)=>{const liked=!!s.likes?.[keyFor(v)], followed=!!s.follows?.[artistKey(v)];return `<section class="g77-item" data-i="${i}">
-   <video playsinline webkit-playsinline autoplay muted preload="auto" ${v.thumbnail_url?`poster="${esc77(v.thumbnail_url)}"`:''} src="${esc77(v.video_url)}"></video>
-   <div class="g77-gradient"></div>
-   <div class="g77-video-controls" aria-label="Video progress">
-    <div class="g77-time" data-time>0:00 / 0:00</div>
-    <input class="g77-seek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video progress">
-   </div>
-   <div class="g77-meta"><div class="g77-title">${esc77(v.title||'Untitled Video')}</div><div class="g77-artist">@${esc77(v.artist_name||v.artistName||'Artist')}</div><div class="g77-caption">${esc77(v.description||'Discover this artist on Artist Level Up.')}</div></div>
-   <div class="g77-actions"><button type="button" class="g77-action ${liked?'on':''}" data-act="like">${liked?'♥':'♡'}<span>Like</span></button><button type="button" class="g77-action ${followed?'on':''}" data-act="follow">${followed?'✓':'＋'}<span>${followed?'Following':'Follow'}</span></button><button type="button" class="g77-action" data-act="share">↗<span>Share</span></button><button type="button" class="g77-action" data-act="song">🎵<span>Music</span></button><button type="button" class="g77-action" data-act="comment">💬<span>Comment</span></button></div>
-  </section>`}).join('');
-  track.querySelectorAll('video').forEach(v=>{
-   v.muted=muted;v.defaultMuted=muted;v.playsInline=true;
-   v.addEventListener('play',()=>{stopOtherVideos(v);markPlayState(v,true)});
-   v.addEventListener('pause',()=>{if(activeVideo===v)activeVideo=null;markPlayState(v,false)});
-   v.addEventListener('ended',()=>{if(activeVideo===v)activeVideo=null;markPlayState(v,false);try{v.currentTime=0}catch(_){} });
-   v.addEventListener('error',()=>{if(root.classList.contains('active')&&typeof toastMsg==='function')toastMsg('This video could not load. Check the video file or connection.')},{once:true});
-   v.addEventListener('loadeddata',()=>{if(root.classList.contains('active')&&getVisibleVideo()===v)autoplayVisible()},{once:true});
-   v.addEventListener('canplay',()=>{if(root.classList.contains('active')&&getVisibleVideo()===v)autoplayVisible()},{once:true});
-   const item=v.closest('.g77-item');
-   const seek=item?.querySelector('.g77-seek'), timeEl=item?.querySelector('[data-time]');
-   const fmtTime=t=>{t=Number.isFinite(t)&&t>=0?t:0;const m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+String(s).padStart(2,'0')};
-   const syncTime=()=>{if(!item)return;const dur=Number.isFinite(v.duration)?v.duration:0;if(seek){seek.max=String(dur);seek.value=String(Math.min(v.currentTime||0,dur));}if(timeEl)timeEl.textContent=fmtTime(v.currentTime)+' / '+fmtTime(dur)};
-   v.addEventListener('loadedmetadata',syncTime);
-   v.addEventListener('durationchange',syncTime);
-   v.addEventListener('timeupdate',syncTime);
-   seek?.addEventListener('input',e=>{e.stopPropagation();const n=Number(e.currentTarget.value);if(Number.isFinite(n))v.currentTime=n;syncTime()});
-   item?.querySelector('[data-seek-back]')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();v.currentTime=Math.max(0,(v.currentTime||0)-10);syncTime()});
-   item?.querySelector('[data-seek-forward]')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const d=Number.isFinite(v.duration)?v.duration:Infinity;v.currentTime=Math.min(d,(v.currentTime||0)+10);syncTime()});
-   item?.querySelector('.g77-video-controls')?.addEventListener('click',e=>e.stopPropagation());
-   syncTime();
-   item?.addEventListener('click',e=>{
-    if(e.target.closest('[data-act]'))return;
-    e.preventDefault();e.stopPropagation();playTapped(item.querySelector('video'));
-   });
-  });
-  observe77();
- }
- async function open77(){
-  root.classList.add('active');root.setAttribute('aria-hidden','false');document.body.classList.add('g77-open');soundBtn.textContent=muted?'🔇':'🔊';
-  try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await window.ALU_REFRESH_VIDEOS()}catch(e){console.warn('Global video feed refresh skipped:',e)}
-  render77();setTimeout(autoplayVisible,80);
- }
- function close77(){if(io)io.disconnect();clearTimeout(scrollTimer);track.querySelectorAll('video').forEach(v=>{try{v.pause();v.currentTime=0}catch(_){}});activeVideo=null;root.classList.remove('active');root.setAttribute('aria-hidden','true');document.body.classList.remove('g77-open')}
- root.querySelector('.g77-close').addEventListener('click',close77);
- soundBtn.addEventListener('click',e=>{e.stopPropagation();muted=!muted;soundBtn.textContent=muted?'🔇':'🔊';const v=activeVideo||getVisibleVideo();if(v){v.muted=muted;v.defaultMuted=muted;if(muted)v.setAttribute('muted','');else v.removeAttribute('muted');if(!v.paused)try{v.play()}catch(_){} }});
- track.addEventListener('click',async e=>{
-  const b=e.target.closest('[data-act]');if(!b)return;e.preventDefault();e.stopPropagation();
-  const item=b.closest('.g77-item');const v=items[Number(item?.dataset.i||0)];if(!v)return;const a=b.dataset.act;const k=keyFor(v);const s=socialState();
-  if(a==='like'){s.likes=s.likes||{};if(s.likes[k]){delete s.likes[k];v.likes=Math.max(0,Number(v.likes||0)-1)}else{s.likes[k]=true;v.likes=Number(v.likes||0)+1}saveSocial(s);b.classList.toggle('on',!!s.likes[k]);b.innerHTML=`${s.likes[k]?'♥':'♡'}<span>Like</span>`;if(typeof toastMsg==='function')toastMsg(s.likes[k]?'Liked ❤️':'Like removed');return}
-  if(a==='follow'){s.follows=s.follows||{};const ak=artistKey(v);s.follows[ak]=!s.follows[ak];saveSocial(s);b.classList.toggle('on',!!s.follows[ak]);b.innerHTML=`${s.follows[ak]?'✓':'＋'}<span>${s.follows[ak]?'Following':'Follow'}</span>`;if(typeof toastMsg==='function')toastMsg(s.follows[ak]?'Following artist ✓':'Unfollowed');return}
-  if(a==='comment'){renderComments(v);return}
-  if(a==='share'){
-   const shareUrl=location.href.split('#')[0]+'#discover-video='+encodeURIComponent(k);const data={title:v.title||'Artist Level Up',text:`Watch ${v.title||'this artist video'} on Artist Level Up`,url:shareUrl};
-   if(navigator.share){try{await navigator.share(data);return}catch(err){if(err?.name==='AbortError')return}}
-   const menu=document.createElement('div');menu.className='g77-share-menu';menu.innerHTML=`<div class="g77-share-head"><b>Share video</b><button type="button">×</button></div><div class="g77-share-grid"><button data-share="copy">🔗 Copy link</button><button data-share="whatsapp">💬 WhatsApp</button><button data-share="facebook">f Facebook</button><button data-share="x">𝕏 X</button><button data-share="telegram">✈ Telegram</button></div>`;root.appendChild(menu);menu.querySelector('.g77-share-head button').onclick=()=>menu.remove();menu.querySelector('[data-share="copy"]').onclick=()=>{navigator.clipboard?.writeText(shareUrl);if(typeof toastMsg==='function')toastMsg('Video link copied ✓');menu.remove()};menu.querySelector('[data-share="whatsapp"]').onclick=()=>{location.href='https://wa.me/?text='+encodeURIComponent(data.text+' '+shareUrl)};menu.querySelector('[data-share="facebook"]').onclick=()=>{location.href='https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(shareUrl)};menu.querySelector('[data-share="x"]').onclick=()=>{location.href='https://twitter.com/intent/tweet?text='+encodeURIComponent(data.text)+'&url='+encodeURIComponent(shareUrl)};menu.querySelector('[data-share="telegram"]').onclick=()=>{location.href='https://t.me/share/url?url='+encodeURIComponent(shareUrl)+'&text='+encodeURIComponent(data.text)};return;
-  }
-  if(a==='song'){
-   try{
-    const songs=Array.isArray(state?.songs)?state.songs:[];const songId=v.song_id||v.songId;let match=songId?songs.find(x=>String(x.id)===String(songId)):null;let artistId=String(v.artist_id||v.artistId||'').trim();let artistName=String(v.artist_name||v.artistName||'').trim();
-    if(!match&&v.title)match=songs.find(x=>String(x.title||'').trim().toLowerCase()===String(v.title||'').trim().toLowerCase());
-    if(match){artistId=artistId||String(match.artist_id||'').trim();artistName=artistName||String(match.artist||'').trim()}
-    if(!artistId&&window.ALU_CLOUD?.artistId)artistId=String(window.ALU_CLOUD.artistId).trim();if(!artistName&&state?.profile?.name)artistName=String(state.profile.name).trim();
-    const showArtistMusic=(rows,name)=>{const list=(rows||[]).filter(x=>{const st=String(x.status||'').toLowerCase();return !st||['published','approved'].includes(st)});if(typeof go==='function')go('discover');setTimeout(()=>{const el=document.getElementById('discoverSongs');if(el){el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">This artist has no published songs yet.</p>';el.scrollIntoView({behavior:'smooth',block:'start'})}if(typeof toastMsg==='function')toastMsg(name?`🎵 ${name} · ${list.length} song${list.length===1?'':'s'}`:'🎵 Artist music opened')},80)};
-    if(artistId&&window.ALU_CLOUD?.client){window.ALU_CLOUD.client.from('songs').select('id,artist_id,title,genre,audio_url,cover_url,status').eq('artist_id',artistId).in('status',['published','approved']).order('created_at',{ascending:false}).then(({data,error})=>{if(!error&&Array.isArray(data)){const mapped=data.map(r=>({id:r.id,remoteSongId:r.id,title:r.title,genre:r.genre||'Music',artist:artistName||'Artist',audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',status:r.status==='published'?'Published':'Approved'}));state.songs=[...mapped,...songs.filter(x=>String(x.artist_id||'')!==artistId)];save();showArtistMusic(mapped,artistName)}else showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName)}).catch(()=>showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName));return}
-    showArtistMusic(artistId?songs.filter(x=>String(x.artist_id||'')===artistId):(artistName?songs.filter(x=>String(x.artist||'').trim().toLowerCase()===artistName.toLowerCase()):songs),artistName);
-   }catch(err){console.warn('Artist music navigation failed',err);if(typeof go==='function')go('discover')}return;
-  }
+'use strict';
+const root=document.getElementById('globalDiscoveryFeedV77'); if(!root)return;
+const track=document.getElementById('g77Track'),soundBtn=root.querySelector('.g77-sound');
+let items=[],muted=true,io=null,activeVideo=null,scrollTimer=null;
+function esc77(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function socialState(){try{return JSON.parse(localStorage.getItem('alu_g77_social')||'{}')}catch(e){return {}}}
+function saveSocial(x){try{localStorage.setItem('alu_g77_social',JSON.stringify(x))}catch(e){}}
+function keyFor(v){return String(v.kind+':'+(v.id||v.video_url||v.title||''))}
+function artistKey(v){return String(v.artist_id||v.artist_name||v.artistName||v.artist||'artist')}
+function commentsFor(v){const s=socialState();return Array.isArray(s.comments?.[keyFor(v)])?s.comments[keyFor(v)]:[]}
+function normalizeImageUrl(v){let s=String(v||'').trim();if(s.startsWith('[')){try{const a=JSON.parse(s);if(Array.isArray(a))s=String(a[0]||'')}catch(_){}}return s}
+function publishedVideos(){
+ let arr=[];try{arr=Array.isArray(state?.videos)?state.videos:[]}catch(_){}
+ return arr.filter(v=>['published','approved'].includes(String(v.status||'').toLowerCase())&&String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim()).map(v=>{
+  let src=v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'';try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}
+  return {kind:'video',id:v.remoteVideoId||v.id,video_url:src,thumbnail_url:v.thumbnail_url||v.thumbnailUrl||'',title:v.title||'Untitled Video',artist_name:v.artist_name||v.artistName||v.artist||'Artist Level Up artist',description:v.description||'Discover this artist on Artist Level Up.',createdAt:v.createdAt||v.created_at||'',createdAtTs:Number(v.createdAtTs||new Date(v.createdAt||v.created_at||0).getTime()||0),raw:v};
  });
- window.openGlobalDiscoveryV77=open77;
- document.addEventListener('click',e=>{const b=e.target.closest('[data-global-discovery-open]');if(b){e.preventDefault();open77()}});
- const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-global-discovery-open]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-global-discovery-open','1');b.textContent='🌍 Discover';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
+}
+async function syncLocalApprovedPictures(){
+ const client=window.ALU_CLOUD?.client;if(!client||typeof window.ALU_CLOUD?.ensureSession!=='function')return;
+ let uid=null;try{uid=await window.ALU_CLOUD.ensureSession()}catch(_){return}if(!uid)return;
+ let list=[];try{list=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]')}catch(_){return}
+ if(!Array.isArray(list))return;
+ let changed=false;
+ for(const p of list.filter(x=>String(x.status||'').toLowerCase()==='approved'&&!x.cloudId)){
+  try{
+   let imageUrl=normalizeImageUrl(p.imageUrl||'');
+   if(!/^https?:\/\//i.test(imageUrl)){
+    const blob=await fetch(p.image).then(r=>{if(!r.ok)throw new Error('Picture data could not be read');return r.blob()});
+    const path='pictures/'+uid+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,9)+'.jpg';
+    const up=await client.storage.from('music').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000',upsert:false});
+    if(up.error)throw up.error;
+    imageUrl=client.storage.from('music').getPublicUrl(path).data?.publicUrl||'';
+   }
+   if(!imageUrl)throw new Error('No public picture URL');
+   const ins=await client.from('picture_posts').insert({user_id:uid,image_url:imageUrl,caption:p.caption||'',artist_name:p.artist||state?.profile?.name||'Artist Level Up artist',status:'published',created_at:p.createdAt||new Date().toISOString()}).select('id').single();
+   if(ins.error)throw ins.error;
+   p.cloudId=ins.data.id;p.imageUrl=imageUrl;p.cloudSynced=true;changed=true;
+  }catch(err){console.warn('Approved picture cloud sync skipped:',err?.message||err)}
+ }
+ if(changed){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)))}catch(_){}}
+}
+async function loadCloudPictures(){
+ const client=window.ALU_CLOUD?.client;if(!client)return[];
+ try{
+  if(typeof window.ALU_CLOUD.ensureSession==='function')await window.ALU_CLOUD.ensureSession();
+  const q=await client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50);
+  if(q.error)throw q.error;
+  return (q.data||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
+ }catch(e){console.warn('Global picture feed load skipped:',e?.message||e);return[]}
+}
+function renderComments(v){
+ const list=commentsFor(v);let box=root.querySelector('.g77-comment-panel');
+ if(!box){box=document.createElement('div');box.className='g77-comment-panel';root.appendChild(box)}
+ box.innerHTML='<div class="g77-comment-head"><b>Comments</b><button type="button" class="g77-comment-close">×</button></div><div class="g77-comment-list">'+(list.length?list.map(c=>'<div class="g77-comment"><b>'+esc77(c.name||'You')+'</b><div>'+esc77(c.text)+'</div></div>').join(''):'<div class="g77-comment-empty">No comments yet. Be the first.</div>')+'</div><form class="g77-comment-form"><input maxlength="500" placeholder="Write a comment…" required><button type="submit">Post</button></form>';
+ box.classList.add('show');box.querySelector('.g77-comment-close').onclick=()=>box.classList.remove('show');
+ box.querySelector('form').onsubmit=e=>{e.preventDefault();const input=e.currentTarget.querySelector('input'),text=input.value.trim();if(!text)return;const s=socialState();s.comments=s.comments||{};s.comments[keyFor(v)]=[...commentsFor(v),{name:state?.profile?.name||'You',text,createdAt:new Date().toISOString()}].slice(-100);saveSocial(s);renderComments(v)}
+}
+function stopOtherVideos(except){track.querySelectorAll('video').forEach(v=>{if(v===except)return;try{v.pause();v.currentTime=0}catch(_){ }markPlayState(v,false)});activeVideo=except||null}
+function markPlayState(v,playing){const item=v?.closest('.g77-item');if(!item)return;item.classList.toggle('g77-playing',!!playing);if(playing)v.classList.add('g77-active-video');else v.classList.remove('g77-active-video')}
+function playVideo(v){if(!v||!root.classList.contains('active'))return Promise.reject(new Error('feed closed'));if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();stopOtherVideos(v);v.playsInline=true;v.autoplay=true;v.muted=muted;v.defaultMuted=muted;const p=v.play();return p&&typeof p.then==='function'?p.then(()=>{activeVideo=v;markPlayState(v,true)}):Promise.resolve()}
+function getVisibleVideo(){const videos=[...track.querySelectorAll('video')];if(!videos.length)return null;const rr=track.getBoundingClientRect();let best=null,bestRatio=0;videos.forEach(v=>{const r=v.getBoundingClientRect(),top=Math.max(r.top,rr.top),bottom=Math.min(r.bottom,rr.bottom),visible=Math.max(0,bottom-top),ratio=r.height?visible/r.height:0;if(ratio>bestRatio){bestRatio=ratio;best=v}});return best}
+function pauseNonVisible(){const visible=getVisibleVideo();if(visible)track.querySelectorAll('video').forEach(v=>{if(v!==visible){try{v.pause();v.currentTime=0}catch(_){}}});return visible}
+function autoplayVisible(){const v=getVisibleVideo();if(!v)return;if(activeVideo===v&&!v.paused)return;pauseNonVisible();playVideo(v).catch(()=>{})}
+function observe77(){
+ if(io)io.disconnect();const vids=[...track.querySelectorAll('video')];if(!vids.length)return;
+ if('IntersectionObserver' in window){io=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting||e.intersectionRatio<.55){try{e.target.pause();e.target.currentTime=0}catch(_){}}});const v=getVisibleVideo();if(root.classList.contains('active')&&v)setTimeout(()=>{if(getVisibleVideo()===v)autoplayVisible()},30)},{root:track,threshold:[.25,.55,.75]});vids.forEach(v=>io.observe(v))}
+ track.addEventListener('scroll',()=>{clearTimeout(scrollTimer);pauseNonVisible();scrollTimer=setTimeout(autoplayVisible,100)},{passive:true});setTimeout(autoplayVisible,60)
+}
+function shareItem(v){
+ const shareUrl=location.href.split('#')[0]+'#discover-post='+encodeURIComponent(keyFor(v));const data={title:v.title||'Artist Level Up',text:'Check this post on Artist Level Up',url:shareUrl};
+ if(navigator.share){navigator.share(data).catch(()=>{})}else if(navigator.clipboard){navigator.clipboard.writeText(shareUrl).then(()=>toastMsg('Post link copied ✓')).catch(()=>toastMsg('Share is not available'))}else toastMsg('Share is not available')
+}
+async function render77(){
+ const videos=publishedVideos(),pictures=await loadCloudPictures();items=[...videos,...pictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);activeVideo=null;
+ if(!items.length){track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>No published posts yet</b><div style="opacity:.7;margin-top:8px">Approved pictures and published artist videos will appear here.</div></div></div>';return}
+ const s=socialState();
+ track.innerHTML=items.map((v,i)=>{const liked=!!s.likes?.[keyFor(v)],followed=!!s.follows?.[artistKey(v)],isVideo=v.kind==='video';return '<section class="g77-item '+(isVideo?'g77-video-item':'g77-picture-item')+'" data-i="'+i">'+
+ (isVideo?'<video playsinline webkit-playsinline autoplay muted preload="auto" '+(v.thumbnail_url?'poster="'+esc77(v.thumbnail_url)+'" ':'')+'src="'+esc77(v.video_url)+'"></video>':'<img class="g77-picture-media" src="'+esc77(v.image_url)+'" alt="Artist Level Up picture" loading="eager">')+
+ '<div class="g77-gradient"></div>'+
+ (isVideo?'<div class="g77-video-controls" aria-label="Video progress"><div class="g77-time" data-time>0:00 / 0:00</div><input class="g77-seek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video progress"></div>':'')+
+ '<div class="g77-meta"><div class="g77-title">'+esc77(v.title||'Artist Level Up post')+'</div><div class="g77-artist">@'+esc77(v.artist_name||'Artist')+'</div><div class="g77-caption">'+esc77(v.description||v.caption||'Discover this artist on Artist Level Up.')+'</div></div>'+
+ '<div class="g77-actions"><button type="button" class="g77-action '+(liked?'on':'')+'" data-act="like">'+(liked?'♥':'♡')+'<span>Like</span></button><button type="button" class="g77-action '+(followed?'on':'')+'" data-act="follow">'+(followed?'✓':'＋')+'<span>'+(followed?'Following':'Follow')+'</span></button><button type="button" class="g77-action" data-act="share">↗<span>Share</span></button><button type="button" class="g77-action" data-act="comment">💬<span>Comment</span></button></div></section>'}).join('');
+ track.querySelectorAll('video').forEach(v=>{
+  v.muted=muted;v.defaultMuted=muted;v.playsInline=true;
+  v.addEventListener('play',()=>{stopOtherVideos(v);markPlayState(v,true)});
+  v.addEventListener('pause',()=>{if(activeVideo===v)activeVideo=null;markPlayState(v,false)});
+  v.addEventListener('error',()=>{if(root.classList.contains('active'))toastMsg('This video could not load.')},{once:true});
+  const item=v.closest('.g77-item'),seek=item?.querySelector('.g77-seek'),timeEl=item?.querySelector('[data-time]');
+  const fmtTime=t=>{t=Number.isFinite(t)&&t>=0?t:0;return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
+  const syncTime=()=>{const d=Number.isFinite(v.duration)?v.duration:0;if(seek){seek.max=String(d);seek.value=String(Math.min(v.currentTime||0,d))}if(timeEl)timeEl.textContent=fmtTime(v.currentTime)+' / '+fmtTime(d)};
+  v.addEventListener('loadedmetadata',syncTime);v.addEventListener('durationchange',syncTime);v.addEventListener('timeupdate',syncTime);seek?.addEventListener('input',e=>{e.stopPropagation();v.currentTime=Number(e.currentTarget.value)||0;syncTime()});item?.querySelector('.g77-video-controls')?.addEventListener('click',e=>e.stopPropagation());syncTime();
+  item?.addEventListener('click',e=>{if(e.target.closest('[data-act]'))return;if(v.paused)playVideo(v).catch(()=>{});else{v.pause();activeVideo=null}});
+ });
+ observe77();
+}
+async function open77(){
+ root.classList.add('active');root.setAttribute('aria-hidden','false');document.body.classList.add('g77-open');soundBtn.textContent=muted?'🔇':'🔊';
+ try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await window.ALU_REFRESH_VIDEOS()}catch(e){console.warn('Global video refresh skipped:',e)}
+ await syncLocalApprovedPictures();await render77();
+ setTimeout(autoplayVisible,80);
+}
+function close77(){if(io)io.disconnect();clearTimeout(scrollTimer);track.querySelectorAll('video').forEach(v=>{try{v.pause();v.currentTime=0}catch(_){}});activeVideo=null;root.classList.remove('active');root.setAttribute('aria-hidden','true');document.body.classList.remove('g77-open')}
+root.querySelector('.g77-close').addEventListener('click',close77);
+soundBtn.addEventListener('click',e=>{e.stopPropagation();muted=!muted;soundBtn.textContent=muted?'🔇':'🔊';const v=activeVideo||getVisibleVideo();if(v){v.muted=muted;v.defaultMuted=muted;if(!v.paused)v.play().catch(()=>{})}});
+track.addEventListener('click',async e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;e.preventDefault();e.stopPropagation();const item=b.closest('.g77-item'),v=items[Number(item?.dataset.i||0)];if(!v)return;const a=b.dataset.act,k=keyFor(v),s=socialState();
+ if(a==='like'){s.likes=s.likes||{};if(s.likes[k]){delete s.likes[k]}else{s.likes[k]=true}saveSocial(s);b.classList.toggle('on',!!s.likes[k]);b.innerHTML=(s.likes[k]?'♥':'♡')+'<span>Like</span>';toastMsg(s.likes[k]?'Liked ❤️':'Like removed');return}
+ if(a==='follow'){s.follows=s.follows||{};const ak=artistKey(v);s.follows[ak]=!s.follows[ak];saveSocial(s);b.classList.toggle('on',!!s.follows[ak]);b.innerHTML=(s.follows[ak]?'✓':'＋')+'<span>'+(s.follows[ak]?'Following':'Follow')+'</span>';toastMsg(s.follows[ak]?'Following artist ✓':'Unfollowed');return}
+ if(a==='comment'){renderComments(v);return}
+ if(a==='share'){shareItem(v);return}
+});
+window.openGlobalDiscoveryV77=open77;
+window.ALU_RENDER_GLOBAL_DISCOVERY=()=>{syncLocalApprovedPictures().then(render77).catch(()=>render77())};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-global-discovery-open]');if(b){e.preventDefault();open77()}});
+const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-global-discovery-open]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-global-discovery-open','1');b.textContent='🌍 Discover';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
+setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(render77).catch(()=>{})},500);
 })();
 </script>
 

@@ -3063,3 +3063,28 @@ function initAvatarViewer(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAvatarViewer,{once:true});else initAvatarViewer();
 })();
 </script>
+<!-- V101 GLOBAL FEED TOUCH FALLBACK -->
+<script>
+(function(){
+  function emergencyGlobalFeedOpen(e){
+    const b=e.target && e.target.closest ? e.target.closest('[data-global-discovery-open]') : null;
+    if(!b)return;
+    e.preventDefault();
+    e.stopPropagation();
+    const r=document.getElementById('globalDiscoveryFeedV77');
+    if(!r)return;
+    r.classList.add('active');
+    r.setAttribute('aria-hidden','false');
+    document.body.classList.add('g77-open');
+    try{
+      if(typeof window.openGlobalDiscoveryV77==='function'){
+        Promise.resolve(window.openGlobalDiscoveryV77()).catch(function(err){console.warn('Global Feed fallback:',err)});
+      }else if(typeof window.ALU_RENDER_GLOBAL_DISCOVERY==='function'){
+        Promise.resolve(window.ALU_RENDER_GLOBAL_DISCOVERY()).catch(function(err){console.warn('Global Feed render fallback:',err)});
+      }
+    }catch(err){console.warn('Global Feed fallback skipped:',err)}
+  }
+  document.addEventListener('pointerdown',emergencyGlobalFeedOpen,true);
+  document.addEventListener('click',emergencyGlobalFeedOpen,true);
+})();
+</script>

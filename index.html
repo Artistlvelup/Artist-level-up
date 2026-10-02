@@ -510,7 +510,30 @@ body.g77-open{overflow:hidden}
 <p class="muted">Connect a local or international payout account, publish beats and manage what buyers see in the global Beat Marketplace.</p>
 <div class="producer-hero"><span class="pill">SELL YOUR BEATS</span><h2 style="margin:9px 0 5px">Your producer business starts here.</h2><p class="muted">Buyers pay once. Artist Level Up keeps the platform commission and Paystack routes the producer share to your connected subaccount.</p></div>
 <div class="card"><h2>1. Paystack payout account</h2><div class="producer-status"><i class="producer-dot" id="producerPayoutDot"></i><div class="grow"><b id="producerPayoutStatus">Checking payout connection…</b><div class="tiny muted" id="producerPayoutDetail"></div></div></div>
-<div id="producerPayoutForm"><label>Account holder name</label><input id="producerHolder" autocomplete="name" placeholder="Name on bank account"/><label>Payout Gmail / Email</label><input id="producerPayoutEmail" type="email" autocomplete="email" placeholder="yourname@gmail.com"/><div class="tiny muted">Paystack uses this email for the producer payout account.</div><label>Bank</label><select id="producerBankName"><option value="">Loading Nigerian banks…</option></select><input id="producerBankCode" type="hidden"/><label>10-digit account number</label><input id="producerAccountNumber" inputmode="numeric" maxlength="10" placeholder="0123456789"/><button class="btn primary full" data-action="producerConnectPayout">🔐 Verify & Connect Paystack</button><div id="producerPayoutMessage" class="tiny muted" style="margin-top:8px"></div></div></div><div class="card"><h2>🌍 Global producer payout</h2><p class="muted">For producers outside Nigeria, connect a supported international bank account through Flutterwave. Buyers can pay from anywhere, and the producer share is split automatically when the payment is processed.</p><label>Account holder name</label><input id="globalPayoutHolder" autocomplete="name" placeholder="Name on international bank account"/><label>Payout Gmail / Email</label><input id="globalPayoutEmail" type="email" autocomplete="email" placeholder="producer@example.com"/><label>Mobile / WhatsApp number</label><input id="globalPayoutMobile" type="tel" autocomplete="tel" placeholder="+1 555 123 4567"/><div class="tiny muted">Use the producer's real mobile number for payout verification.</div><label>Country</label><select id="globalPayoutCountry"><option value="">Select payout country</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="ZA">South Africa</option><option value="GH">Ghana</option><option value="KE">Kenya</option><option value="UG">Uganda</option><option value="TZ">Tanzania</option><option value="RW">Rwanda</option><option value="ZM">Zambia</option><option value="MW">Malawi</option><option value="CM">Cameroon</option><option value="CI">Côte d'Ivoire</option><option value="SN">Senegal</option><option value="SL">Sierra Leone</option><option value="ET">Ethiopia</option><option value="EG">Egypt</option><option value="NG">Nigeria</option><option value="OTHER">Other supported country</option></select><label>Country ISO-2 code (only for Other)</label><input id="globalPayoutOtherCountry" maxlength="2" placeholder="e.g. DE" style="display:none;text-transform:uppercase"/><label>Payout currency</label><select id="globalPayoutCurrency"><option value="">Select currency</option><option>USD</option><option>GBP</option><option>EUR</option><option>ZAR</option><option>GHS</option><option>KES</option><option>UGX</option><option>TZS</option><option>RWF</option><option>ZMW</option><option>MWK</option><option>XOF</option><option>XAF</option><option>SLL</option><option>NGN</option><option>ETB</option><option>EGP</option></select><label>Bank / institution name</label><input id="globalPayoutBankName" placeholder="Bank name"/><label>Bank code (if required)</label><input id="globalPayoutBankCode" placeholder="Bank/institution code"/><label>Account number / IBAN</label><input id="globalPayoutAccountNumber" placeholder="Account number or IBAN"/><div class="grid"><div><label>Routing number</label><input id="globalPayoutRouting" placeholder="US/other routing"/></div><div><label>SWIFT/BIC</label><input id="globalPayoutSwift" placeholder="SWIFT/BIC"/></div></div><label>Branch code (if required)</label><input id="globalPayoutBranch" placeholder="Branch code"/><button class="btn primary full" data-action="producerConnectGlobalPayout">🌍 Connect Flutterwave Global Payout</button><div id="globalPayoutMessage" class="tiny muted" style="margin-top:8px"></div><div id="globalPayoutStatus" class="tiny muted" style="margin-top:8px">Checking global payout connection…</div></div>
+<div id="producerPayoutForm"><label>Account holder name</label><input id="producerHolder" autocomplete="name" placeholder="Name on bank account"/><label>Payout Gmail / Email</label><input id="producerPayoutEmail" type="email" autocomplete="email" placeholder="yourname@gmail.com"/><div class="tiny muted">Paystack uses this email for the producer payout account.</div><label>Bank</label><select id="producerBankName"><option value="">Loading Nigerian banks…</option></select><input id="producerBankCode" type="hidden"/><label>10-digit account number</label><input id="producerAccountNumber" inputmode="numeric" maxlength="10" placeholder="0123456789"/><button class="btn primary full" data-action="producerConnectPayout">🔐 Verify & Connect Paystack</button><div id="producerPayoutMessage" class="tiny muted" style="margin-top:8px"></div></div></div><div class="card"><h2>🌍 Global producer payout</h2>
+<p class="muted">Choose the producer's country and bank from the live Flutterwave bank directory. The app fills the bank code automatically and only shows extra fields when that country requires them.</p>
+<label>Account holder name</label><input id="globalPayoutHolder" autocomplete="name" placeholder="Name on international bank account"/>
+<label>Payout Gmail / Email</label><input id="globalPayoutEmail" type="email" autocomplete="email" placeholder="producer@example.com"/>
+<label>Mobile / WhatsApp number</label><input id="globalPayoutMobile" type="tel" autocomplete="tel" placeholder="+1 555 123 4567"/><div class="tiny muted">Use the producer's real mobile number for payout verification.</div>
+<label>Payout country</label>
+<select id="globalPayoutCountry">
+<option value="">Select payout country</option>
+<option value="US">🇺🇸 United States</option><option value="GB">🇬🇧 United Kingdom</option>
+<option value="NG">🇳🇬 Nigeria</option><option value="GH">🇬🇭 Ghana</option><option value="KE">🇰🇪 Kenya</option><option value="UG">🇺🇬 Uganda</option><option value="TZ">🇹🇿 Tanzania</option><option value="RW">🇷🇼 Rwanda</option><option value="ZA">🇿🇦 South Africa</option><option value="ZM">🇿🇲 Zambia</option><option value="MW">🇲🇼 Malawi</option><option value="CM">🇨🇲 Cameroon</option><option value="CI">🇨🇮 Côte d'Ivoire</option><option value="SN">🇸🇳 Senegal</option><option value="SL">🇸🇱 Sierra Leone</option><option value="BF">🇧🇫 Burkina Faso</option><option value="ET">🇪🇹 Ethiopia</option><option value="EG">🇪🇬 Egypt</option>
+<option value="DE">🇩🇪 Germany</option><option value="FR">🇫🇷 France</option><option value="ES">🇪🇸 Spain</option><option value="IT">🇮🇹 Italy</option><option value="NL">🇳🇱 Netherlands</option><option value="BE">🇧🇪 Belgium</option><option value="AT">🇦🇹 Austria</option><option value="PT">🇵🇹 Portugal</option><option value="IE">🇮🇪 Ireland</option><option value="FI">🇫🇮 Finland</option><option value="SE">🇸🇪 Sweden</option><option value="DK">🇩🇰 Denmark</option><option value="PL">🇵🇱 Poland</option><option value="CZ">🇨🇿 Czechia</option><option value="GR">🇬🇷 Greece</option><option value="LU">🇱🇺 Luxembourg</option>
+</select>
+<div id="globalPayoutBankLoading" class="tiny muted" style="margin:2px 0 6px"></div>
+<label>Bank / financial institution</label>
+<select id="globalPayoutBankName" disabled><option value="">Select country first</option></select>
+<input id="globalPayoutBankId" type="hidden"/><input id="globalPayoutBankCode" type="hidden"/>
+<label>Account number / IBAN</label><input id="globalPayoutAccountNumber" autocomplete="off" placeholder="Enter account number or IBAN"/>
+<div id="globalPayoutRoutingWrap" class="hidden"><label>Routing number</label><input id="globalPayoutRouting" inputmode="numeric" placeholder="Routing number"/></div>
+<div id="globalPayoutSwiftWrap" class="hidden"><label>SWIFT / BIC</label><input id="globalPayoutSwift" autocomplete="off" placeholder="SWIFT / BIC"/></div>
+<div id="globalPayoutBranchWrap" class="hidden"><label>Bank branch</label><select id="globalPayoutBranch" disabled><option value="">Select bank first</option></select><input id="globalPayoutBranchCode" type="hidden"/></div>
+<div class="tiny muted" style="margin-top:4px">Bank name and bank code are selected automatically from Flutterwave's current bank directory. Extra routing, SWIFT or branch details appear only where required.</div>
+<button class="btn primary full" data-action="producerConnectGlobalPayout">🌍 Connect Flutterwave Global Payout</button>
+<div id="globalPayoutMessage" class="tiny muted" style="margin-top:8px"></div><div id="globalPayoutStatus" class="tiny muted" style="margin-top:8px">Checking global payout connection…</div>
+</div>
 <div class="card"><h2>2. Publish a marketplace beat</h2><label>Beat title</label><input id="producerBeatTitle" placeholder="e.g. Lagos Sunset"/><div class="grid"><div><label>Genre</label><input id="producerBeatGenre" placeholder="Afrobeats"/></div><div><label>Mood</label><input id="producerBeatMood" placeholder="Smooth"/></div></div><div class="grid"><div><label>BPM</label><input id="producerBeatBpm" inputmode="numeric" placeholder="105"/></div><div><label>Price (NGN)</label><input id="producerBeatPrice" inputmode="numeric" placeholder="15000"/></div></div><label>Default licence</label><select id="producerBeatLicense"><option>Premium</option><option>Basic</option><option>Exclusive</option></select><label>Beat audio preview</label><div class="file-drop"><input id="producerBeatAudio" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"/><b>🎧 Choose audio file</b><div class="tiny muted" id="producerBeatFileName">MP3, WAV, M4A, AAC or OGG</div></div><button class="btn primary full" data-action="producerPublishBeat">🚀 Publish Beat</button><div id="producerPublishMessage" class="tiny muted" style="margin-top:8px"></div></div>
 <div class="card"><div class="row"><div class="grow"><h2 style="margin:0">3. Your marketplace beats</h2><div class="tiny muted">Published beats appear automatically in Beat Marketplace.</div></div><button class="btn" data-action="producerRefresh">↻</button></div><div id="producerBeatList"><div class="tiny muted">Loading…</div></div></div>
 </section>
@@ -2717,16 +2740,84 @@ window.addEventListener('pageshow',()=>{if(window.ALU_ACTIVE_PAGE==='producerDas
 <script id="producerGlobalPayoutV101">
 (function(){
 'use strict';
-const $g=id=>document.getElementById(id);
+const $g=id=>document.getElementById(id),BANK_FN='producer-global-bank-list';
+const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const branchCountries=new Set(['GH','TZ','RW','UG']);
+const sepaCountries=new Set(['AT','BE','CY','DE','DK','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PL','PT','SE','SI','SK']);
+const currencyMap={US:['USD'],GB:['GBP'],NG:['NGN','USD'],GH:['GHS'],KE:['KES'],UG:['UGX'],TZ:['TZS'],RW:['RWF'],ZA:['ZAR'],ZM:['ZMW'],MW:['MWK'],CM:['XAF'],CI:['XOF'],SN:['XOF'],SL:['SLL'],BF:['XOF'],ET:['ETB'],EG:['EGP']};
 function gm(t){const e=$g('globalPayoutMessage');if(e)e.textContent=t}
 async function globalUser(){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Supabase connection is not ready.');const r=await c.auth.getUser();if(r.error||!r.data?.user)throw new Error('Please sign in to connect a global payout account.');return r.data.user}
-async function loadGlobalPayout(){try{const u=await globalUser(),r=await window.ALU_CLOUD.client.from('artist_payout_accounts').select('status,country_code,currency,account_holder_name,bank_name,account_number,payout_country_code,payout_currency,flutterwave_subaccount_id').eq('artist_user_id',u.id).eq('provider','flutterwave').maybeSingle();if(r.error)throw r.error;const e=$g('globalPayoutStatus');if(!e)return;if(r.data?.status==='enabled'&&r.data?.flutterwave_subaccount_id){e.textContent='🌍 Flutterwave global payout connected ✓ · '+(r.data.account_holder_name||'Verified producer')+' · '+(r.data.payout_country_code||r.data.country_code)+' · '+(r.data.payout_currency||r.data.currency)+' · ••••'+String(r.data.account_number||'').slice(-4);}else e.textContent='No global payout account connected yet.'}catch(e){const x=$g('globalPayoutStatus');if(x)x.textContent='Global payout status: '+(e.message||String(e))}}
-async function connectGlobal(btn){try{btn.disabled=true;btn.textContent='CONNECTING…';const u=await globalUser();let country=String($g('globalPayoutCountry')?.value||'').trim().toUpperCase();if(country==='OTHER')country=String($g('globalPayoutOtherCountry')?.value||'').trim().toUpperCase();const payload={account_holder_name:String($g('globalPayoutHolder')?.value||'').trim(),contact_email:String($g('globalPayoutEmail')?.value||'').trim().toLowerCase(),country_code:country,currency:String($g('globalPayoutCurrency')?.value||'').trim().toUpperCase(),bank_name:String($g('globalPayoutBankName')?.value||'').trim(),bank_code:String($g('globalPayoutBankCode')?.value||'').trim(),account_number:String($g('globalPayoutAccountNumber')?.value||'').trim(),routing_number:String($g('globalPayoutRouting')?.value||'').trim(),swift_code:String($g('globalPayoutSwift')?.value||'').trim(),branch_code:String($g('globalPayoutBranch')?.value||'').trim(),mobile_number:String($g('globalPayoutMobile')?.value||'').trim()};if(!payload.account_holder_name||!/^\S+@\S+\.\S+$/.test(payload.contact_email)||!payload.mobile_number||!/^[A-Z]{2}$/.test(payload.country_code)||!/^[A-Z]{3}$/.test(payload.currency)||!payload.account_number)throw new Error('Enter name, email, mobile, country, currency and account number/IBAN.');const r=await window.ALU_CLOUD.client.functions.invoke('producer-flutterwave-connect',{body:payload});if(r.error)throw new Error(r.error.message||'Flutterwave connection failed.');if(!r.data?.ok)throw new Error(r.data?.error||'Flutterwave connection failed.');gm('🌍 Flutterwave global payout connected ✓');await loadGlobalPayout();}catch(e){gm('Global payout error: '+(e.message||String(e)))}finally{btn.disabled=false;btn.textContent='🌍 Connect Flutterwave Global Payout'}}
-document.addEventListener('change',e=>{if(e.target?.id==='globalPayoutCountry'){const o=$g('globalPayoutOtherCountry');if(o)o.style.display=e.target.value==='OTHER'?'block':'none';}},true);
+function setFieldVisibility(country){
+ const rw=$g('globalPayoutRoutingWrap'),sw=$g('globalPayoutSwiftWrap'),bw=$g('globalPayoutBranchWrap');
+ const needRouting=country==='US',needSwift=country==='US'||sepaCountries.has(country),needBranch=branchCountries.has(country);
+ if(rw)rw.classList.toggle('hidden',!needRouting);
+ if(sw)sw.classList.toggle('hidden',!needSwift);
+ if(bw)bw.classList.toggle('hidden',!needBranch);
+ const r=$g('globalPayoutRouting'),s=$g('globalPayoutSwift');
+ if(r&&!needRouting)r.value='';if(s&&!needSwift)s.value='';
+}
+function setCurrencies(country){
+ const s=$g('globalPayoutCurrency');if(!s)return;
+ const vals=currencyMap[country]||(sepaCountries.has(country)?['EUR']:[]);
+ s.innerHTML='<option value="">Select payout currency</option>'+vals.map(v=>'<option value="'+v+'">'+v+'</option>').join('');
+ if(vals.length===1)s.value=vals[0];
+}
+async function loadBanks(country){
+ const s=$g('globalPayoutBankName'),code=$g('globalPayoutBankCode'),id=$g('globalPayoutBankId'),status=$g('globalPayoutBankLoading'),branch=$g('globalPayoutBranch'),branchCode=$g('globalPayoutBranchCode');
+ if(!s)return;
+ s.disabled=true;s.innerHTML='<option value="">Loading banks…</option>';if(code)code.value='';if(id)id.value='';if(branch){branch.disabled=true;branch.innerHTML='<option value="">Select bank first</option>'}if(branchCode)branchCode.value='';
+ if(status)status.textContent='Loading the current bank list…';
+ if(!country){s.innerHTML='<option value="">Select country first</option>';if(status)status.textContent='';return}
+ try{
+  const r=await fetch(window.ALU_CLOUD?.url?window.ALU_CLOUD.url+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country):'',{headers:{apikey:window.ALU_CLOUD?.key||''}});
+  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load banks.');
+  const banks=Array.isArray(j.banks)?j.banks:[];
+  s.innerHTML='<option value="">Select your bank</option>'+banks.map(x=>'<option value="'+esc(x.name)+'" data-id="'+esc(x.id)+'" data-code="'+esc(x.code)+'">'+esc(x.name)+'</option>').join('');
+  s.disabled=!banks.length;
+  if(status)status.textContent=banks.length?(banks.length+' banks available — tap to choose yours.'):'No bank directory returned for this country.';
+ }catch(e){s.innerHTML='<option value="">Bank list unavailable</option>';if(status)status.textContent='Bank list error: '+(e.message||String(e))}
+}
+async function loadBranches(bankId,country){
+ const wrap=$g('globalPayoutBranchWrap'),s=$g('globalPayoutBranch'),code=$g('globalPayoutBranchCode');if(!s)return;
+ s.disabled=true;s.innerHTML='<option value="">Loading branches…</option>';if(code)code.value='';
+ if(!bankId||!branchCountries.has(country))return;
+ try{
+  const r=await fetch(window.ALU_CLOUD?.url?window.ALU_CLOUD.url+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country)+'&bank_id='+encodeURIComponent(bankId):'',{headers:{apikey:window.ALU_CLOUD?.key||''}});
+  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load branches.');
+  const rows=Array.isArray(j.banks)?j.banks:[];
+  s.innerHTML='<option value="">Select your branch</option>'+rows.map(x=>'<option value="'+esc(x.branch_code||x.code)+'" data-code="'+esc(x.branch_code||x.code)+'">'+esc(x.name)+(x.branch_code?' · '+esc(x.branch_code):'')+'</option>').join('');
+  s.disabled=!rows.length;
+ }catch(e){s.innerHTML='<option value="">Branch list unavailable</option>';s.disabled=true}
+}
+async function loadGlobalPayout(){
+ try{const u=await globalUser(),r=await window.ALU_CLOUD.client.from('artist_payout_accounts').select('status,country_code,currency,account_holder_name,bank_name,account_number,payout_country_code,payout_currency,flutterwave_subaccount_id').eq('artist_user_id',u.id).eq('provider','flutterwave').maybeSingle();if(r.error)throw r.error;const e=$g('globalPayoutStatus');if(!e)return;if(r.data?.status==='enabled'&&r.data?.flutterwave_subaccount_id){e.textContent='🌍 Flutterwave global payout connected ✓ · '+(r.data.account_holder_name||'Verified producer')+' · '+(r.data.payout_country_code||r.data.country_code)+' · '+(r.data.payout_currency||r.data.currency)+' · ••••'+String(r.data.account_number||'').slice(-4);}else e.textContent='No global payout account connected yet.'}catch(e){const x=$g('globalPayoutStatus');if(x)x.textContent='Global payout status: '+(e.message||String(e))}
+}
+async function connectGlobal(btn){
+ try{
+  btn.disabled=true;btn.textContent='CONNECTING…';await globalUser();
+  let country=String($g('globalPayoutCountry')?.value||'').trim().toUpperCase();
+  const bankSel=$g('globalPayoutBankName'),bo=bankSel?.options?.[bankSel.selectedIndex];
+  const bankName=String(bankSel?.value||'').trim(),bankCode=String(bo?.dataset?.code||'').trim(),bankId=String(bo?.dataset?.id||'').trim();
+  const currency=String($g('globalPayoutCurrency')?.value||'').trim().toUpperCase();
+  const payload={account_holder_name:String($g('globalPayoutHolder')?.value||'').trim(),contact_email:String($g('globalPayoutEmail')?.value||'').trim().toLowerCase(),country_code:country,currency,bank_name:bankName,bank_code:bankCode,account_number:String($g('globalPayoutAccountNumber')?.value||'').trim(),routing_number:String($g('globalPayoutRouting')?.value||'').trim(),swift_code:String($g('globalPayoutSwift')?.value||'').trim(),branch_code:String($g('globalPayoutBranchCode')?.value||'').trim(),mobile_number:String($g('globalPayoutMobile')?.value||'').trim()};
+  const needsRouting=country==='US',needsSwift=country==='US'||sepaCountries.has(country),needsBranch=branchCountries.has(country);
+  if(!payload.account_holder_name||!/^\S+@\S+\.\S+$/.test(payload.contact_email)||!payload.mobile_number||!/^[A-Z]{2}$/.test(country)||!/^[A-Z]{3}$/.test(currency)||!bankName||!bankCode||!payload.account_number)throw new Error('Please complete the name, email, mobile, country, bank, currency and account number/IBAN.');
+  if(needsRouting&&!payload.routing_number)throw new Error('This country requires a routing number.');
+  if(needsSwift&&!payload.swift_code)throw new Error('This country requires a SWIFT/BIC code.');
+  if(needsBranch&&!payload.branch_code)throw new Error('Select the producer’s bank branch.');
+  const r=await window.ALU_CLOUD.client.functions.invoke('producer-flutterwave-connect',{body:payload});if(r.error)throw new Error(r.error.message||'Flutterwave connection failed.');if(!r.data?.ok)throw new Error(r.data?.error||'Flutterwave connection failed.');
+  gm('🌍 Flutterwave global payout connected ✓');await loadGlobalPayout();
+ }catch(e){gm('Global payout error: '+(e.message||String(e)))}finally{btn.disabled=false;btn.textContent='🌍 Connect Flutterwave Global Payout'}
+}
+document.addEventListener('change',e=>{
+ if(e.target?.id==='globalPayoutCountry'){const c=e.target.value;setCurrencies(c);setFieldVisibility(c);void loadBanks(c)}
+ if(e.target?.id==='globalPayoutBankName'){const o=e.target.options[e.target.selectedIndex];const country=$g('globalPayoutCountry')?.value||'';$g('globalPayoutBankCode').value=o?.dataset?.code||'';$g('globalPayoutBankId').value=o?.dataset?.id||'';void loadBranches(o?.dataset?.id||'',country)}
+ if(e.target?.id==='globalPayoutBranch'){const o=e.target.options[e.target.selectedIndex];$g('globalPayoutBranchCode').value=o?.dataset?.code||o?.value||''}
+},true);
 document.addEventListener('click',e=>{const b=e.target.closest?.('[data-action="producerConnectGlobalPayout"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();void connectGlobal(b)},true);
-document.addEventListener('DOMContentLoaded',()=>{if($g('globalPayoutStatus'))loadGlobalPayout()},{once:true});
+document.addEventListener('DOMContentLoaded',()=>{if($g('globalPayoutStatus')){setFieldVisibility($g('globalPayoutCountry')?.value||'');loadGlobalPayout()}},{once:true});
 window.addEventListener('pageshow',()=>{if($g('globalPayoutStatus'))loadGlobalPayout()});
-const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='producerDashboard')setTimeout(loadGlobalPayout,80);return r};
+const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='producerDashboard')setTimeout(()=>{setFieldVisibility($g('globalPayoutCountry')?.value||'');loadGlobalPayout()},80);return r};
 })();
 </script></body></html><script id="ownerDashboardV101">
 (function(){

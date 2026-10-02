@@ -3013,6 +3013,10 @@ document.addEventListener('click',function(e){
 document.addEventListener('DOMContentLoaded',function(){renderAdminPictures()},{once:true});
 window.addEventListener('pageshow',renderAdminPictures);
 window.ALU_ADMIN_PICTURES={refresh:renderAdminPictures};
+const oldGo=window.go;
+if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='admin')setTimeout(renderAdminPictures,30);return r};
+const oldRenderAll=window.renderAll;
+if(typeof oldRenderAll==='function')window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);setTimeout(renderAdminPictures,0);return r};
 })();</script></body></html><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}

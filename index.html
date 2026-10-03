@@ -3548,19 +3548,24 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModa
 #studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
 #studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{color:#8e93a3;font-size:10px}
 #studio .alu-fx-slots{display:grid;gap:7px}
-#studio .alu-fx-slot{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:7px;min-height:44px;padding:5px 7px;border:1px solid #30333d;border-radius:10px;background:#181a22}
-#studio .alu-fx-slot.add{grid-template-columns:34px 1fr 24px;cursor:pointer}
+#studio .alu-fx-slot{display:grid;grid-template-columns:34px 1fr 42px;align-items:center;gap:7px;min-height:44px;padding:5px 7px;border:1px solid #30333d;border-radius:10px;background:#181a22;cursor:pointer}
+#studio .alu-fx-slot.add{grid-template-columns:34px 1fr 24px}
 #studio .alu-fx-slot .slot-no{width:28px;height:28px;border-radius:8px;background:#272a34;display:grid;place-items:center;font-size:10px;color:#aeb2c0;font-weight:900}
 #studio .alu-fx-slot .slot-name{font-size:12px;font-weight:900;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #studio .alu-fx-slot .slot-state{font-size:9px;color:#8e93a3;margin-top:2px}
-#studio .alu-fx-slot button{border:0;background:#292c36;color:#fff;border-radius:7px;width:28px;height:28px;font-weight:900}
+#studio .alu-fx-slot button{border:0;background:#292c36;color:#fff;border-radius:7px;width:38px;height:28px;font-weight:900;font-size:9px}
 #studio .alu-fx-slot button.on{background:#ffd21c;color:#111}
 #studio .alu-fx-picker{display:none;margin-top:8px;padding:9px;border:1px solid #343742;border-radius:11px;background:#111319}
 #studio .alu-fx-picker.show{display:block}
 #studio .alu-fx-cat{font-size:9px;color:#8e93a3;font-weight:900;text-transform:uppercase;margin:6px 0 4px}
 #studio .alu-fx-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
 #studio .alu-fx-options button{border:1px solid #30333d;background:#1a1c24;color:#fff;border-radius:8px;padding:9px 7px;text-align:left;font-size:11px;font-weight:800}
-#studio .alu-fx-options button:active{transform:scale(.98)}
+#studio .alu-fx-editor{display:none;margin-top:8px;padding:11px;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:#101218}
+#studio .alu-fx-editor.show{display:block}
+#studio .alu-fx-editor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+#studio .alu-fx-editor-head b{font-size:12px}.alu-fx-editor-head small{font-size:9px;color:#8e93a3}
+#studio .alu-fx-control{margin:9px 0}.alu-fx-control label{display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:4px}
+#studio .alu-fx-control input[type=range]{width:100%;accent-color:#ffd21c}
 #studio .alu-fx-note{font-size:9px;color:#858a99;margin-top:8px;line-height:1.35}
 </style>
 <script id="aluStudioEffectsRackV101">
@@ -3572,73 +3577,20 @@ function boot(){
  var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(function(x){return x.querySelector('[data-fx]')});if(!card)return;
  var oldGrid=card.querySelector('.studio-fx-grid');if(oldGrid)oldGrid.style.display='none';
  var rack=document.createElement('div');rack.className='alu-fx-rack';
- rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Effects Rack</b><small> Add effects one slot at a time</small></div><span class="pill">V101</span></div><div class="alu-fx-slots"></div><div class="alu-fx-picker" aria-hidden="true"></div><div class="alu-fx-note">Tap + Add Effect, choose an effect, then use the small power button to turn it on/off. Effects are processed in slot order.</div>';
+ rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Effects Rack</b><small> Add effects one slot at a time</small></div><span class="pill">V101</span></div><div class="alu-fx-slots"></div><div class="alu-fx-picker" aria-hidden="true"></div><div class="alu-fx-editor" aria-hidden="true"></div><div class="alu-fx-note">Tap an effect to open its controls. Use the sliders to change the sound.</div>';
  card.appendChild(rack);
- var slots=rack.querySelector('.alu-fx-slots'),picker=rack.querySelector('.alu-fx-picker');
+ var slots=rack.querySelector('.alu-fx-slots'),picker=rack.querySelector('.alu-fx-picker'),editor=rack.querySelector('.alu-fx-editor');
  var effects=[['Tone','EQ','eq'],['Tone','Filter','filter'],['Dynamics','Compressor','compressor'],['Dynamics','Limiter','limiter'],['Space','Reverb','reverb'],['Space','Delay','delay'],['Modulation','Chorus','chorus'],['Color','Saturation','saturation']];
- var state=[];
- var active={};
- function getTrack(){
-   var A=window.ALU_STUDIO_V101;
-   if(!A)return null;
-   if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}
-   if(Array.isArray(A.tracks)&&A.tracks.length)return A.tracks[0];
-   if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}
-   return null;
- }
- function applyToTrack(){
-   var t=getTrack(),A=window.ALU_STUDIO_V101;
-   if(!t)return;
-   t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);
-   if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t);
- }
+ var state=[],active={},params={};
+ var defaults={eq:{gain:0},filter:{freq:1000},compressor:{amount:50},limiter:{amount:50},reverb:{mix:35},delay:{mix:25},chorus:{mix:25},saturation:{amount:20}};
+ function getTrack(){var A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
+ function apply(){var t=getTrack(),A=window.ALU_STUDIO_V101;if(!t)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
+ function controlSpec(key){return {eq:[['Gain','gain',-12,12,0.5,'dB']],filter:[['Frequency','freq',80,12000,10,'Hz']],compressor:[['Strength','amount',0,100,1,'%']],limiter:[['Strength','amount',0,100,1,'%']],reverb:[['Mix','mix',0,100,1,'%']],delay:[['Mix','mix',0,100,1,'%']],chorus:[['Mix','mix',0,100,1,'%']],saturation:[['Amount','amount',0,100,1,'%']]}[key]||[]}
  function closePicker(){picker.classList.remove('show');picker.setAttribute('aria-hidden','true');picker.innerHTML=''}
- function openPicker(i){
-   picker.classList.add('show');picker.setAttribute('aria-hidden','false');
-   picker.innerHTML='<div class="alu-fx-cat">Choose effect for slot '+(i+1)+'</div><div class="alu-fx-options"></div>';
-   var box=picker.querySelector('.alu-fx-options');
-   effects.forEach(function(item){
-     var b=document.createElement('button');b.type='button';b.textContent=item[1];
-     b.addEventListener('click',function(e){
-       e.preventDefault();e.stopPropagation();
-       state[i]=item[2];active[item[2]]=true;
-       applyToTrack();
-       renderSlots();
-       closePicker();
-       var st=document.getElementById('aluStudioStatus');if(st)st.textContent=item[1]+' inserted in Slot '+(i+1)+' ✓';
-     },{passive:false});
-     box.appendChild(b);
-   });
- }
- function renderSlots(){
-   slots.innerHTML='';
-   for(let i=0;i<6;i++){
-     var key=state[i],el=document.createElement('div');
-     el.className='alu-fx-slot'+(key?'':' add');
-     if(!key){
-       el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">＋ Add Effect</div><div class="slot-state">Choose an effect for this slot</div></div><span>›</span>';
-       el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false});
-     }else{
-       var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key;
-       var isOn=active[key]!==false;
-       el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">'+label+'</div><div class="slot-state">Insert effect · slot '+(i+1)+'</div></div><button type="button" class="'+(isOn?'on':'')+'" aria-label="Toggle effect">'+(isOn?'ON':'OFF')+'</button>';
-       var btn=el.querySelector('button');
-       btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!isOn;applyToTrack();renderSlots()},{passive:false});
-       el.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false});
-     }
-     slots.appendChild(el);
-   }
- }
- function loadFromTrack(){
-   var t=getTrack();
-   if(t&&t.proFx&&Array.isArray(t.proFx.slots)){
-     state=t.proFx.slots.slice(0,6);
-     active=Object.assign({},t.proFx.active||{});
-   }
-   renderSlots();
- }
+ function openPicker(i){picker.classList.add('show');picker.setAttribute('aria-hidden','false');picker.innerHTML='<div class="alu-fx-cat">Choose effect for slot '+(i+1)+'</div><div class="alu-fx-options"></div>';var box=picker.querySelector('.alu-fx-options');effects.forEach(function(item){var b=document.createElement('button');b.type='button';b.textContent=item[1];b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();state[i]=item[2];active[item[2]]=true;params[item[2]]=Object.assign({},defaults[item[2]]);apply();renderSlots();closePicker();openEditor(i);var st=document.getElementById('aluStudioStatus');if(st)st.textContent=item[1]+' inserted in Slot '+(i+1)+' ✓'},{passive:false});box.appendChild(b)})}
+ function openEditor(i){var key=state[i];if(!key){editor.classList.remove('show');return}var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key,spec=controlSpec(key);editor.innerHTML='<div class="alu-fx-editor-head"><b>'+label+' — Controls</b><small>Slot '+(i+1)+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4];var wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')}
+ function renderSlots(){slots.innerHTML='';for(let i=0;i<6;i++){var key=state[i],el=document.createElement('div');el.className='alu-fx-slot'+(key?'':' add');if(!key){el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">＋ Add Effect</div><div class="slot-state">Choose an effect for this slot</div></div><span>›</span>';el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false})}else{var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key,isOn=active[key]!==false;el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">'+label+'</div><div class="slot-state">Tap to adjust · slot '+(i+1)+'</div></div><button type="button" class="'+(isOn?'on':'')+'">'+(isOn?'ON':'OFF')+'</button>';var btn=el.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!isOn;apply();renderSlots();openEditor(i)},{passive:false});el.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(i)},{passive:false})}slots.appendChild(el)}}
  renderSlots();
- loadFromTrack();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

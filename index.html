@@ -3927,3 +3927,42 @@ function boot(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
+
+<style id="aluStudioMixerHubV101">
+/* V101 Mixer Engine — attached to the Vocal workspace */
+#studio .studio-vocal-workspace{margin:0 0 14px}
+#studio .studio-vocal-workspace .studio-mixer{margin:0;border:0;border-top:1px solid rgba(255,255,255,.12);border-radius:0;background:#101218}
+#studio .studio-vocal-workspace .studio-mixer-head{padding:12px 0 8px}
+#studio .studio-vocal-workspace .studio-mixer-track{padding:9px 0}
+#studio .studio-vocal-workspace .studio-fx-card{margin:0;border:0;border-top:1px solid rgba(255,255,255,.12);border-radius:0;background:#0d0f14}
+</style>
+<script id="aluStudioMixerHubV101">
+(function(){
+'use strict';
+function boot(){
+ var studio=document.getElementById('studio');
+ if(!studio){setTimeout(boot,100);return}
+ function arrange(){
+  var stack=studio.querySelector('.studio-vocal-stack');
+  var hub=studio.querySelector('.studio-vocal-hub');
+  var mixer=studio.querySelector('.studio-mixer');
+  var fx=mixer&&mixer.nextElementSibling;
+  if(!stack||!hub||!mixer)return;
+  var workspace=stack.parentNode;
+  if(!workspace.classList.contains('studio-vocal-workspace')){
+   var w=document.createElement('div');w.className='studio-vocal-workspace';
+   workspace.insertBefore(w,stack);w.appendChild(stack);workspace=w.parentNode;
+  }
+  var w=stack.parentNode;
+  if(mixer.parentNode!==w)w.appendChild(mixer);
+  if(fx&&fx.classList.contains('card')&&fx.querySelector('[data-fx]')){
+   fx.classList.add('studio-fx-card');
+   if(fx.parentNode!==w)w.appendChild(fx);
+  }
+ }
+ arrange();
+ new MutationObserver(arrange).observe(studio,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>

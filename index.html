@@ -3598,6 +3598,80 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 <!-- V101 STUDIO BUTTON REPAIR -->
+<style id="aluStudioCubaseLayoutV101">
+/* V101 Studio — Cubase-inspired single Vocal Hub */
+#studio .studio-shell{max-width:1100px;margin:auto}
+#studio .studio-vocal-hub{
+  background:linear-gradient(180deg,rgba(30,35,45,.98),rgba(18,21,28,.98));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  padding:16px;
+  margin:14px 0;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+}
+#studio .studio-vocal-hub-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+#studio .studio-vocal-hub-head h2{margin:0}
+#studio .studio-vocal-hub .studio-transport{margin:0;border:0;padding:0;background:transparent;box-shadow:none}
+#studio .studio-vocal-hub .studio-transport-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#studio .studio-vocal-hub .studio-transport-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}
+#studio .studio-vocal-hub .studio-action-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#studio .studio-vocal-hub .studio-action-grid .btn{flex:1 1 120px}
+#studio .studio-vocal-hub .studio-meter{margin-top:12px}
+#studio .studio-vocal-hub .studio-hub-divider{height:1px;background:rgba(255,255,255,.1);margin:14px 0}
+#studio .studio-vocal-hub #aluStudioEditBar,
+#studio .studio-vocal-hub #aluStudioEditorPanel{margin-top:12px}
+#studio .studio-vocal-hub #aluStudioEditBar .grid,
+#studio .studio-vocal-hub #aluStudioEditorPanel .grid{display:flex;flex-wrap:wrap;gap:8px}
+#studio .studio-vocal-hub #aluStudioEditBar .btn,
+#studio .studio-vocal-hub #aluStudioEditorPanel .btn{flex:1 1 105px}
+@media(max-width:650px){
+  #studio .studio-vocal-hub{padding:12px;border-radius:14px}
+  #studio .studio-vocal-hub .studio-transport-row{justify-content:center}
+  #studio .studio-vocal-hub .studio-transport-tools{display:grid;grid-template-columns:1fr 1fr}
+  #studio .studio-vocal-hub .studio-transport-tools label:last-child{grid-column:1/-1}
+  #studio .studio-vocal-hub .studio-action-grid .btn{flex:1 1 calc(50% - 8px)}
+}
+</style>
+<script id="aluStudioCubaseLayoutV101">
+(function(){
+'use strict';
+function boot(){
+  var studio=document.getElementById('studio');
+  if(!studio){setTimeout(boot,100);return}
+  if(studio.__aluCubaseHub)return;
+  studio.__aluCubaseHub=true;
+  function arrange(){
+    var shell=studio.querySelector('.studio-shell');
+    var transport=studio.querySelector('.studio-transport');
+    var actions=studio.querySelector('.studio-action-grid');
+    var meter=studio.querySelector('.studio-meter');
+    if(!shell||!transport||!actions||!meter)return;
+    var hub=studio.querySelector('.studio-vocal-hub');
+    if(!hub){
+      hub=document.createElement('div');
+      hub.className='studio-vocal-hub';
+      hub.innerHTML='<div class="studio-vocal-hub-head"><div><span class="pill">VOCAL HUB</span><h2>🎙️ Vocal Recording & Control</h2><p class="tiny muted">Record, play, stop and control your vocal from one place.</p></div><span class="pill">V101</span></div><div class="studio-hub-content"></div>';
+      var content=hub.querySelector('.studio-hub-content');
+      content.appendChild(transport);
+      content.appendChild(actions);
+      content.appendChild(meter);
+      var edit=document.getElementById('aluStudioEditBar');
+      var editor=document.getElementById('aluStudioEditorPanel');
+      if(edit)content.appendChild(edit);
+      if(editor)content.appendChild(editor);
+      shell.insertBefore(hub,shell.children[1]||null);
+    }else{
+      var content=hub.querySelector('.studio-hub-content');
+      [transport,actions,meter,document.getElementById('aluStudioEditBar'),document.getElementById('aluStudioEditorPanel')].forEach(function(x){if(x&&x.parentNode!==content)content.appendChild(x)});
+    }
+  }
+  arrange();
+  var mo=new MutationObserver(function(){arrange()});
+  mo.observe(studio,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 <style id="aluStudioButtonRepairV101">
 #studio #aluStudioEditBar,
 #studio #aluStudioEditorPanel{position:relative!important;z-index:10000!important;pointer-events:auto!important}

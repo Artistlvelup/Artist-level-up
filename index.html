@@ -839,15 +839,16 @@ function ready(){
     if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);else root.appendChild(bar);
     bar.addEventListener('click',function(e){
       var b=e.target.closest('[data-st-edit]');if(!b)return;
-      var act=b.getAttribute('data-st-edit'), tracks=typeof A.getTracks==='function'?A.getTracks():[];
-      if(act==='loop'){A.loop=!A.loop;b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return;}
-      if(act==='countin'){A.countIn=!A.countIn;b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return;}
+      var act=b.getAttribute('data-st-edit');
+      if(act==='loop'){A.loop=!A.loop;if(A.setLoop)A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return;}
+      if(act==='countin'){A.countIn=!A.countIn;if(A.setCountIn)A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return;}
       if(!A.selected){status('Tap a waveform clip first.');return;}
-      var i=A.selected;
-      if(act==='delete'){ if(tracks[i]){tracks.splice(i,1);A.selected=null; if(typeof A.render==='function')A.render(); status('Track deleted.');} }
-      else if(act==='duplicate'){ if(tracks[i]){var t=tracks[i];tracks.splice(i+1,0,Object.assign({},t,{name:(t.name||'Track')+' Copy'}));if(typeof A.render==='function')A.render();status('Track duplicated.');}}
-      else if(act==='rename'){if(tracks[i]){var n=prompt('Track name',tracks[i].name||'Track');if(n){tracks[i].name=n;if(typeof A.render==='function')A.render();status('Track renamed.');}}}
-      else if(act==='split'){status('Split mode ready: use the selected clip position as the edit point.');}
+      var id=A.selected, t=A.find&&A.find(id);
+      if(!t){status('Select a valid waveform clip.');return;}
+      if(act==='delete'){A.remove(id);A.selected=null;status('Track deleted.');}
+      else if(act==='duplicate'){A.duplicate(id);}
+      else if(act==='rename'){var n=prompt('Track name',t.name||'Track');if(n)A.rename(id,n);}
+      else if(act==='split'){status('Split editing is queued for the next timeline-editing pass; the selected clip is ready.');}
     });
   }
   function hookRender(){
@@ -858,11 +859,10 @@ function ready(){
   A.open=function(){var r=oldOpen.apply(this,arguments);setTimeout(function(){ensureTools();hookRender();},80);return r;};
   hookRender(); ensureTools();
   document.addEventListener('click',function(e){
-    var clip=e.target.closest?.('.alu-studio-clip,[data-track-index]');
+    var clip=e.target.closest?.('.studio-clip');
     if(!clip)return;
-    var idx=clip.getAttribute('data-track-index');
-    if(idx===null)idx=clip.dataset.trackIndex;
-    if(idx!==undefined){A.selected=parseInt(idx,10);status('Selected track '+(A.selected+1)+'.');}
+    var id=clip.getAttribute('data-track');
+    if(id){A.selected=id;status('Selected clip: '+((A.find&&A.find(id)?.name)||'Track')+'.');}
   },true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
@@ -902,7 +902,7 @@ document.addEventListener('click',async e=>{let a=e.target.closest?.('[data-stud
 let tbtn=e.target.closest?.('[data-track-act]');if(tbtn){let t=track(tbtn.dataset.track);if(!t)return;if(tbtn.dataset.trackAct==='delete'){S.undo.push(snap());S.tracks=S.tracks.filter(x=>x!==t);render()}else{S.undo.push(snap());t[tbtn.dataset.trackAct]=!t[tbtn.dataset.trackAct];render()}return}
 let mi=e.target.closest?.('[data-mix]');if(mi){let t=track(mi.dataset.track);if(t){t[mi.dataset.mix]=Number(mi.value);if(t.nodes)apply(t)}return}
 let clip=e.target.closest?.('.studio-clip');if(clip){let t=track(clip.dataset.track),n=prompt('Rename track:',t?.name||'Track');if(t&&n?.trim()){S.undo.push(snap());t.name=n.trim();render()}}});
-window.ALU_STUDIO_V101={open:()=>{go('studio');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));setTimeout(init,20)},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(JSON.stringify(S.tracks));S.tracks=JSON.parse(x);render();}},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
+window.ALU_STUDIO_V101={open:()=>{go('studio');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));setTimeout(init,20)},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(snap());S.tracks=x;render();}},find:(id)=>S.tracks.find(t=>String(t.id)===String(id)),remove:(id)=>{var i=S.tracks.findIndex(t=>String(t.id)===String(id));if(i<0)return;S.undo.push(snap());S.redo=[];S.tracks.splice(i,1);render();note('Track deleted ✓')},duplicate:(id)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t)return;S.undo.push(snap());S.redo=[];var n=Object.assign({},t,{id:'t'+Date.now(),name:(t.name||'Track')+' Copy'});S.tracks.push(n);render();note('Track duplicated ✓')},rename:(id,n)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t||!n)return;S.undo.push(snap());S.redo=[];t.name=n;render();note('Track renamed ✓')},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script><nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>

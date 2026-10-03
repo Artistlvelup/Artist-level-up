@@ -817,61 +817,64 @@ body.g77-open{overflow:hidden}
 <script id="artistLevelUpStudioV101Upgrade">
 (function(){
 'use strict';
-function ready(){
-  if(!window.ALU_STUDIO_V101){setTimeout(ready,50);return;}
+function boot(){
+  if(!window.ALU_STUDIO_V101){setTimeout(boot,80);return}
   var A=window.ALU_STUDIO_V101;
   A.loop=!!A.loop; A.countIn=!!A.countIn; A.selected=null; A.zoom=1;
   function root(){return document.getElementById('studio')}
   function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
+  function selected(){return A.selected&&A.find?A.find(A.selected):null}
   function ensure(){
     var r=root();if(!r)return;
     var bar=document.getElementById('aluStudioEditBar');
     if(!bar){
       bar=document.createElement('div');bar.id='aluStudioEditBar';bar.className='card';
+      bar.style.cssText='position:relative;z-index:50;pointer-events:auto;';
       bar.innerHTML='<h3>✂️ Timeline Editing</h3><div class="grid">'+
-      '<button class="btn" data-st-edit="split">✂️ Split</button>'+
-      '<button class="btn" data-st-edit="duplicate">📋 Duplicate</button>'+
-      '<button class="btn" data-st-edit="delete">🗑️ Delete</button>'+
-      '<button class="btn" data-st-edit="rename">✏️ Rename</button>'+
-      '<button class="btn" data-st-edit="loop">🔁 Loop: Off</button>'+
-      '<button class="btn" data-st-edit="countin">⏱️ Count-in: Off</button>'+
-      '<button class="btn" data-st-edit="zoomout">🔍 −</button>'+
-      '<button class="btn" data-st-edit="zoomin">🔎 +</button>'+
+      '<button type="button" class="btn" data-st-edit="split">✂️ Split</button>'+
+      '<button type="button" class="btn" data-st-edit="duplicate">📋 Duplicate</button>'+
+      '<button type="button" class="btn" data-st-edit="delete">🗑️ Delete</button>'+
+      '<button type="button" class="btn" data-st-edit="rename">✏️ Rename</button>'+
+      '<button type="button" class="btn" data-st-edit="loop">🔁 Loop: Off</button>'+
+      '<button type="button" class="btn" data-st-edit="countin">⏱️ Count-in: Off</button>'+
+      '<button type="button" class="btn" data-st-edit="zoomout">🔍 −</button>'+
+      '<button type="button" class="btn" data-st-edit="zoomin">🔎 +</button>'+
       '</div><p class="muted" id="aluStudioStatus">Select a waveform clip first.</p>';
-      var timeline=r.querySelector('#studioTracks');
-      if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);
-      else r.appendChild(bar);
-      bar.addEventListener('click',function(ev){
+      var tl=r.querySelector('#studioTracks');if(tl&&tl.parentNode)tl.parentNode.insertBefore(bar,tl);else r.appendChild(bar);
+      bar.addEventListener('click',async function(ev){
         var b=ev.target.closest('[data-st-edit]');if(!b)return;
+        ev.preventDefault();ev.stopPropagation();
         var act=b.getAttribute('data-st-edit');
-        if(act==='loop'){A.loop=!A.loop;if(A.setLoop)A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return}
-        if(act==='countin'){A.countIn=!A.countIn;if(A.setCountIn)A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return}
-        if(act==='zoomin'||act==='zoomout'){A.zoom=Math.max(.5,Math.min(4,A.zoom+(act==='zoomin'?.5:-.5)));document.querySelectorAll('.studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center'});status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return}
-        if(!A.selected){status('Tap a waveform clip first.');return}
-        var t=A.find&&A.find(A.selected);if(!t){status('Select a valid waveform clip.');return}
-        if(act==='delete'){A.remove(A.selected);A.selected=null;status('Track deleted ✓')}
-        else if(act==='duplicate'){A.duplicate(A.selected);status('Track duplicated ✓')}
-        else if(act==='rename'){var n=prompt('Track name',t.name||'Track');if(n)A.rename(A.selected,n)}
-        else if(act==='split'){if(A.split)A.split(A.selected);else status('Split tool ready — clip selected.')}
+        try{
+          if(act==='loop'){A.loop=!A.loop;A.setLoop&&A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');return}
+          if(act==='countin'){A.countIn=!A.countIn;A.setCountIn&&A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');return}
+          if(act==='zoomin'||act==='zoomout'){A.zoom=Math.max(.5,Math.min(4,A.zoom+(act==='zoomin'?.5:-.5)));document.querySelectorAll('.studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center'});status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return}
+          var t=selected();if(!t){status('Tap a waveform clip first.');return}
+          if(act==='delete'){A.remove(t.id);A.selected=null;status('Track deleted ✓');return}
+          if(act==='duplicate'){A.duplicate(t.id);A.selected=null;status('Track duplicated ✓');return}
+          if(act==='rename'){var n=prompt('Track name:',t.name||'Track');if(n&&n.trim())A.rename(t.id,n.trim());return}
+          if(act==='split'){var at=Number(document.getElementById('aluEdStart')?.value)||t.duration/2;await A.split(t.id,at);status('Clip split ✓');return}
+        }catch(err){status('Control error: '+(err&&err.message||'try again'))}
       });
     }
-    var loopBtn=bar.querySelector('[data-st-edit="loop"]'),countBtn=bar.querySelector('[data-st-edit="countin"]');
-    if(loopBtn)loopBtn.textContent='🔁 Loop: '+(A.loop?'On':'Off');
-    if(countBtn)countBtn.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');
+    var lb=bar.querySelector('[data-st-edit="loop"]'),cb=bar.querySelector('[data-st-edit="countin"]');
+    if(lb)lb.textContent='🔁 Loop: '+(A.loop?'On':'Off');
+    if(cb)cb.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');
   }
-  var oldRender=A.render;
-  if(!A.__aluTimelineHook&&typeof oldRender==='function'){
-    A.__aluTimelineHook=true;
-    A.render=function(){var r=oldRender.apply(this,arguments);ensure();return r}
+  var old=A.render;
+  if(typeof old==='function'&&!A.__aluControlsRenderHook){
+    A.__aluControlsRenderHook=true;
+    A.render=function(){var out=old.apply(this,arguments);ensure();return out}
   }
   ensure();
   document.addEventListener('click',function(ev){
     var clip=ev.target.closest?.('.studio-clip');if(!clip)return;
-    var id=clip.getAttribute('data-track');if(!id)return;
-    A.selected=id;status('Selected clip: '+((A.find&&A.find(id)?.name)||'Track')+' ✓');
+    A.selected=clip.getAttribute('data-track')||null;
+    var t=selected(),x=document.getElementById('aluStudioStatus');
+    if(x&&t)x.textContent='Selected clip: '+(t.name||'Track')+' ✓';
   },true);
 }
-ready();
+boot();
 })();
 </script>
 <script id="artistLevelUpStudioV101Engine">
@@ -907,8 +910,9 @@ function init(){render();$('studioMaster').oninput=e=>$('studioMaster2').value=e
 document.addEventListener('click',async e=>{let a=e.target.closest?.('[data-studio-action]');if(a){let x=a.dataset.studioAction;if(x==='close'){go('home');return}if(x==='record'){S.rec?S.rec.stop():record();return}if(x==='stop'){S.rec?S.rec.stop():stop();return}if(x==='play'){S.playing?stop():play();return}if(x==='rewind'){stop();$('studioClock').textContent='00:00.0';return}if(x==='import'){$('studioImportInput').click();return}if(x==='save'){save().catch(()=>note('Could not save project.'));return}if(x==='load'){load().catch(()=>note('Could not load project.'));return}if(x==='undo'){undo();return}if(x==='redo'){let z=S.redo.pop();if(z){S.undo.push(snap());S.tracks=z;render();note('Redo ✓')}return}if(x==='export'){exportWav();return}if(x==='metronome'){a.classList.toggle('is-on');note(a.classList.contains('is-on')?'Metronome on':'Metronome off');return}}
 let tbtn=e.target.closest?.('[data-track-act]');if(tbtn){let t=track(tbtn.dataset.track);if(!t)return;if(tbtn.dataset.trackAct==='delete'){S.undo.push(snap());S.tracks=S.tracks.filter(x=>x!==t);render()}else{S.undo.push(snap());t[tbtn.dataset.trackAct]=!t[tbtn.dataset.trackAct];render()}return}
 let mi=e.target.closest?.('[data-mix]');if(mi){let t=track(mi.dataset.track);if(t){t[mi.dataset.mix]=Number(mi.value);if(t.nodes)apply(t)}return}
-let clip=e.target.closest?.('.studio-clip');if(clip){let t=track(clip.dataset.track),n=prompt('Rename track:',t?.name||'Track');if(t&&n?.trim()){S.undo.push(snap());t.name=n.trim();render()}}});
-window.ALU_STUDIO_V101={open:()=>{var p=document.getElementById('studio');if(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active');window.ALU_ACTIVE_PAGE='studio';document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));if(typeof init==='function')setTimeout(init,20);window.scrollTo(0,0);}else if(typeof go==='function'){go('studio');}},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(snap());S.tracks=x;render();}},find:(id)=>S.tracks.find(t=>String(t.id)===String(id)),remove:(id)=>{var i=S.tracks.findIndex(t=>String(t.id)===String(id));if(i<0)return;S.undo.push(snap());S.redo=[];S.tracks.splice(i,1);render();note('Track deleted ✓')},duplicate:(id)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t)return;S.undo.push(snap());S.redo=[];var n=Object.assign({},t,{id:'t'+Date.now(),name:(t.name||'Track')+' Copy'});S.tracks.push(n);render();note('Track duplicated ✓')},rename:(id,n)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t||!n)return;S.undo.push(snap());S.redo=[];t.name=n;render();note('Track renamed ✓')},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
+let clip=e.target.closest?.('.studio-clip');if(clip){S.selected=clip.dataset.track;return}});
+S.selected=null;
+window.ALU_STUDIO_V101={open:()=>{var p=document.getElementById('studio');if(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active');window.ALU_ACTIVE_PAGE='studio';document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));if(typeof init==='function')setTimeout(init,20);window.scrollTo(0,0);}else if(typeof go==='function'){go('studio');}},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(snap());S.tracks=x;render();}},find:(id)=>S.tracks.find(t=>String(t.id)===String(id)),remove:(id)=>{var i=S.tracks.findIndex(t=>String(t.id)===String(id));if(i<0)return;S.undo.push(snap());S.redo=[];S.tracks.splice(i,1);render();note('Track deleted ✓')},duplicate:(id)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t)return;S.undo.push(snap());S.redo=[];var n=Object.assign({},t,{id:'t'+Date.now(),name:(t.name||'Track')+' Copy'});S.tracks.push(n);render();note('Track duplicated ✓')},rename:(id,n)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t||!n)return;S.undo.push(snap());S.redo=[];t.name=n;render();note('Track renamed ✓')},split:async(id,at)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t)return false;var b=await ctx().decodeAudioData((await t.blob.arrayBuffer()).slice(0)),cut=Math.max(.01,Math.min(b.duration-.01,Number(at)||b.duration/2)),sr=b.sampleRate;async function part(st,en){var n=Math.max(1,Math.floor((en-st)*sr)),oc=new OfflineAudioContext(b.numberOfChannels,n,sr),src=oc.createBufferSource(),nb=oc.createBuffer(b.numberOfChannels,n,sr);for(var ch=0;ch<b.numberOfChannels;ch++)nb.getChannelData(ch).set(b.getChannelData(ch).subarray(Math.floor(st*sr),Math.floor(en*sr)));src.buffer=nb;src.connect(oc.destination);src.start();return await oc.startRendering()}var l=await part(0,cut),r=await part(cut,b.duration);function enc(buf){var ch=buf.numberOfChannels,n=buf.length,rate=buf.sampleRate,out=new ArrayBuffer(44+n*ch*2),v=new DataView(out),w=function(p,x){for(var i=0;i<x.length;i++)v.setUint8(p+i,x.charCodeAt(i))};w(0,'RIFF');v.setUint32(4,36+n*ch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*ch*2,true);var k=44;for(var i=0;i<n;i++)for(var j=0;j<ch;j++){var z=Math.max(-1,Math.min(1,buf.getChannelData(j)[i]));v.setInt16(k,z<0?z*32768:z*32767,true);k+=2}return new Blob([out],{type:'audio/wav'})}S.undo.push(snap());S.redo=[];var idx=S.tracks.indexOf(t),a=Object.assign({},t,{id:'t'+Date.now()+'a',name:(t.name||'Track')+' A',blob:enc(l),duration:l.duration,volume:t.volume??1,pan:t.pan??0}),c=Object.assign({},t,{id:'t'+Date.now()+'b',name:(t.name||'Track')+' B',blob:enc(r),duration:r.duration,volume:t.volume??1,pan:t.pan??0});S.tracks.splice(idx,1,a,c);S.selected=a.id;render();note('Clip split at '+cut.toFixed(2)+'s ✓');return true},replaceTrack:(id,next)=>{var i=S.tracks.findIndex(function(t){return String(t.id)===String(id)});if(i<0)return;S.undo.push(snap());S.redo=[];S.tracks[i]=next;S.selected=next.id;render();note('Track edit saved ✓')},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script>
@@ -916,52 +920,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(){
 'use strict';
 function boot(){
-  if(!window.ALU_STUDIO_V101){setTimeout(boot,100);return}
-  var A=window.ALU_STUDIO_V101, selected=null;
+  if(!window.ALU_STUDIO_V101){setTimeout(boot,80);return}
+  var A=window.ALU_STUDIO_V101;
   function root(){return document.getElementById('studio')}
-  function tracks(){return A.getTracks?A.getTracks():[]}
-  function find(id){return A.find?A.find(id):tracks().find(function(t){return String(t.id)===String(id)})}
+  function track(){return A.selected&&A.find?A.find(A.selected):null}
   function msg(s){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=s}
-  function esc(s){return String(s||'').replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
-  function encode(buf){
-    var ch=buf.numberOfChannels, n=buf.length, rate=buf.sampleRate, out=new ArrayBuffer(44+n*ch*2),v=new DataView(out);
-    function w(p,s){for(var i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))}
-    w(0,'RIFF');v.setUint32(4,36+n*ch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*ch*2,true);
-    var k=44;for(var i=0;i<n;i++)for(var j=0;j<ch;j++){var z=Math.max(-1,Math.min(1,buf.getChannelData(j)[i]));v.setInt16(k,z<0?z*32768:z*32767,true);k+=2}
-    return new Blob([out],{type:'audio/wav'})
-  }
-  async function decode(blob){var ac=new(window.AudioContext||window.webkitAudioContext)();var b=await blob.arrayBuffer();var x=await ac.decodeAudioData(b);ac.close();return x}
-  async function applyEdit(t,opt){
-    var b=await decode(t.blob), sr=b.sampleRate, start=Math.max(0,Math.min(b.duration,opt.start)), end=Math.max(start+.01,Math.min(b.duration,opt.end)), len=Math.max(1,Math.floor((end-start)*sr));
-    var oc=new OfflineAudioContext(b.numberOfChannels,len,sr), src=oc.createBufferSource(), g=oc.createGain(), p=oc.createStereoPanner(), eq=oc.createBiquadFilter(), cp=oc.createDynamicsCompressor(), d=oc.createDelay(2), dg=oc.createGain(), dry=oc.createGain();
-    var nb=oc.createBuffer(b.numberOfChannels,len,sr);
-    for(var ch=0;ch<b.numberOfChannels;ch++){var from=b.getChannelData(ch).subarray(Math.floor(start*sr),Math.floor(end*sr));nb.getChannelData(ch).set(from)}
-    src.buffer=nb;eq.type='peaking';eq.frequency.value=opt.eqFreq;eq.Q.value=.7;eq.gain.value=opt.eqGain;cp.threshold.value=opt.comp?-18:0;cp.ratio.value=opt.comp?3:1;cp.attack.value=.01;cp.release.value=.15;
-    g.gain.setValueAtTime(opt.gain,0);if(opt.fadeIn>0)g.gain.setValueAtTime(0,0),g.gain.linearRampToValueAtTime(opt.gain,opt.fadeIn);if(opt.fadeOut>0){var fo=Math.max(0,nb.duration-opt.fadeOut);g.gain.setValueAtTime(opt.gain,fo);g.gain.linearRampToValueAtTime(0,nb.duration)}
-    p.pan.value=opt.pan;d.delayTime.value=.24;dry.gain.value=1;dg.gain.value=opt.delay;
-    src.connect(g).connect(p).connect(eq).connect(cp);cp.connect(dry).connect(oc.destination);cp.connect(d).connect(dg).connect(oc.destination);src.start(0);
-    var rendered=await oc.startRendering();t.blob=encode(rendered);t.duration=rendered.duration;t.volume=1;t.pan=0;t._editor=opt;
-    if(A.render)A.render();msg('✓ Edits applied to '+(t.name||'Track'))
-  }
-  async function split(t,at){
-    var b=await decode(t.blob), cut=Math.max(.01,Math.min(b.duration-.01,at)), left=b.duration?null:null;
-    async function part(s,e){
-      var sr=b.sampleRate,n=Math.max(1,Math.floor((e-s)*sr)),oc=new OfflineAudioContext(b.numberOfChannels,n,sr),src=oc.createBufferSource(),nb=oc.createBuffer(b.numberOfChannels,n,sr);
-      for(var ch=0;ch<b.numberOfChannels;ch++)nb.getChannelData(ch).set(b.getChannelData(ch).subarray(Math.floor(s*sr),Math.floor(e*sr)));
-      src.buffer=nb;src.connect(oc.destination);src.start();return await oc.startRendering()
-    }
-    var l=await part(0,cut),r=await part(cut,b.duration);
-    function tr(buf,name){return {id:'t'+Date.now()+Math.random(),name:name,blob:encode(buf),volume:1,pan:0,mute:false,solo:false,duration:buf.duration}}
-    var all=tracks(),i=all.indexOf(t);if(i<0)return;
-    A.undo&&A.undo(); // restore point is created by the public delete/duplicate APIs; replace directly below
-    all.splice(i,1,tr(l,(t.name||'Track')+' A'));all.splice(i+1,0,tr(r,(t.name||'Track')+' B'));
-    A.render&&A.render();selected=all[i].id;msg('✓ Clip split at '+cut.toFixed(2)+'s')
-  }
   function ensure(){
     var r=root();if(!r)return;
-    var bar=document.getElementById('aluStudioEditorPanel');
-    if(bar)return;
+    var bar=document.getElementById('aluStudioEditorPanel');if(bar)return;
     bar=document.createElement('div');bar.id='aluStudioEditorPanel';bar.className='card';
+    bar.style.cssText='position:relative;z-index:50;pointer-events:auto;';
     bar.innerHTML='<h3>🎚️ Audio Editor</h3><p class="tiny muted" id="aluEditorSelected">Select a waveform clip to edit it.</p>'+
       '<div class="grid">'+
       '<label>Start (sec)<input id="aluEdStart" type="number" min="0" step=".01" value="0"></label>'+
@@ -973,32 +941,51 @@ function boot(){
       '<label>Fade Out <input id="aluEdOut" type="range" min="0" max="2" step=".01" value="0"></label>'+
       '<label>Delay <input id="aluEdDelay" type="range" min="0" max=".5" step=".01" value="0"></label>'+
       '</div><div class="grid">'+
-      '<button class="btn primary" type="button" data-proper-edit="apply">🎚️ Apply Edits</button>'+
-      '<button class="btn" type="button" data-proper-edit="split">✂️ Split Here</button>'+
-      '<button class="btn" type="button" data-proper-edit="duplicate">📋 Duplicate</button>'+
-      '<button class="btn" type="button" data-proper-edit="delete">🗑️ Delete</button>'+
-      '<button class="btn" type="button" data-proper-edit="rename">✏️ Rename</button>'+
+      '<button type="button" class="btn primary" data-proper-edit="apply">🎚️ Apply Edits</button>'+
+      '<button type="button" class="btn" data-proper-edit="split">✂️ Split Here</button>'+
+      '<button type="button" class="btn" data-proper-edit="duplicate">📋 Duplicate</button>'+
+      '<button type="button" class="btn" data-proper-edit="delete">🗑️ Delete</button>'+
+      '<button type="button" class="btn" data-proper-edit="rename">✏️ Rename</button>'+
       '</div>';
     var tl=r.querySelector('#studioTracks');if(tl&&tl.parentNode)tl.parentNode.insertBefore(bar,tl);else r.appendChild(bar);
     bar.addEventListener('click',async function(e){
       var b=e.target.closest('[data-proper-edit]');if(!b)return;
-      var t=find(selected);if(!t){msg('Select a waveform clip first.');return}
-      var act=b.getAttribute('data-proper-edit');
+      e.preventDefault();e.stopPropagation();
+      var t=track();if(!t){msg('Select a waveform clip first.');return}
       try{
-        if(act==='apply'){await applyEdit(t,{start:+document.getElementById('aluEdStart').value||0,end:+document.getElementById('aluEdEnd').value||t.duration,gain:+document.getElementById('aluEdGain').value,pan:+document.getElementById('aluEdPan').value,eqGain:+document.getElementById('aluEdEQ').value,eqFreq:2500,fadeIn:+document.getElementById('aluEdIn').value,fadeOut:+document.getElementById('aluEdOut').value,delay:+document.getElementById('aluEdDelay').value,comp:true});}
-        else if(act==='split'){await split(t,Math.max(.01,Math.min(t.duration-.01,(+document.getElementById('aluEdStart').value||t.duration/2))));}
-        else if(act==='duplicate'){A.duplicate&&A.duplicate(t.id);msg('✓ Clip duplicated')}
-        else if(act==='delete'){A.remove&&A.remove(t.id);selected=null;msg('✓ Clip deleted')}
-        else if(act==='rename'){var n=prompt('Track name:',t.name||'Track');if(n)A.rename&&A.rename(t.id,n)}
-      }catch(err){msg('Editor error: '+(err.message||'try again'))}
+        var act=b.getAttribute('data-proper-edit');
+        if(act==='duplicate'){A.duplicate(t.id);msg('✓ Clip duplicated');return}
+        if(act==='delete'){A.remove(t.id);A.selected=null;msg('✓ Clip deleted');return}
+        if(act==='rename'){var n=prompt('Track name:',t.name||'Track');if(n&&n.trim())A.rename(t.id,n.trim());return}
+        if(act==='split'){var at=Number(document.getElementById('aluEdStart').value)||t.duration/2;await A.split(t.id,at);msg('✓ Clip split');return}
+        if(act==='apply'){
+          msg('Applying edits…');
+          var bfr=await decode(t.blob),sr=bfr.sampleRate,start=Math.max(0,Math.min(bfr.duration,Number(document.getElementById('aluEdStart').value)||0)),end=Math.max(start+.01,Math.min(bfr.duration,Number(document.getElementById('aluEdEnd').value)||bfr.duration)),len=Math.max(1,Math.floor((end-start)*sr));
+          var oc=new OfflineAudioContext(bfr.numberOfChannels,len,sr),src=oc.createBufferSource(),g=oc.createGain(),p=oc.createStereoPanner(),eq=oc.createBiquadFilter(),cp=oc.createDynamicsCompressor(),d=oc.createDelay(2),dg=oc.createGain(),dry=oc.createGain(),nb=oc.createBuffer(bfr.numberOfChannels,len,sr);
+          for(var ch=0;ch<bfr.numberOfChannels;ch++)nb.getChannelData(ch).set(bfr.getChannelData(ch).subarray(Math.floor(start*sr),Math.floor(end*sr)));
+          src.buffer=nb;eq.type='peaking';eq.frequency.value=2500;eq.Q.value=.7;eq.gain.value=Number(document.getElementById('aluEdEQ').value)||0;cp.threshold.value=-18;cp.ratio.value=3;cp.attack.value=.01;cp.release.value=.15;
+          var gain=Number(document.getElementById('aluEdGain').value)||1;g.gain.value=gain;p.pan.value=Number(document.getElementById('aluEdPan').value)||0;
+          var fi=Number(document.getElementById('aluEdIn').value)||0,fo=Number(document.getElementById('aluEdOut').value)||0;
+          if(fi>0){g.gain.setValueAtTime(0,0);g.gain.linearRampToValueAtTime(gain,Math.min(fi,nb.duration))}
+          if(fo>0){var fos=Math.max(0,nb.duration-fo);g.gain.setValueAtTime(gain,fos);g.gain.linearRampToValueAtTime(0,nb.duration)}
+          dry.gain.value=1;dg.gain.value=Number(document.getElementById('aluEdDelay').value)||0;d.delayTime.value=.24;
+          src.connect(g).connect(p).connect(eq).connect(cp);cp.connect(dry).connect(oc.destination);cp.connect(d).connect(dg).connect(oc.destination);src.start(0);
+          var rendered=await oc.startRendering(),wav=encode(rendered);
+          if(typeof A.replaceTrack==='function')A.replaceTrack(t.id,Object.assign({},t,{blob:wav,duration:rendered.duration,volume:1,pan:0}));
+          else {t.blob=wav;t.duration=rendered.duration;t.volume=1;t.pan=0;A.render&&A.render()}
+          msg('✓ Edits applied to '+(t.name||'Track'));
+        }
+      }catch(err){msg('Editor error: '+(err&&err.message||'try again'))}
     });
   }
+  function decode(blob){return blob.arrayBuffer().then(function(x){var ac=new(window.AudioContext||window.webkitAudioContext)();return ac.decodeAudioData(x).finally(function(){try{ac.close()}catch(e){}})})}
+  function encode(buf){var ch=buf.numberOfChannels,n=buf.length,rate=buf.sampleRate,out=new ArrayBuffer(44+n*ch*2),v=new DataView(out),w=function(p,x){for(var i=0;i<x.length;i++)v.setUint8(p+i,x.charCodeAt(i))};w(0,'RIFF');v.setUint32(4,36+n*ch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*ch*2,true);var k=44;for(var i=0;i<n;i++)for(var j=0;j<ch;j++){var z=Math.max(-1,Math.min(1,buf.getChannelData(j)[i]));v.setInt16(k,z<0?z*32768:z*32767,true);k+=2}return new Blob([out],{type:'audio/wav'})}
   ensure();
   document.addEventListener('click',function(e){
     var clip=e.target.closest?.('.studio-clip');if(!clip)return;
-    selected=clip.getAttribute('data-track');var t=find(selected);if(!t)return;
-    ensure();var x=document.getElementById('aluEditorSelected');if(x)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';
-    var en=document.getElementById('aluEdEnd');if(en)en.value=Number(t.duration||1).toFixed(2);
+    A.selected=clip.getAttribute('data-track')||null;
+    var t=track(),x=document.getElementById('aluEditorSelected'),en=document.getElementById('aluEdEnd');
+    if(t){if(x)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';if(en)en.value=Number(t.duration||1).toFixed(2)}
   },true);
 }
 boot();

@@ -2476,7 +2476,7 @@ async function syncLocalApprovedPictures(){
  let list=[];try{list=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]')}catch(_){return}
  if(!Array.isArray(list))return;
  let changed=false;
- for(const p of list.filter(x=>String(x.status||'').toLowerCase()==='approved'&&!x.cloudId)){
+ for(const p of list.filter(x=>String(x.status||'').toLowerCase()==='approved'&&!x.cloudId&&!x.cloudSynced)){
   try{
    let imageUrl=normalizeImageUrl(p.imageUrl||'');
    if(!/^https?:\/\//i.test(imageUrl)){
@@ -2508,7 +2508,7 @@ async function loadCloudPictures(){
  try{
   const raw=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');
   if(Array.isArray(raw)){
-   local=raw.filter(p=>['approved','published'].includes(String(p.status||'').toLowerCase())).map(p=>({
+   local=raw.filter(p=>!p.cloudId&&!p.cloudSynced&&['approved','published'].includes(String(p.status||'').toLowerCase())).map(p=>({
     kind:'picture',
     id:p.cloudId||p.id,
     image_url:normalizeImageUrl(p.imageUrl||p.image_url||p.image||''),
@@ -2595,12 +2595,9 @@ async function open77(){
  track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed</b><div style="opacity:.7;margin-top:8px">Loading published videos and approved pictures…</div></div></div>';
  // Render first. Do not block the feed on picture syncing or video-state repair.
  try{await render77()}catch(e){console.warn('Global feed render skipped:',e)}
- // Background sync only; it must never keep the fullscreen feed black.
+ // Keep Global Feed isolated from local picture/video state refreshes.
+ // The feed queries published cloud videos directly, so opening it does not rewrite local video state.
  Promise.resolve().then(()=>syncLocalApprovedPictures()).catch(e=>console.warn('Global picture sync skipped:',e));
- if(typeof window.ALU_REFRESH_VIDEOS==='function'){
-   Promise.race([window.ALU_REFRESH_VIDEOS(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Video refresh timed out')),3000))])
-    .then(()=>render77()).catch(e=>console.warn('Global video refresh skipped:',e));
- }
  setTimeout(autoplayVisible,300);
 }
 function close77(e){

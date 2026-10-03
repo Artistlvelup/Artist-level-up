@@ -3599,77 +3599,116 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <!-- V101 STUDIO BUTTON REPAIR -->
 <style id="aluStudioButtonRepairV101">
-#studio [data-st-edit],#studio [data-proper-edit]{position:relative!important;z-index:1000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important;}
+#studio #aluStudioEditBar,
+#studio #aluStudioEditorPanel{position:relative!important;z-index:10000!important;pointer-events:auto!important}
+#studio #aluStudioEditBar button,
+#studio #aluStudioEditorPanel button{position:relative!important;z-index:10001!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important;-webkit-user-select:none!important;user-select:none!important}
 </style>
 <script id="aluStudioButtonRepairV101">
 (function(){
 'use strict';
 function boot(){
   var A=window.ALU_STUDIO_V101;
-  if(!A){setTimeout(boot,100);return;}
-  if(window.__ALU_STUDIO_BUTTON_REPAIR_V101)return;
-  window.__ALU_STUDIO_BUTTON_REPAIR_V101=true;
-  var lastHandled=0;
-  function selected(){return A.selected&&A.find?A.find(A.selected):null;}
-  function msg(s){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=s;}
+  if(!A){setTimeout(boot,100);return}
+  if(window.__ALU_STUDIO_BUTTON_REPAIR_V101_V2)return;
+  window.__ALU_STUDIO_BUTTON_REPAIR_V101_V2=true;
+
+  function root(){return document.getElementById('studio')}
+  function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
+  function selected(){return A.selected&&A.find?A.find(A.selected):null}
   function selectClip(el){
     if(!el)return;
     var id=el.getAttribute('data-track');
-    if(id){A.selected=id;var t=selected();var x=document.getElementById('aluEditorSelected');if(x&&t)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';}
-  }
-  async function run(el){
-    var kind=el.getAttribute('data-st-edit')||el.getAttribute('data-proper-edit');
-    if(!kind)return false;
-    if(kind==='apply')return false;
-    var t=selected();
-    try{
-      if(kind==='loop'){A.loop=!A.loop;A.setLoop&&A.setLoop(A.loop);el.textContent='🔁 Loop: '+(A.loop?'On':'Off');msg(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');return true;}
-      if(kind==='countin'){A.countIn=!A.countIn;A.setCountIn&&A.setCountIn(A.countIn);el.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');msg(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');return true;}
-      if(kind==='zoomin'||kind==='zoomout'){
-        A.zoom=Math.max(.5,Math.min(4,Number(A.zoom||1)+(kind==='zoomin'?.5:-.5)));
-        document.querySelectorAll('#studio .studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center';});
-        msg('Timeline zoom: '+A.zoom.toFixed(1)+'×');return true;
-      }
-      if(kind==='reload'){A.render&&A.render();msg('Studio timeline reloaded ✓');return true;}
-      if(!t){msg('Tap a waveform clip first.');return true;}
-      if(kind==='duplicate'){A.duplicate&&A.duplicate(t.id);msg('✓ Clip duplicated');return true;}
-      if(kind==='delete'){A.remove&&A.remove(t.id);A.selected=null;msg('✓ Clip deleted');return true;}
-      if(kind==='rename'){
-        var n=prompt('Track name:',t.name||'Track');
-        if(n&&n.trim())A.rename&&A.rename(t.id,n.trim());
-        return true;
-      }
-      if(kind==='split'){
-        var input=document.getElementById('aluEdStart');
-        var at=Number(input&&input.value)||Number(t.duration||0)/2;
-        if(A.split)await A.split(t.id,at);
-        msg('✓ Clip split');return true;
-      }
-    }catch(err){msg('Studio control error: '+(err&&err.message||'try again'));return true;}
-    return false;
-  }
-  function capture(e){
-    var b=e.target&&e.target.closest?e.target.closest('#studio [data-st-edit],#studio [data-proper-edit]'):null;
-    if(!b)return;
-    if(e.type==='pointerdown'){
-      b.style.pointerEvents='auto';
-      return;
-    }
-    if(e.type==='pointerup'){
-      run(b).then(function(done){if(done){lastHandled=Date.now();b.__aluHandledAt=lastHandled;}});
-      e.preventDefault();e.stopImmediatePropagation();return;
-    }
-    if(e.type==='click'){
-      if(Date.now()-lastHandled<800||Date.now()-(b.__aluHandledAt||0)<800){e.preventDefault();e.stopImmediatePropagation();return;}
-      run(b).then(function(done){if(done){lastHandled=Date.now();b.__aluHandledAt=lastHandled;}});
-      e.preventDefault();e.stopImmediatePropagation();
+    if(id){A.selected=id;
+      var t=selected(),x=document.getElementById('aluEditorSelected');
+      if(x&&t)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';
+      var y=document.getElementById('aluStudioStatus');
+      if(y&&t)y.textContent='Selected clip: '+(t.name||'Track')+' ✓';
     }
   }
-  document.addEventListener('pointerdown',function(e){var c=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;if(c)selectClip(c);},true);
-  document.addEventListener('pointerup',capture,true);
-  document.addEventListener('click',capture,true);
-  document.addEventListener('touchend',function(e){var b=e.target&&e.target.closest?e.target.closest('#studio [data-st-edit],#studio [data-proper-edit]'):null;if(b){run(b).then(function(done){if(done){lastHandled=Date.now();b.__aluHandledAt=lastHandled;}});e.preventDefault();e.stopImmediatePropagation();}},true);
+  function addReloadButton(){
+    var bar=document.getElementById('aluStudioEditBar');
+    if(bar&&!bar.querySelector('[data-st-edit="reload"]')){
+      var wrap=bar.querySelector('.grid');
+      if(wrap){
+        var b=document.createElement('button');
+        b.type='button';b.className='btn';b.setAttribute('data-st-edit','reload');b.textContent='↻ Reload';
+        wrap.appendChild(b);
+      }
+    }
+  }
+  function bindButton(b){
+    if(!b||b.__aluBoundV2)return;
+    b.__aluBoundV2=true;
+    b.addEventListener('click',async function(e){
+      e.preventDefault();e.stopPropagation();
+      var kind=b.getAttribute('data-st-edit')||b.getAttribute('data-proper-edit');
+      try{
+        if(kind==='loop'){
+          A.loop=!A.loop;A.setLoop&&A.setLoop(A.loop);
+          b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');return;
+        }
+        if(kind==='countin'){
+          A.countIn=!A.countIn;A.setCountIn&&A.setCountIn(A.countIn);
+          b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');return;
+        }
+        if(kind==='zoomin'||kind==='zoomout'){
+          A.zoom=Math.max(.5,Math.min(4,Number(A.zoom||1)+(kind==='zoomin'?.5:-.5)));
+          document.querySelectorAll('#studio .studio-clip').forEach(function(x){
+            x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center';
+          });
+          status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return;
+        }
+        if(kind==='reload'){
+          if(typeof A.render==='function')A.render();
+          setTimeout(function(){addReloadButton();bindAll();},0);
+          status('Studio timeline reloaded ✓');return;
+        }
+        var t=selected();
+        if(!t){status('Tap a waveform clip first.');return}
+        if(kind==='duplicate'){
+          if(A.duplicate)A.duplicate(t.id);
+          A.selected=t.id;
+          status('✓ Clip duplicated');return;
+        }
+        if(kind==='delete'){
+          if(A.remove)A.remove(t.id);
+          A.selected=null;
+          status('✓ Clip deleted');return;
+        }
+        if(kind==='rename'){
+          var n=prompt('Track name:',t.name||'Track');
+          if(n&&n.trim()&&A.rename)A.rename(t.id,n.trim());
+          return;
+        }
+        if(kind==='split'){
+          var inp=document.getElementById('aluEdStart');
+          var at=Number(inp&&inp.value)||Number(t.duration||0)/2;
+          if(A.split)await A.split(t.id,at);
+          status('✓ Clip split');return;
+        }
+        /* Apply Edits is intentionally left to the V101 Proper Editor handler. */
+      }catch(err){status('Studio control error: '+(err&&err.message||'try again'))}
+    },{passive:false});
+  }
+  function bindAll(){
+    addReloadButton();
+    document.querySelectorAll('#studio [data-st-edit],#studio [data-proper-edit]').forEach(bindButton);
+  }
+  document.addEventListener('pointerdown',function(e){
+    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
+    if(clip)selectClip(clip);
+  },true);
+  document.addEventListener('click',function(e){
+    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
+    if(clip)selectClip(clip);
+  },true);
+  var mo=new MutationObserver(function(){bindAll()});
+  var r=root();
+  if(r)mo.observe(r,{childList:true,subtree:true});
+  bindAll();
+  setInterval(bindAll,500);
 }
-boot();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>

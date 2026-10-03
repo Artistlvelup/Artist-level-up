@@ -3890,3 +3890,40 @@ function boot(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>\n
+<style id="aluStudioVocalTimelineStackV101">
+/* V101 Vocal Timeline + Vocal Hub: one attached recording workspace */
+#studio .studio-vocal-stack{margin:14px 0;border:1px solid rgba(255,255,255,.12);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#11141b,#0d0f14);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+#studio .studio-vocal-stack>.studio-timeline-panel{margin:0!important;border:0!important;border-radius:0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
+#studio .studio-vocal-stack>.studio-vocal-hub{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:linear-gradient(180deg,rgba(30,35,45,.98),rgba(18,21,28,.98))}
+#studio .studio-timeline-panel .studio-ruler{margin-top:8px}
+#studio .studio-vocal-stack .studio-vocal-hub-head{padding-bottom:0}
+</style>
+<script id="aluStudioVocalTimelineStackV101">
+(function(){
+'use strict';
+function boot(){
+ var studio=document.getElementById('studio');
+ if(!studio){setTimeout(boot,100);return}
+ function arrange(){
+  var shell=studio.querySelector('.studio-shell');
+  var hub=studio.querySelector('.studio-vocal-hub');
+  var tracks=studio.querySelector('#studioTracks');
+  if(!shell||!hub||!tracks)return;
+  var timeline=tracks.closest('.card');
+  if(!timeline)return;
+  timeline.classList.add('studio-timeline-panel');
+  var stack=studio.querySelector('.studio-vocal-stack');
+  if(!stack){
+   stack=document.createElement('div');
+   stack.className='studio-vocal-stack';
+   shell.insertBefore(stack,hub);
+  }
+  if(timeline.parentNode!==stack)stack.insertBefore(timeline,stack.firstChild);
+  if(hub.parentNode!==stack)stack.appendChild(hub);
+ }
+ arrange();
+ new MutationObserver(arrange).observe(studio,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>

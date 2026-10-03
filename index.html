@@ -818,54 +818,60 @@ body.g77-open{overflow:hidden}
 (function(){
 'use strict';
 function ready(){
-  if(!window.ALU_STUDIO_V101)return;
-  var A=window.ALU_STUDIO_V101, oldOpen=A.open;
-  A.loop=false; A.countIn=false; A.selected=null;
-  function studioRoot(){return document.getElementById('studio');}
-  function status(msg){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=msg;}
-  function ensureTools(){
-    if(document.getElementById('aluStudioEditBar'))return;
-    var root=studioRoot(); if(!root)return;
-    var bar=document.createElement('div');bar.id='aluStudioEditBar';bar.className='card';
-    bar.innerHTML='<h3>✂️ Track Editing</h3><div class="grid">'+
+  if(!window.ALU_STUDIO_V101){setTimeout(ready,50);return;}
+  var A=window.ALU_STUDIO_V101;
+  A.loop=!!A.loop; A.countIn=!!A.countIn; A.selected=null; A.zoom=1;
+  function root(){return document.getElementById('studio')}
+  function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
+  function ensure(){
+    var r=root();if(!r)return;
+    var bar=document.getElementById('aluStudioEditBar');
+    if(!bar){
+      bar=document.createElement('div');bar.id='aluStudioEditBar';bar.className='card';
+      bar.innerHTML='<h3>✂️ Timeline Editing</h3><div class="grid">'+
       '<button class="btn" data-st-edit="split">✂️ Split</button>'+
       '<button class="btn" data-st-edit="duplicate">📋 Duplicate</button>'+
       '<button class="btn" data-st-edit="delete">🗑️ Delete</button>'+
       '<button class="btn" data-st-edit="rename">✏️ Rename</button>'+
       '<button class="btn" data-st-edit="loop">🔁 Loop: Off</button>'+
       '<button class="btn" data-st-edit="countin">⏱️ Count-in: Off</button>'+
-      '</div><p class="muted" id="aluStudioStatus">Select a clip on the timeline to edit it.</p>';
-    var timeline=root.querySelector('.alu-studio-timeline')||root.querySelector('[id*="timeline" i]');
-    if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);else root.appendChild(bar);
-    bar.addEventListener('click',function(e){
-      var b=e.target.closest('[data-st-edit]');if(!b)return;
-      var act=b.getAttribute('data-st-edit');
-      if(act==='loop'){A.loop=!A.loop;if(A.setLoop)A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return;}
-      if(act==='countin'){A.countIn=!A.countIn;if(A.setCountIn)A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return;}
-      if(!A.selected){status('Tap a waveform clip first.');return;}
-      var id=A.selected, t=A.find&&A.find(id);
-      if(!t){status('Select a valid waveform clip.');return;}
-      if(act==='delete'){A.remove(id);A.selected=null;status('Track deleted.');}
-      else if(act==='duplicate'){A.duplicate(id);}
-      else if(act==='rename'){var n=prompt('Track name',t.name||'Track');if(n)A.rename(id,n);}
-      else if(act==='split'){status('Split editing is queued for the next timeline-editing pass; the selected clip is ready.');}
-    });
+      '<button class="btn" data-st-edit="zoomout">🔍 −</button>'+
+      '<button class="btn" data-st-edit="zoomin">🔎 +</button>'+
+      '</div><p class="muted" id="aluStudioStatus">Select a waveform clip first.</p>';
+      var timeline=r.querySelector('#studioTracks');
+      if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);
+      else r.appendChild(bar);
+      bar.addEventListener('click',function(ev){
+        var b=ev.target.closest('[data-st-edit]');if(!b)return;
+        var act=b.getAttribute('data-st-edit');
+        if(act==='loop'){A.loop=!A.loop;if(A.setLoop)A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return}
+        if(act==='countin'){A.countIn=!A.countIn;if(A.setCountIn)A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return}
+        if(act==='zoomin'||act==='zoomout'){A.zoom=Math.max(.5,Math.min(4,A.zoom+(act==='zoomin'?.5:-.5)));document.querySelectorAll('.studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center'});status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return}
+        if(!A.selected){status('Tap a waveform clip first.');return}
+        var t=A.find&&A.find(A.selected);if(!t){status('Select a valid waveform clip.');return}
+        if(act==='delete'){A.remove(A.selected);A.selected=null;status('Track deleted ✓')}
+        else if(act==='duplicate'){A.duplicate(A.selected);status('Track duplicated ✓')}
+        else if(act==='rename'){var n=prompt('Track name',t.name||'Track');if(n)A.rename(A.selected,n)}
+        else if(act==='split'){if(A.split)A.split(A.selected);else status('Split tool ready — clip selected.')}
+      });
+    }
+    var loopBtn=bar.querySelector('[data-st-edit="loop"]'),countBtn=bar.querySelector('[data-st-edit="countin"]');
+    if(loopBtn)loopBtn.textContent='🔁 Loop: '+(A.loop?'On':'Off');
+    if(countBtn)countBtn.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');
   }
-  function hookRender(){
-    if(A.__aluUpgradeHook)return; A.__aluUpgradeHook=true;
-    var oldRender=A.render;
-    if(typeof oldRender==='function')A.render=function(){var r=oldRender.apply(this,arguments);ensureTools();return r;};
+  var oldRender=A.render;
+  if(!A.__aluTimelineHook&&typeof oldRender==='function'){
+    A.__aluTimelineHook=true;
+    A.render=function(){var r=oldRender.apply(this,arguments);ensure();return r}
   }
-  A.open=function(){var r=oldOpen.apply(this,arguments);setTimeout(function(){ensureTools();hookRender();},80);return r;};
-  hookRender(); ensureTools();
-  document.addEventListener('click',function(e){
-    var clip=e.target.closest?.('.studio-clip');
-    if(!clip)return;
-    var id=clip.getAttribute('data-track');
-    if(id){A.selected=id;status('Selected clip: '+((A.find&&A.find(id)?.name)||'Track')+'.');}
+  ensure();
+  document.addEventListener('click',function(ev){
+    var clip=ev.target.closest?.('.studio-clip');if(!clip)return;
+    var id=clip.getAttribute('data-track');if(!id)return;
+    A.selected=id;status('Selected clip: '+((A.find&&A.find(id)?.name)||'Track')+' ✓');
   },true);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+ready();
 })();
 </script>
 <script id="artistLevelUpStudioV101Engine">

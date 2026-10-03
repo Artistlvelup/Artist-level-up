@@ -2456,9 +2456,16 @@ function artistKey(v){return String(v.artist_id||v.artist_name||v.artistName||v.
 function commentsFor(v){const s=socialState();return Array.isArray(s.comments?.[keyFor(v)])?s.comments[keyFor(v)]:[]}
 function normalizeImageUrl(v){let s=String(v||'').trim();if(s.startsWith('[')){try{const a=JSON.parse(s);if(Array.isArray(a))s=String(a[0]||'')}catch(_){}}return s}
 function publishedVideos(){
- let arr=[];try{arr=Array.isArray(state?.videos)?state.videos:[]}catch(_){}
- return arr.filter(v=>['published','approved'].includes(String(v.status||'').toLowerCase())&&String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim()).map(v=>{
-  let src=v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'';try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}
+ let arr=[];
+ try{const st=typeof getState==='function'?getState():state;arr=Array.isArray(st?.videos)?st.videos:[]}catch(_){}
+ return arr.filter(v=>{
+   const status=String(v.status||'').toLowerCase();
+   let src=String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim();
+   try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}
+   return ['published','approved'].includes(status)&&/^https?:\\/\\//i.test(src);
+ }).map(v=>{
+  let src=String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim();
+  try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}
   return {kind:'video',id:v.remoteVideoId||v.id,video_url:src,thumbnail_url:v.thumbnail_url||v.thumbnailUrl||'',title:v.title||'Untitled Video',artist_name:v.artist_name||v.artistName||v.artist||'Artist Level Up artist',description:v.description||'Discover this artist on Artist Level Up.',createdAt:v.createdAt||v.created_at||'',createdAtTs:Number(v.createdAtTs||new Date(v.createdAt||v.created_at||0).getTime()||0),raw:v};
  });
 }

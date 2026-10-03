@@ -839,7 +839,7 @@ function ready(){
     if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);else root.appendChild(bar);
     bar.addEventListener('click',function(e){
       var b=e.target.closest('[data-st-edit]');if(!b)return;
-      var act=b.getAttribute('data-st-edit'), tracks=A._tracks||A.tracks||[];
+      var act=b.getAttribute('data-st-edit'), tracks=typeof A.getTracks==='function'?A.getTracks():[];
       if(act==='loop'){A.loop=!A.loop;b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return;}
       if(act==='countin'){A.countIn=!A.countIn;b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return;}
       if(!A.selected){status('Tap a waveform clip first.');return;}
@@ -902,7 +902,7 @@ document.addEventListener('click',async e=>{let a=e.target.closest?.('[data-stud
 let tbtn=e.target.closest?.('[data-track-act]');if(tbtn){let t=track(tbtn.dataset.track);if(!t)return;if(tbtn.dataset.trackAct==='delete'){S.undo.push(snap());S.tracks=S.tracks.filter(x=>x!==t);render()}else{S.undo.push(snap());t[tbtn.dataset.trackAct]=!t[tbtn.dataset.trackAct];render()}return}
 let mi=e.target.closest?.('[data-mix]');if(mi){let t=track(mi.dataset.track);if(t){t[mi.dataset.mix]=Number(mi.value);if(t.nodes)apply(t)}return}
 let clip=e.target.closest?.('.studio-clip');if(clip){let t=track(clip.dataset.track),n=prompt('Rename track:',t?.name||'Track');if(t&&n?.trim()){S.undo.push(snap());t.name=n.trim();render()}}});
-window.ALU_STUDIO_V101={open:()=>{go('studio');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));setTimeout(init,20)},init};
+window.ALU_STUDIO_V101={open:()=>{go('studio');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));setTimeout(init,20)},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(JSON.stringify(S.tracks));S.tracks=JSON.parse(x);render();}},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script><nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>

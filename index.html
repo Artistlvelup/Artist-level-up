@@ -3564,43 +3564,35 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModa
 (function(){
 'use strict';
 function boot(){
- var studio=document.getElementById('studio');if(!studio){setTimeout(boot,100);return}
+ var studio=document.getElementById('studio');if(!studio){setTimeout(boot,250);return}
  if(studio.__aluProFx)return;studio.__aluProFx=true;
- var cats={
-  Pitch:[['pitch','🎤 Pitch / Auto-Tune','Pitch correction-style pitch control.'],['tuner','🎯 Vocal Tuner','Pitch reference tool.']],
-  Vocal:[['deesser','🗣️ De-Esser','Controls harsh S sounds.'],['gate','🚪 Noise Gate','Reduces low-level noise.'],['compressor','🔊 Compressor','Controls vocal dynamics.']],
-  EQ:[['eq','🎚️ Parametric EQ','Frequency shaping.'],['filter','🔎 Auto Filter','Low-pass tone filter.']],
-  Space:[['reverb','🌊 Reverb','Room / vocal ambience.'],['delay','⏱️ Delay','Tempo-style echo.'],['chorus','🌀 Chorus','Thick stereo vocal effect.'],['widen','↔️ Stereo Widener','Wider stereo image.']],
-  Color:[['distortion','🔥 Saturation / Distortion','Adds harmonic color.'],['tremolo','〰️ Tremolo','Amplitude modulation.']]
- };
+ var cats={Pitch:[['pitch','🎤 Pitch / Auto-Tune','Pitch correction-style pitch control.']],Vocal:[['deesser','🗣️ De-Esser','Controls harsh S sounds.'],['gate','🚪 Noise Gate','Reduces low-level noise.'],['compressor','🔊 Compressor','Controls vocal dynamics.']],EQ:[['eq','🎚️ Parametric EQ','Frequency shaping.'],['filter','🔎 Auto Filter','Low-pass tone filter.']],Space:[['reverb','🌊 Reverb','Room / vocal ambience.'],['delay','⏱️ Delay','Echo effect.'],['chorus','🌀 Chorus','Thick stereo vocal effect.'],['widen','↔️ Stereo Widener','Wider stereo image.']],Color:[['distortion','🔥 Saturation / Distortion','Adds harmonic color.'],['tremolo','〰️ Tremolo','Amplitude modulation.']]};
  var controls={eqGain:['EQ Gain',-12,12,.5],eqFreq:['EQ Freq',80,12000,10],eqQ:['EQ Q',.1,12,.1],compThreshold:['Comp Threshold',-60,0,1],compRatio:['Comp Ratio',1,20,.5],reverbMix:['Reverb Mix',0,.8,.01],reverbTime:['Reverb Time',.2,5,.1],delayTime:['Delay Time',.01,2,.01],delayFeedback:['Delay Feedback',0,.85,.01],delayMix:['Delay Mix',0,.8,.01],distDrive:['Drive',0,100,1],chorusMix:['Chorus Mix',0,.8,.01],filterFreq:['Filter Freq',200,18000,50],pitchSemi:['Pitch Shift',-12,12,1]};
- function selected(){var A=window.ALU_STUDIO_V101;return A&&A.selected&&A.find?A.find(A.selected):null}
+ function selected(){var A=window.ALU_STUDIO_V101;return A&&A.selected?A.find(A.selected):null}
  function getFx(t){if(!t)return null;t.proFx=Object.assign(aluProFxDefaults(),t.proFx||{});return t.proFx}
  function render(cat){
   var host=studio.querySelector('.alu-pro-fx-grid');if(!host)return;host.innerHTML='';
-  (cats[cat]||[]).forEach(function(x){var t=selected(),f=getFx(t),on=f&&f[x[0]];var d=document.createElement('div');d.className='alu-pro-fx-item';d.innerHTML='<b>'+x[1]+'</b><small>'+x[2]+'</small><button type="button" class="'+(on?'on':'')+'" data-profx="'+x[0]+'">'+(on?'ON':'OFF')+'</button>';host.appendChild(d)});
+  (cats[cat]||[]).forEach(function(x){var t=selected(),f=getFx(t),on=f&&f[x[0]],d=document.createElement('div');d.className='alu-pro-fx-item';d.innerHTML='<b>'+x[1]+'</b><small>'+x[2]+'</small><button type="button" class="'+(on?'on':'')+'" data-profx="'+x[0]+'">'+(on?'ON':'OFF')+'</button>';host.appendChild(d)});
   renderControls();
  }
  function renderControls(){
-  var t=selected(),f=getFx(t),host=studio.querySelector('.alu-pro-fx-controls');if(!host)return;
-  host.innerHTML='';
+  var t=selected(),f=getFx(t),host=studio.querySelector('.alu-pro-fx-controls');if(!host)return;host.innerHTML='';
   if(!t){host.innerHTML='<div class="alu-pro-fx-note">Tap a vocal waveform clip first to edit its effects.</div>';return}
-  ['eqGain','eqFreq','eqQ','compThreshold','compRatio','reverbMix','reverbTime','delayTime','delayFeedback','delayMix','distDrive','chorusMix','filterFreq','pitchSemi'].forEach(function(k){var q=controls[k],v=Number(f[k]);var l=document.createElement('label');l.textContent=q[0]+' · '+v;l.innerHTML+='<input type="range" min="'+q[1]+'" max="'+q[2]+'" step="'+q[3]+'" value="'+v+'" data-profx-param="'+k+'">';host.appendChild(l)});
+  Object.keys(controls).forEach(function(k){var q=controls[k],v=Number(f[k]),l=document.createElement('label');l.textContent=q[0]+' · '+v.toFixed(2);l.innerHTML+='<input type="range" min="'+q[1]+'" max="'+q[2]+'" step="'+q[3]+'" value="'+v+'" data-profx-param="'+k+'">';host.appendChild(l)});
  }
  function make(){
   if(studio.querySelector('.alu-pro-fx'))return;
   var card=document.createElement('div');card.className='alu-pro-fx';
-  card.innerHTML='<div class="alu-pro-fx-head"><div><span class="pill">PRO EFFECTS</span><h2>🎛️ Vocal Effects Rack</h2><div class="tiny muted">Cubase-inspired insert effects for the selected track.</div></div><span class="pill">V101</span></div><div class="alu-pro-fx-tabs">'+Object.keys(cats).map(function(k,i){return '<button type="button" class="'+(i===0?'on':'')+'" data-profx-cat="'+k+'">'+k+'</button>'}).join('')+'</div><div class="alu-pro-fx-grid"></div><div class="alu-pro-fx-controls"></div><div class="alu-pro-fx-note">Real browser DSP: EQ, compression, filtering, delay, convolution reverb, saturation, chorus and pitch-shift are routed through the V101 Web Audio engine. Full note-detecting Auto-Tune still requires a dedicated pitch-analysis engine.</div>';
+  card.innerHTML='<div class="alu-pro-fx-head"><div><span class="pill">PRO EFFECTS</span><h2>🎛️ Vocal Effects Rack</h2><div class="tiny muted">Professional insert effects for the selected track.</div></div><span class="pill">V101</span></div><div class="alu-pro-fx-tabs">'+Object.keys(cats).map(function(k,i){return '<button type="button" class="'+(i===0?'on':'')+'" data-profx-cat="'+k+'">'+k+'</button>'}).join('')+'</div><div class="alu-pro-fx-grid"></div><div class="alu-pro-fx-controls"></div><div class="alu-pro-fx-note">V101 browser DSP effects. Full note-detecting Auto-Tune requires a dedicated pitch-analysis engine.</div>';
   var fxCard=[...studio.querySelectorAll('.card')].find(function(x){return x.querySelector&&x.querySelector('[data-fx]')});
-  if(fxCard&&fxCard.parentNode)fxCard.parentNode.insertBefore(card,fxCard);else studio.querySelector('.studio-shell')?.appendChild(card);
+  if(fxCard&&fxCard.parentNode)fxCard.parentNode.insertBefore(card,fxCard);
   render('Pitch');
  }
  document.addEventListener('click',function(e){
   var b=e.target.closest?.('#studio [data-profx-cat]');if(b){e.preventDefault();studio.querySelectorAll('[data-profx-cat]').forEach(function(x){x.classList.remove('on')});b.classList.add('on');render(b.getAttribute('data-profx-cat'));return}
-  b=e.target.closest?.('#studio [data-profx]');if(b){e.preventDefault();var t=selected();if(!t){if(window.note)note('Tap a waveform clip first.');return}var f=getFx(t),k=b.getAttribute('data-profx');f[k]=!f[k];b.classList.toggle('on',f[k]);b.textContent=f[k]?'ON':'OFF';var A=window.ALU_STUDIO_V101;if(A&&A.render)A.render();setTimeout(function(){render((studio.querySelector('[data-profx-cat].on')||{}).getAttribute?.('data-profx-cat')||'Pitch')},0);return}
-  b=e.target.closest?.('#studio [data-profx-param]');if(b){var t=selected();if(!t)return;var f=getFx(t),k=b.getAttribute('data-profx-param');f[k]=Number(b.value);b.parentNode.firstChild.textContent=controls[k][0]+' · '+Number(b.value).toFixed(2);var A=window.ALU_STUDIO_V101;if(A&&A.apply)A.apply(t);else if(window.apply)window.apply(t);return}
+  b=e.target.closest?.('#studio [data-profx]');if(b){e.preventDefault();var t=selected();if(!t){if(window.note)note('Tap a waveform clip first.');return}var f=getFx(t),k=b.getAttribute('data-profx');f[k]=!f[k];b.classList.toggle('on',f[k]);b.textContent=f[k]?'ON':'OFF';if(window.ALU_STUDIO_V101&&ALU_STUDIO_V101.apply)ALU_STUDIO_V101.apply(t);return}
+  b=e.target.closest?.('#studio [data-profx-param]');if(b){var t=selected();if(!t)return;var f=getFx(t),k=b.getAttribute('data-profx-param');f[k]=Number(b.value);b.parentNode.firstChild.textContent=controls[k][0]+' · '+Number(b.value).toFixed(2);if(window.ALU_STUDIO_V101&&ALU_STUDIO_V101.apply)ALU_STUDIO_V101.apply(t)}
  });
- var mo=new MutationObserver(function(){make();renderControls()});mo.observe(studio,{childList:true,subtree:true});
  make();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

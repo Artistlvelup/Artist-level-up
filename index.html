@@ -814,6 +814,60 @@ body.g77-open{overflow:hidden}
     </div>
   </div>
 </div>
+<script id="artistLevelUpStudioV101Upgrade">
+(function(){
+'use strict';
+function ready(){
+  if(!window.ALU_STUDIO_V101)return;
+  var A=window.ALU_STUDIO_V101, oldOpen=A.open;
+  A.loop=false; A.countIn=false; A.selected=null;
+  function studioRoot(){return document.getElementById('studio');}
+  function status(msg){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=msg;}
+  function ensureTools(){
+    if(document.getElementById('aluStudioEditBar'))return;
+    var root=studioRoot(); if(!root)return;
+    var bar=document.createElement('div');bar.id='aluStudioEditBar';bar.className='card';
+    bar.innerHTML='<h3>✂️ Track Editing</h3><div class="grid">'+
+      '<button class="btn" data-st-edit="split">✂️ Split</button>'+
+      '<button class="btn" data-st-edit="duplicate">📋 Duplicate</button>'+
+      '<button class="btn" data-st-edit="delete">🗑️ Delete</button>'+
+      '<button class="btn" data-st-edit="rename">✏️ Rename</button>'+
+      '<button class="btn" data-st-edit="loop">🔁 Loop: Off</button>'+
+      '<button class="btn" data-st-edit="countin">⏱️ Count-in: Off</button>'+
+      '</div><p class="muted" id="aluStudioStatus">Select a clip on the timeline to edit it.</p>';
+    var timeline=root.querySelector('.alu-studio-timeline')||root.querySelector('[id*="timeline" i]');
+    if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(bar,timeline);else root.appendChild(bar);
+    bar.addEventListener('click',function(e){
+      var b=e.target.closest('[data-st-edit]');if(!b)return;
+      var act=b.getAttribute('data-st-edit'), tracks=A._tracks||A.tracks||[];
+      if(act==='loop'){A.loop=!A.loop;b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled.':'Loop playback disabled.');return;}
+      if(act==='countin'){A.countIn=!A.countIn;b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled.':'Count-in disabled.');return;}
+      if(!A.selected){status('Tap a waveform clip first.');return;}
+      var i=A.selected;
+      if(act==='delete'){ if(tracks[i]){tracks.splice(i,1);A.selected=null; if(typeof A.render==='function')A.render(); status('Track deleted.');} }
+      else if(act==='duplicate'){ if(tracks[i]){var t=tracks[i];tracks.splice(i+1,0,Object.assign({},t,{name:(t.name||'Track')+' Copy'}));if(typeof A.render==='function')A.render();status('Track duplicated.');}}
+      else if(act==='rename'){if(tracks[i]){var n=prompt('Track name',tracks[i].name||'Track');if(n){tracks[i].name=n;if(typeof A.render==='function')A.render();status('Track renamed.');}}}
+      else if(act==='split'){status('Split mode ready: use the selected clip position as the edit point.');}
+    });
+  }
+  function hookRender(){
+    if(A.__aluUpgradeHook)return; A.__aluUpgradeHook=true;
+    var oldRender=A.render;
+    if(typeof oldRender==='function')A.render=function(){var r=oldRender.apply(this,arguments);ensureTools();return r;};
+  }
+  A.open=function(){var r=oldOpen.apply(this,arguments);setTimeout(function(){ensureTools();hookRender();},80);return r;};
+  hookRender(); ensureTools();
+  document.addEventListener('click',function(e){
+    var clip=e.target.closest?.('.alu-studio-clip,[data-track-index]');
+    if(!clip)return;
+    var idx=clip.getAttribute('data-track-index');
+    if(idx===null)idx=clip.dataset.trackIndex;
+    if(idx!==undefined){A.selected=parseInt(idx,10);status('Selected track '+(A.selected+1)+'.');}
+  },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+})();
+</script>
 <script id="artistLevelUpStudioV101Engine">
 (function(){
 'use strict';

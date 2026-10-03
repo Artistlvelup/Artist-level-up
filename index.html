@@ -2560,11 +2560,12 @@ function observe77(){
 }
 async function playPromotedSong(v){
  try{
-  if(!v?.song_id||!v.song_audio_url)throw new Error('No attached music');
+  const audioUrl=String(v?.song_audio_url||v?.sound_audio_url||'');
+  if(!audioUrl||!/^https?:\/\//i.test(audioUrl))throw new Error('No attached music');
   track.querySelectorAll('video').forEach(x=>{try{x.pause()}catch(_){}});
   activeVideo=null;
-  const ok=typeof window.ALU_PLAY_CLOUD_SONG==='function'&&await window.ALU_PLAY_CLOUD_SONG({id:v.song_id,title:v.song_title,artist:v.artist_name,audioRemoteUrl:v.song_audio_url,coverArt:v.song_cover_url||''});
-  if(ok)toastMsg('🎵 '+(v.song_title||'Music')+' is playing');
+  const ok=typeof window.ALU_PLAY_CLOUD_SONG==='function'&&await window.ALU_PLAY_CLOUD_SONG({id:v.song_id||('picture_'+v.id),title:v.song_title||v.sound_title||'Music',artist:v.artist_name||'Artist Level Up',audioRemoteUrl:audioUrl,coverArt:v.song_cover_url||''});
+  if(ok)toastMsg('🎵 '+(v.song_title||v.sound_title||'Music')+' is playing');
  }catch(e){console.warn('Promoted music playback failed',e);toastMsg('Tap 🎵 again to play the attached music');}
 }
 function shareItem(v){
@@ -2611,7 +2612,7 @@ async function render77(){
       '<div class="g77-gradient"></div>'+
       (isVideo?'<div class="g77-video-controls" aria-label="Video controls"><div class="g77-time" data-time>0:00 / 0:00</div><input class="g77-seek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video progress"><div class="g77-video-buttons"><button type="button" class="g77-skip" data-skip="-10" aria-label="Back 10 seconds">↶ 10s</button><button type="button" class="g77-skip" data-skip="10" aria-label="Forward 10 seconds">10s ↷</button></div></div>':'')+
       '<div class="g77-meta"><div class="g77-title">'+esc77(v.title||'Artist Level Up post')+'</div><div class="g77-artist">@'+esc77(v.artist_name||'Artist')+'</div><div class="g77-caption">'+esc77(v.description||v.caption||'Discover this artist on Artist Level Up.')+'</div></div>'+
-      '<div class="g77-actions"><button type="button" class="g77-action '+(liked?'on':'')+'" data-act="like">'+(liked?'♥':'♡')+'<span>Like</span></button><button type="button" class="g77-action '+(followed?'on':'')+'" data-act="follow">'+(followed?'✓':'＋')+'<span>'+(followed?'Following':'Follow')+'</span></button><button type="button" class="g77-action" data-act="share">↗<span>Share</span></button><button type="button" class="g77-action" data-act="comment">💬<span>Comment</span></button>'+(v.song_id&&/^https?:\\/\\//i.test(String(v.song_audio_url||''))?'<button type="button" class="g77-action g77-music-action" data-act="music">🎵<span>Music</span></button>':'')+'</div></section>';
+      '<div class="g77-actions"><button type="button" class="g77-action '+(liked?'on':'')+'" data-act="like">'+(liked?'♥':'♡')+'<span>Like</span></button><button type="button" class="g77-action '+(followed?'on':'')+'" data-act="follow">'+(followed?'✓':'＋')+'<span>'+(followed?'Following':'Follow')+'</span></button><button type="button" class="g77-action" data-act="share">↗<span>Share</span></button><button type="button" class="g77-action" data-act="comment">💬<span>Comment</span></button>'+((v.song_id&&/^https?:\\/\\//i.test(String(v.song_audio_url||'')))||/^https?:\\/\\//i.test(String(v.sound_audio_url||''))?'<button type="button" class="g77-action g77-music-action" data-act="music">🎵<span>Music</span></button>':'')+'</div></section>';
   }).join('');
   track.querySelectorAll('.g77-picture-media').forEach(img=>img.addEventListener('error',()=>{
     img.closest('.g77-item')?.classList.add('g77-media-error');

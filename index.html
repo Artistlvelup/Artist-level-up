@@ -3455,7 +3455,7 @@ document.addEventListener('click',function(e){
 },true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModal',false);modal('aluHelpModal',false)}});
 })();
-</script><script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.open==="function"){window.ALU_STUDIO_V101.open();}} ,true);})();</script></body></html><script id="ownerDashboardV101">
+</script><script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script></body></html><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escO(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}

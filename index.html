@@ -2552,7 +2552,22 @@ function shareItem(v){
  if(navigator.share){navigator.share(data).catch(()=>{})}else if(navigator.clipboard){navigator.clipboard.writeText(shareUrl).then(()=>toastMsg('Post link copied ✓')).catch(()=>toastMsg('Share is not available'))}else toastMsg('Share is not available')
 }
 async function render77(){
- const videos=publishedVideos(),pictures=await loadCloudPictures();items=[...videos,...pictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);activeVideo=null;
+ let videos=publishedVideos();
+ try{
+  const client=window.ALU_CLOUD?.client;
+  if(client){
+   const q=await Promise.race([
+    client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,created_at,artist_id').in('status',['approved','published']).order('created_at',{ascending:false}).limit(50),
+    new Promise((_,rej)=>setTimeout(()=>rej(new Error('Global video query timed out')),4000))
+   ]);
+   if(!q.error){
+    const cloud=(q.data||[]).map(v=>({kind:'video',id:v.id,video_url:String(v.video_url||'').trim(),thumbnail_url:String(v.thumbnail_url||'').trim(),title:v.title||'Untitled Video',artist_name:v.artist_name||'Artist Level Up artist',description:v.description||'Discover this artist on Artist Level Up.',artist_id:v.artist_id||'',createdAt:v.created_at||'',createdAtTs:new Date(v.created_at||0).getTime(),raw:v})).filter(v=>/^https?:\\/\\//i.test(v.video_url));
+    const seen=new Set(cloud.map(v=>String(v.id)));
+    videos=cloud.concat(videos.filter(v=>!seen.has(String(v.id))));
+   }
+  }
+ }catch(e){console.warn('Global cloud video feed load skipped:',e?.message||e)}
+ const pictures=await loadCloudPictures();items=[...videos,...pictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);activeVideo=null;
  if(!items.length){track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>No published posts yet</b><div style="opacity:.7;margin-top:8px">Approved pictures and published artist videos will appear here.</div></div></div>';return}
  const s=socialState();
  track.innerHTML=items.map((v,i)=>{const liked=!!s.likes?.[keyFor(v)],followed=!!s.follows?.[artistKey(v)],isVideo=v.kind==='video';return '<section class="g77-item '+(isVideo?'g77-video-item':'g77-picture-item')+'" data-i="'+i">'+

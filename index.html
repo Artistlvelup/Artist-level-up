@@ -911,6 +911,99 @@ let clip=e.target.closest?.('.studio-clip');if(clip){let t=track(clip.dataset.tr
 window.ALU_STUDIO_V101={open:()=>{var p=document.getElementById('studio');if(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active');window.ALU_ACTIVE_PAGE='studio';document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.action==='openStudioV101'));if(typeof init==='function')setTimeout(init,20);window.scrollTo(0,0);}else if(typeof go==='function'){go('studio');}},init,getTracks:()=>S.tracks,render,save,undo,redo:()=>{if(S.redo&&S.redo.length){var x=S.redo.pop();S.undo.push(snap());S.tracks=x;render();}},find:(id)=>S.tracks.find(t=>String(t.id)===String(id)),remove:(id)=>{var i=S.tracks.findIndex(t=>String(t.id)===String(id));if(i<0)return;S.undo.push(snap());S.redo=[];S.tracks.splice(i,1);render();note('Track deleted ✓')},duplicate:(id)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t)return;S.undo.push(snap());S.redo=[];var n=Object.assign({},t,{id:'t'+Date.now(),name:(t.name||'Track')+' Copy'});S.tracks.push(n);render();note('Track duplicated ✓')},rename:(id,n)=>{var t=S.tracks.find(t=>String(t.id)===String(id));if(!t||!n)return;S.undo.push(snap());S.redo=[];t.name=n;render();note('Track renamed ✓')},setLoop:(v)=>{S.loop=!!v},setCountIn:(v)=>{S.countIn=!!v}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+</script>
+<script id="artistLevelUpStudioV101ProperEditor">
+(function(){
+'use strict';
+function boot(){
+  if(!window.ALU_STUDIO_V101){setTimeout(boot,100);return}
+  var A=window.ALU_STUDIO_V101, selected=null;
+  function root(){return document.getElementById('studio')}
+  function tracks(){return A.getTracks?A.getTracks():[]}
+  function find(id){return A.find?A.find(id):tracks().find(function(t){return String(t.id)===String(id)})}
+  function msg(s){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=s}
+  function esc(s){return String(s||'').replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+  function encode(buf){
+    var ch=buf.numberOfChannels, n=buf.length, rate=buf.sampleRate, out=new ArrayBuffer(44+n*ch*2),v=new DataView(out);
+    function w(p,s){for(var i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))}
+    w(0,'RIFF');v.setUint32(4,36+n*ch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*ch*2,true);
+    var k=44;for(var i=0;i<n;i++)for(var j=0;j<ch;j++){var z=Math.max(-1,Math.min(1,buf.getChannelData(j)[i]));v.setInt16(k,z<0?z*32768:z*32767,true);k+=2}
+    return new Blob([out],{type:'audio/wav'})
+  }
+  async function decode(blob){var ac=new(window.AudioContext||window.webkitAudioContext)();var b=await blob.arrayBuffer();var x=await ac.decodeAudioData(b);ac.close();return x}
+  async function applyEdit(t,opt){
+    var b=await decode(t.blob), sr=b.sampleRate, start=Math.max(0,Math.min(b.duration,opt.start)), end=Math.max(start+.01,Math.min(b.duration,opt.end)), len=Math.max(1,Math.floor((end-start)*sr));
+    var oc=new OfflineAudioContext(b.numberOfChannels,len,sr), src=oc.createBufferSource(), g=oc.createGain(), p=oc.createStereoPanner(), eq=oc.createBiquadFilter(), cp=oc.createDynamicsCompressor(), d=oc.createDelay(2), dg=oc.createGain(), dry=oc.createGain();
+    var nb=oc.createBuffer(b.numberOfChannels,len,sr);
+    for(var ch=0;ch<b.numberOfChannels;ch++){var from=b.getChannelData(ch).subarray(Math.floor(start*sr),Math.floor(end*sr));nb.getChannelData(ch).set(from)}
+    src.buffer=nb;eq.type='peaking';eq.frequency.value=opt.eqFreq;eq.Q.value=.7;eq.gain.value=opt.eqGain;cp.threshold.value=opt.comp?-18:0;cp.ratio.value=opt.comp?3:1;cp.attack.value=.01;cp.release.value=.15;
+    g.gain.setValueAtTime(opt.gain,0);if(opt.fadeIn>0)g.gain.setValueAtTime(0,0),g.gain.linearRampToValueAtTime(opt.gain,opt.fadeIn);if(opt.fadeOut>0){var fo=Math.max(0,nb.duration-opt.fadeOut);g.gain.setValueAtTime(opt.gain,fo);g.gain.linearRampToValueAtTime(0,nb.duration)}
+    p.pan.value=opt.pan;d.delayTime.value=.24;dry.gain.value=1;dg.gain.value=opt.delay;
+    src.connect(g).connect(p).connect(eq).connect(cp);cp.connect(dry).connect(oc.destination);cp.connect(d).connect(dg).connect(oc.destination);src.start(0);
+    var rendered=await oc.startRendering();t.blob=encode(rendered);t.duration=rendered.duration;t.volume=1;t.pan=0;t._editor=opt;
+    if(A.render)A.render();msg('✓ Edits applied to '+(t.name||'Track'))
+  }
+  async function split(t,at){
+    var b=await decode(t.blob), cut=Math.max(.01,Math.min(b.duration-.01,at)), left=b.duration?null:null;
+    async function part(s,e){
+      var sr=b.sampleRate,n=Math.max(1,Math.floor((e-s)*sr)),oc=new OfflineAudioContext(b.numberOfChannels,n,sr),src=oc.createBufferSource(),nb=oc.createBuffer(b.numberOfChannels,n,sr);
+      for(var ch=0;ch<b.numberOfChannels;ch++)nb.getChannelData(ch).set(b.getChannelData(ch).subarray(Math.floor(s*sr),Math.floor(e*sr)));
+      src.buffer=nb;src.connect(oc.destination);src.start();return await oc.startRendering()
+    }
+    var l=await part(0,cut),r=await part(cut,b.duration);
+    function tr(buf,name){return {id:'t'+Date.now()+Math.random(),name:name,blob:encode(buf),volume:1,pan:0,mute:false,solo:false,duration:buf.duration}}
+    var all=tracks(),i=all.indexOf(t);if(i<0)return;
+    A.undo&&A.undo(); // restore point is created by the public delete/duplicate APIs; replace directly below
+    all.splice(i,1,tr(l,(t.name||'Track')+' A'));all.splice(i+1,0,tr(r,(t.name||'Track')+' B'));
+    A.render&&A.render();selected=all[i].id;msg('✓ Clip split at '+cut.toFixed(2)+'s')
+  }
+  function ensure(){
+    var r=root();if(!r)return;
+    var bar=document.getElementById('aluStudioEditorPanel');
+    if(bar)return;
+    bar=document.createElement('div');bar.id='aluStudioEditorPanel';bar.className='card';
+    bar.innerHTML='<h3>🎚️ Audio Editor</h3><p class="tiny muted" id="aluEditorSelected">Select a waveform clip to edit it.</p>'+
+      '<div class="grid">'+
+      '<label>Start (sec)<input id="aluEdStart" type="number" min="0" step=".01" value="0"></label>'+
+      '<label>End (sec)<input id="aluEdEnd" type="number" min=".01" step=".01" value="1"></label>'+
+      '<label>Gain <input id="aluEdGain" type="range" min="0" max="2" step=".01" value="1"></label>'+
+      '<label>Pan <input id="aluEdPan" type="range" min="-1" max="1" step=".01" value="0"></label>'+
+      '<label>EQ <input id="aluEdEQ" type="range" min="-12" max="12" step=".5" value="0"></label>'+
+      '<label>Fade In <input id="aluEdIn" type="range" min="0" max="2" step=".01" value="0"></label>'+
+      '<label>Fade Out <input id="aluEdOut" type="range" min="0" max="2" step=".01" value="0"></label>'+
+      '<label>Delay <input id="aluEdDelay" type="range" min="0" max=".5" step=".01" value="0"></label>'+
+      '</div><div class="grid">'+
+      '<button class="btn primary" type="button" data-proper-edit="apply">🎚️ Apply Edits</button>'+
+      '<button class="btn" type="button" data-proper-edit="split">✂️ Split Here</button>'+
+      '<button class="btn" type="button" data-proper-edit="duplicate">📋 Duplicate</button>'+
+      '<button class="btn" type="button" data-proper-edit="delete">🗑️ Delete</button>'+
+      '<button class="btn" type="button" data-proper-edit="rename">✏️ Rename</button>'+
+      '</div>';
+    var tl=r.querySelector('#studioTracks');if(tl&&tl.parentNode)tl.parentNode.insertBefore(bar,tl);else r.appendChild(bar);
+    bar.addEventListener('click',async function(e){
+      var b=e.target.closest('[data-proper-edit]');if(!b)return;
+      var t=find(selected);if(!t){msg('Select a waveform clip first.');return}
+      var act=b.getAttribute('data-proper-edit');
+      try{
+        if(act==='apply'){await applyEdit(t,{start:+document.getElementById('aluEdStart').value||0,end:+document.getElementById('aluEdEnd').value||t.duration,gain:+document.getElementById('aluEdGain').value,pan:+document.getElementById('aluEdPan').value,eqGain:+document.getElementById('aluEdEQ').value,eqFreq:2500,fadeIn:+document.getElementById('aluEdIn').value,fadeOut:+document.getElementById('aluEdOut').value,delay:+document.getElementById('aluEdDelay').value,comp:true});}
+        else if(act==='split'){await split(t,Math.max(.01,Math.min(t.duration-.01,(+document.getElementById('aluEdStart').value||t.duration/2))));}
+        else if(act==='duplicate'){A.duplicate&&A.duplicate(t.id);msg('✓ Clip duplicated')}
+        else if(act==='delete'){A.remove&&A.remove(t.id);selected=null;msg('✓ Clip deleted')}
+        else if(act==='rename'){var n=prompt('Track name:',t.name||'Track');if(n)A.rename&&A.rename(t.id,n)}
+      }catch(err){msg('Editor error: '+(err.message||'try again'))}
+    });
+  }
+  ensure();
+  document.addEventListener('click',function(e){
+    var clip=e.target.closest?.('.studio-clip');if(!clip)return;
+    selected=clip.getAttribute('data-track');var t=find(selected);if(!t)return;
+    ensure();var x=document.getElementById('aluEditorSelected');if(x)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';
+    var en=document.getElementById('aluEdEnd');if(en)en.value=Number(t.duration||1).toFixed(2);
+  },true);
+}
+boot();
+})();
+</script>
 </script><nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

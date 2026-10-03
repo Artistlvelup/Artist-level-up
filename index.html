@@ -2589,7 +2589,7 @@ async function render77(){
         title:v.title||'Untitled Video',artist_name:v.artist_name||'Artist Level Up artist',
         description:v.description||'Discover this artist on Artist Level Up.',artist_id:v.artist_id||'',song_id:v.song_id||'',song_title:v.song?.title||'',song_audio_url:v.song?.audio_url||'',song_cover_url:v.song?.cover_url||'',song_status:v.song?.status||'',
         createdAt:v.created_at||'',createdAtTs:new Date(v.created_at||0).getTime(),raw:v
-      })).filter(v=>/^https?:\\/\\//i.test(v.video_url));
+      })).filter(v=>/(v.video_url.startsWith('http://')||v.video_url.startsWith('https://')));
       const seen=new Set(cloud.map(v=>String(v.id)));
       videos=cloud.concat(videos.filter(v=>!seen.has(String(v.id))));
     }catch(e){console.warn('Global cloud video feed load skipped:',e?.message||e)}

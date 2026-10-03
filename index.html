@@ -499,7 +499,22 @@ body.g77-open{overflow:hidden}
 #profile .alu-welcome-secondary{background:#1b2340!important;color:#dce8ff!important;border:1px solid rgba(111,224,255,.16)}
 @media(max-width:380px){#profile .alu-welcome-card{padding:15px}#profile .alu-welcome-avatar-wrap{width:72px;height:72px;border-radius:20px}#profile .alu-welcome-avatar{width:66px!important;height:66px!important;border-radius:17px}#profile .alu-welcome-card h2{font-size:20px}#profile .alu-welcome-actions{grid-template-columns:1fr}}
 </style>
-</head>
+<style id="aluLegalSupportV101">
+.alu-legal-hub .grid{grid-template-columns:1fr 1fr}
+.alu-legal-modal{position:fixed;inset:0;z-index:260;background:rgba(0,0,0,.78);display:none;align-items:flex-end;padding:0}
+.alu-legal-modal.show{display:flex}
+.alu-legal-sheet{width:min(520px,100%);max-height:88vh;overflow:auto;background:#15161c;border:1px solid var(--line);border-radius:20px 20px 0 0;padding:18px}
+.alu-legal-sheet h2{margin:4px 0 10px}.alu-legal-sheet h3{margin:16px 0 6px;color:var(--gold)}
+.alu-legal-sheet p,.alu-legal-sheet li{font-size:13px;line-height:1.55;color:#d8d9df}.alu-legal-sheet ul{padding-left:20px}
+.alu-legal-actions{display:flex;gap:8px;position:sticky;bottom:0;background:#15161c;padding-top:12px}
+.alu-chat{background:#0d0e12;border:1px solid var(--line);border-radius:16px;padding:10px;max-height:45vh;overflow:auto}
+.alu-chat-msg{padding:9px 11px;border-radius:13px;margin:7px 0;max-width:88%;font-size:12px;line-height:1.4}
+.alu-chat-bot{background:#25262d}.alu-chat-user{background:#312b10;margin-left:auto;color:#fff}
+.alu-chat-quick{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.alu-chat-quick button{font-size:11px}
+.alu-support-form textarea{min-height:100px;resize:vertical}
+@media(max-width:380px){.alu-legal-hub .grid{grid-template-columns:1fr}}
+</style></head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
   <button class="g77-close" type="button" aria-label="Close">×</button>
@@ -616,7 +631,20 @@ body.g77-open{overflow:hidden}
 <div class="card" style="margin-top:14px"><span class="pill">💳 CHECKOUT</span><h2 style="margin-top:8px">Customer email</h2><p class="muted">Paystack needs an email for the transaction. If your account does not have one, enter it here and it will be saved on this device for the next checkout.</p><label>Email</label><input id="marketplaceEmail" type="email" autocomplete="email" placeholder="you@example.com"/><div class="tiny muted" id="marketplaceEmailStatus" style="margin-top:8px"></div></div>
 </section>
 <section class="page" id="profile"><span class="pill">PROFILE</span><h1>My Artist Profile 👤</h1><div class="card alu-welcome-card" id="profileSavedCard" style="display:none"><div class="alu-welcome-top"><div class="alu-welcome-avatar-wrap"><img alt="Artist profile picture" class="profile-avatar alu-welcome-avatar" id="profilePublicAvatar"/></div><div class="grow"><span class="alu-welcome-badge">🎧 SOLO VIBES ARTIST</span><h2 id="savedProfileWelcome">Welcome to Solo_vibez</h2><div class="alu-welcome-handle" id="savedProfileHandle">@solovibes</div></div></div><div class="alu-welcome-message"><strong>Welcome to Solo_vibez — your music space.</strong><span>Create your sound, upload your music, promote your work and build your audience — all from here.</span></div><div class="alu-welcome-stats"><div><small>Followers</small><b id="profileFollowers">0</b></div><div><small>Country</small><b id="savedProfileCountry">Nigeria</b></div><div><small>Role</small><b>Artist</b></div></div><p class="alu-welcome-email" id="savedProfileEmail"></p><div class="alu-welcome-actions"><button class="btn alu-welcome-primary" data-go="create">🎵 Start Creating</button><button class="btn alu-welcome-secondary" data-action="editProfile">✏️ Edit Artist Profile</button></div></div><div class="card" id="profileFormCard"><label>Artist name</label><input autocomplete="name" id="profileName" name="name" placeholder="Your artist name"/><label>Email</label><input autocomplete="email" id="profileEmail" inputmode="email" name="email" placeholder="you@example.com" type="email"/><label>Artist profile picture</label><input accept="image/*" id="profileAvatar" type="file"/><div class="row"><img alt="Artist profile picture" class="profile-avatar" id="profileAvatarPreview"/><div class="grow muted tiny">Your face/photo will appear beside your artist name.</div></div><label>Country</label><select id="profileCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Spain</option><option>Canada</option><option>Australia</option><option>Brazil</option></select><label>Account PIN <span class="tiny">(4–6 digits for sensitive actions)</span></label><input id="profilePin" inputmode="numeric" maxlength="6" placeholder="Set a PIN" type="password"/><p class="muted tiny">Prototype only: this PIN is stored locally on this device. A production app will verify it securely on the server.</p><button class="btn primary full" data-action="saveProfile">Save Profile</button></div><div class="card"><h2>Artist Pro</h2><button class="btn primary full" data-go="pro">💎 Open Artist Pro</button></div><div class="card"><h2>Account</h2><button class="btn" data-action="follow">+ Follow another artist</button><button class="btn red full" data-action="deleteAccount">Delete Account</button><button class="btn red full" data-action="reset">Reset local test data</button></div></section>
-<section class="page" id="notifications"><div class="row between"><div><span class="pill">🔔 NOTIFICATIONS</span><h1 style="margin-bottom:4px">Notifications</h1><p class="muted" style="margin:0">Important updates about your music, account, promotions and Artist Level Up.</p></div><button class="btn" type="button" data-action="markAllNotificationsRead">Mark all read</button></div><div class="card" style="margin-top:14px"><div class="row between"><div><h2 style="margin:0">Notification Center</h2><p class="muted" style="margin:5px 0 0">Unread notifications will appear here.</p></div><span class="pill" id="notificationCountPill">0 unread</span></div><div id="notificationList" style="margin-top:8px"></div></div><div class="card"><h2>Push notifications</h2><p class="muted">Allow browser notifications to receive alerts while using the app. Full background push delivery will be connected when the app is hosted as a secure web app.</p><button class="btn primary full" type="button" data-action="enablePushNotifications" id="enablePushBtn">🔔 Enable Notifications</button><p class="tiny muted" id="pushStatus" style="margin-top:8px"></p></div></section><section class="page" id="settings"><span class="pill">SETTINGS</span><h1>Settings ⚙️</h1><div class="card"><button class="btn full" data-action="language">🌍 Language: English</button><button class="btn full" data-action="currency">💱 Currency: NGN</button><button class="btn full" data-action="notifications">🔔 Notifications: On</button></div><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><h2>👑 Owner Controls</h2><p class="muted">Private area for the app owner. Artists can use the app normally without access to Admin.</p><button class="btn primary full" data-action="ownerLogin">🔐 Open Admin Control Center</button><button class="btn full" data-action="changeOwnerPin">🔑 Change Owner PIN</button></div></section>
+<section class="page" id="notifications"><div class="row between"><div><span class="pill">🔔 NOTIFICATIONS</span><h1 style="margin-bottom:4px">Notifications</h1><p class="muted" style="margin:0">Important updates about your music, account, promotions and Artist Level Up.</p></div><button class="btn" type="button" data-action="markAllNotificationsRead">Mark all read</button></div><div class="card" style="margin-top:14px"><div class="row between"><div><h2 style="margin:0">Notification Center</h2><p class="muted" style="margin:5px 0 0">Unread notifications will appear here.</p></div><span class="pill" id="notificationCountPill">0 unread</span></div><div id="notificationList" style="margin-top:8px"></div></div><div class="card"><h2>Push notifications</h2><p class="muted">Allow browser notifications to receive alerts while using the app. Full background push delivery will be connected when the app is hosted as a secure web app.</p><button class="btn primary full" type="button" data-action="enablePushNotifications" id="enablePushBtn">🔔 Enable Notifications</button><p class="tiny muted" id="pushStatus" style="margin-top:8px"></p></div></section><section class="page" id="settings"><span class="pill">SETTINGS</span><h1>Settings ⚙️</h1><div class="card"><button class="btn full" data-action="language">🌍 Language: English</button><button class="btn full" data-action="currency">💱 Currency: NGN</button><button class="btn full" data-action="notifications">🔔 Notifications: On</button></div><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><h2>👑 Owner Controls</h2><p class="muted">Private area for the app owner. Artists can use the app normally without access to Admin.</p><button class="btn primary full" data-action="ownerLogin">🔐 Open Admin Control Center</button><button class="btn full" data-action="changeOwnerPin">🔑 Change Owner PIN</button></div><div class="card alu-legal-hub" id="aluLegalHub">
+<h2>📚 Legal, Policies & Support</h2>
+<p class="muted">Everything you need to understand Artist Level Up, your rights, your responsibilities, licensing and how to get help.</p>
+<div class="grid">
+<button class="btn full" data-legal="privacy">🔒 Privacy Policy</button>
+<button class="btn full" data-legal="terms">📜 Terms & Conditions</button>
+<button class="btn full" data-legal="artist">🎤 Artist Agreement</button>
+<button class="btn full" data-legal="community">🤝 Community Guidelines</button>
+<button class="btn full" data-legal="copyright">©️ Copyright Policy</button>
+<button class="btn full" data-legal="payments">💳 Payments & Withdrawal</button>
+<button class="btn full" data-legal="license">🎧 Beat License Terms</button>
+<button class="btn full" data-action="aluOpenHelp">🤖 Help & Support</button>
+</div>
+</div></section>
 <section class="page commission-page" id="commissionEarningsPage">
 <div class="commission-head"><div><span class="pill">💰 COMMISSION & EARNINGS</span><h1>My Earnings</h1><p class="muted">Completed beat sales and your 10% Artist Level Up marketplace commission.</p></div></div>
 <div class="grid3 commission-stats">
@@ -3161,7 +3189,61 @@ const oldGo=window.go;
 if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='admin')setTimeout(renderAdminPictures,30);return r};
 const oldRenderAll=window.renderAll;
 if(typeof oldRenderAll==='function')window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);setTimeout(renderAdminPictures,0);return r};
-})();</script></body></html><script id="ownerDashboardV101">
+})();</script><div class="alu-legal-modal" id="aluLegalModal" aria-hidden="true">
+<div class="alu-legal-sheet" role="dialog" aria-modal="true">
+<button class="close" type="button" data-legal-close>✕</button>
+<div id="aluLegalContent"></div>
+<div class="alu-legal-actions"><button class="btn full" type="button" data-legal-close>Close</button><button class="btn primary full" type="button" id="aluLegalAgree" style="display:none">I Agree</button></div>
+</div></div>
+<div class="alu-legal-modal" id="aluHelpModal" aria-hidden="true">
+<div class="alu-legal-sheet" role="dialog" aria-modal="true">
+<button class="close" type="button" data-help-close>✕</button>
+<h2>🤖 Artist Level Up Help</h2><p class="muted">Ask the support bot about common app features. It can guide you to the right place.</p>
+<div class="alu-chat" id="aluChatLog"><div class="alu-chat-msg alu-chat-bot">Hi 👋 I’m the Artist Level Up support assistant. What do you need help with?</div></div>
+<div class="alu-chat-quick">
+<button class="btn full" data-help-q="account">👤 Account</button><button class="btn full" data-help-q="beats">🎧 Upload / Beats</button>
+<button class="btn full" data-help-q="market">🛒 Marketplace</button><button class="btn full" data-help-q="payments">💳 Payments</button>
+<button class="btn full" data-help-q="feed">🌍 Global Feed</button><button class="btn full" data-help-q="privacy">🔒 Privacy</button>
+</div>
+<div class="card alu-support-form" style="margin:10px 0 0"><h3>📩 Contact Support</h3><p class="tiny muted">Prepare a support message you can copy and send through your preferred contact channel.</p><input id="aluSupportSubject" placeholder="Subject"><textarea id="aluSupportMessage" placeholder="Describe the problem..."></textarea><button class="btn primary full" type="button" id="aluCopySupport">📋 Copy Support Message</button><p class="tiny muted" id="aluSupportStatus"></p></div>
+<div class="alu-legal-actions"><button class="btn full" type="button" data-help-close>Close</button></div>
+</div></div>
+<script id="aluSettingsLegalSupportV101">
+(function(){
+'use strict';
+const legal={
+privacy:{title:'🔒 Privacy Policy',body:'<p>This Privacy Policy explains how Artist Level Up handles information used to provide the platform.</p><h3>Information we may use</h3><ul><li>Account and profile information you provide.</li><li>Content you upload, such as beats, pictures and videos.</li><li>Transaction and payout information needed to process marketplace activity.</li><li>Technical information needed for security, reliability and app operation.</li></ul><h3>How information is used</h3><p>Information may be used to operate the platform, provide features, process transactions, protect users, prevent abuse, improve the service and respond to support requests.</p><h3>Your choices</h3><p>You should be able to review and update account information through the platform where those controls are available. You may also request help with privacy-related questions through Support.</p><p class="tiny muted">This in-app policy is a product policy summary and should be reviewed with applicable Nigerian and other relevant privacy laws before launch.</p>'},
+terms:{title:'📜 Terms & Conditions',body:'<p>By using Artist Level Up, you agree to use the platform lawfully and responsibly.</p><h3>Using the platform</h3><ul><li>Provide accurate information for your account and transactions.</li><li>Do not use the platform for fraud, abuse, unlawful activity or infringement.</li><li>You are responsible for content and information you submit.</li><li>Platform features may change as Artist Level Up develops.</li></ul><h3>Marketplace</h3><p>Marketplace purchases are subject to the displayed licence, price and payment terms. Users must respect the rights attached to purchased content.</p><h3>Enforcement</h3><p>Content or accounts may be restricted where necessary to protect users, comply with law, or enforce these terms.</p>'},
+artist:{title:'🎤 Artist Agreement',body:'<p>Artists and creators remain responsible for the material they upload and for having the necessary rights to use it.</p><h3>Creator responsibilities</h3><ul><li>Only upload music, artwork, pictures and videos you have the right to use.</li><li>Provide accurate ownership and payout information.</li><li>Respect other artists and users.</li><li>Follow marketplace licensing requirements.</li></ul><h3>Platform permission</h3><p>You give Artist Level Up the permission reasonably necessary to host, display, distribute through selected platform features and process the content you submit, while your underlying ownership rights remain subject to the applicable licence or agreement.</p>'},
+community:{title:'🤝 Community Guidelines',body:'<p>Artist Level Up is intended to be a creative community. Treat other users with respect.</p><ul><li>No harassment, threats or targeted abuse.</li><li>No hateful or discriminatory attacks.</li><li>No scams, impersonation or deceptive activity.</li><li>No unlawful or non-consensual content.</li><li>Do not repeatedly spam or manipulate platform features.</li><li>Respect intellectual-property rights.</li></ul><p>Reports may be reviewed and appropriate action may be taken under the platform rules.</p>'},
+copyright:{title:'©️ Copyright Policy',body:'<p>Do not upload or sell material that you do not have permission to use.</p><h3>Copyright complaints</h3><p>If you believe content on Artist Level Up infringes your rights, provide the relevant content, your ownership or authorization information, and a way to contact you through Support so the issue can be reviewed.</p><h3>Repeat infringement</h3><p>Repeated or serious infringement may lead to content restrictions or account action.</p>'},
+payments:{title:'💳 Payments & Withdrawal',body:'<p>Marketplace payments are processed through the payment provider shown at checkout. Producer payouts and platform commissions follow the configured marketplace and payout rules.</p><ul><li>Check the displayed price and licence before purchase.</li><li>Provide accurate payout information.</li><li>Payment or payout processing can be delayed by verification, provider issues, bank processing or compliance requirements.</li><li>Do not share payment credentials or sensitive account information with other users.</li></ul>'},
+license:{title:'🎧 Beat License Terms',body:'<p>Each beat licence controls what the buyer may do with the beat. Buyers should read the exact licence displayed before completing checkout.</p><h3>Licence levels</h3><ul><li><b>Basic:</b> limited usage rights according to the marketplace listing.</li><li><b>Premium:</b> broader usage rights according to the marketplace listing.</li><li><b>Exclusive:</b> exclusive rights as specifically described by the listing and agreement.</li></ul><p>The licence purchased does not automatically transfer rights beyond what the displayed licence grants.</p>'}
+};
+let currentKey='';
+function modal(id,show){const e=document.getElementById(id);if(!e)return;e.classList.toggle('show',show);e.setAttribute('aria-hidden',show?'false':'true')}
+function openLegal(key){const x=legal[key];if(!x)return;currentKey=key;document.getElementById('aluLegalContent').innerHTML='<span class="pill">ARTIST LEVEL UP</span><h2>'+x.title+'</h2>'+x.body;const agree=document.getElementById('aluLegalAgree');agree.style.display=(key==='terms'||key==='artist')?'block':'none';agree.textContent=localStorage.getItem('ALU_AGREEMENT_'+key)==='accepted'?'✓ Accepted':'I Agree';modal('aluLegalModal',true)}
+function addChat(text,user){const log=document.getElementById('aluChatLog'),d=document.createElement('div');d.className='alu-chat-msg '+(user?'alu-chat-user':'alu-chat-bot');d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight}
+const answers={
+account:'For account changes, open your Profile/Account area. Keep your login and payout details private and use accurate information.',
+beats:'To upload beats, open the Creator/Upload area, choose your music upload option, add the beat details and follow the publishing steps.',
+market:'Open Beat Marketplace to browse published beats, choose a licence and start secure checkout. Read the licence terms before buying.',
+payments:'Marketplace payments use the configured payment provider. Producer payout details are managed in the producer payout area. If a payment is missing, keep the transaction reference and contact Support.',
+feed:'Global Feed is where approved pictures and videos can appear. Use the feed controls to interact with posts and report problems through Support.',
+privacy:'Open Settings → Privacy Policy for the privacy summary. Avoid sharing passwords, PINs or payment credentials with other users.'
+};
+document.addEventListener('click',function(e){
+ const lb=e.target.closest?.('[data-legal]');if(lb){e.preventDefault();openLegal(lb.dataset.legal);return}
+ if(e.target.closest?.('[data-legal-close]')){modal('aluLegalModal',false);return}
+ const hb=e.target.closest?.('[data-action="aluOpenHelp"]');if(hb){e.preventDefault();modal('aluHelpModal',true);return}
+ if(e.target.closest?.('[data-help-close]')){modal('aluHelpModal',false);return}
+ const q=e.target.closest?.('[data-help-q]');if(q){const key=q.dataset.helpQ;addChat(q.textContent.trim(),true);setTimeout(()=>addChat(answers[key]||'Please use Contact Support below and describe the issue.'),120);return}
+ if(e.target.id==='aluLegalAgree'){localStorage.setItem('ALU_AGREEMENT_'+currentKey,'accepted');e.target.textContent='✓ Accepted';addChat('Your '+currentKey+' acceptance has been recorded on this device.',false);return}
+ if(e.target.id==='aluCopySupport'){const subject=document.getElementById('aluSupportSubject').value.trim()||'Artist Level Up Support';const msg=document.getElementById('aluSupportMessage').value.trim();const out=subject+'\n\n'+msg;if(!msg){document.getElementById('aluSupportStatus').textContent='Please describe the problem first.';return}navigator.clipboard?.writeText(out).then(()=>document.getElementById('aluSupportStatus').textContent='Support message copied ✓').catch(()=>document.getElementById('aluSupportStatus').textContent='Select and copy the message manually.');}
+},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModal',false);modal('aluHelpModal',false)}});
+})();
+</script></body></html><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escO(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}

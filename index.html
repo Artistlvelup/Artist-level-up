@@ -3711,4 +3711,108 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-</script>
+</script>\n<style id="aluStudioButtonFixFinal">
+#studio #aluStudioEditBar,#studio #aluStudioEditorPanel{position:relative!important;z-index:999999!important;pointer-events:auto!important;isolation:isolate}
+#studio #aluStudioEditBar button,#studio #aluStudioEditorPanel button{position:relative!important;z-index:1000000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
+#studio .studio-clip.is-selected{outline:3px solid #ffd21c!important;outline-offset:2px}
+</style>
+<script id="aluStudioButtonFixFinal">
+(function(){
+'use strict';
+function boot(){
+  var A=window.ALU_STUDIO_V101;
+  if(!A){setTimeout(boot,100);return}
+  if(window.__ALU_STUDIO_BUTTON_FIX_FINAL)return;
+  window.__ALU_STUDIO_BUTTON_FIX_FINAL=true;
+  function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
+  function pickClip(el){
+    if(!el)return;
+    var id=el.getAttribute('data-track');
+    if(!id)return;
+    A.selected=id;
+    document.querySelectorAll('#studio .studio-clip.is-selected').forEach(function(x){x.classList.remove('is-selected')});
+    el.classList.add('is-selected');
+    var t=A.find&&A.find(id);
+    var s=document.getElementById('aluEditorSelected'),end=document.getElementById('aluEdEnd');
+    if(t){
+      if(s)s.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';
+      if(end)end.value=Number(t.duration||1).toFixed(2);
+      status('Selected clip: '+(t.name||'Track')+' ✓');
+    }
+  }
+  document.addEventListener('pointerdown',function(e){
+    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
+    if(clip)pickClip(clip);
+  },true);
+  document.addEventListener('click',async function(e){
+    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
+    if(clip)pickClip(clip);
+    var b=e.target&&e.target.closest?e.target.closest('#studio [data-st-edit],#studio [data-proper-edit]'):null;
+    if(!b)return;
+    var kind=b.getAttribute('data-st-edit')||b.getAttribute('data-proper-edit');
+    var handled=['split','duplicate','delete','rename','loop','countin','zoomin','zoomout','reload'].indexOf(kind)>=0;
+    if(!handled)return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try{
+      if(kind==='loop'){
+        A.loop=!A.loop; if(A.setLoop)A.setLoop(A.loop);
+        b.textContent='🔁 Loop: '+(A.loop?'On':'Off');
+        status(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');
+        return;
+      }
+      if(kind==='countin'){
+        A.countIn=!A.countIn; if(A.setCountIn)A.setCountIn(A.countIn);
+        b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');
+        status(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');
+        return;
+      }
+      if(kind==='zoomin'||kind==='zoomout'){
+        A.zoom=Math.max(.5,Math.min(4,Number(A.zoom||1)+(kind==='zoomin'?.5:-.5)));
+        document.querySelectorAll('#studio .studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center'});
+        status('Timeline zoom: '+A.zoom.toFixed(1)+'×');
+        return;
+      }
+      if(kind==='reload'){
+        if(typeof A.render==='function')A.render();
+        setTimeout(function(){
+          document.querySelectorAll('#studio .studio-clip').forEach(function(x){if(String(x.getAttribute('data-track'))===String(A.selected))x.classList.add('is-selected')});
+        },20);
+        status('Studio timeline reloaded ✓');
+        return;
+      }
+      var t=A.selected&&A.find?A.find(A.selected):null;
+      if(!t){status('Tap a waveform clip first.');return}
+      if(kind==='duplicate'){
+        if(typeof A.duplicate!=='function')throw new Error('Duplicate engine unavailable');
+        A.duplicate(t.id);
+        status('✓ Clip duplicated');
+        return;
+      }
+      if(kind==='delete'){
+        if(typeof A.remove!=='function')throw new Error('Delete engine unavailable');
+        A.remove(t.id); A.selected=null;
+        status('✓ Clip deleted');
+        return;
+      }
+      if(kind==='rename'){
+        var n=prompt('Track name:',t.name||'Track');
+        if(n&&n.trim()&&typeof A.rename==='function')A.rename(t.id,n.trim());
+        return;
+      }
+      if(kind==='split'){
+        var inp=document.getElementById('aluEdStart');
+        var at=Number(inp&&inp.value);
+        if(!at)at=Number(t.duration||0)/2;
+        if(typeof A.split!=='function')throw new Error('Split engine unavailable');
+        status('Splitting clip…');
+        var ok=await A.split(t.id,at);
+        status(ok===false?'Split could not be completed.':'✓ Clip split');
+        return;
+      }
+    }catch(err){status('Studio control error: '+(err&&err.message||'try again'))}
+  },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>\n

@@ -2547,7 +2547,7 @@ function renderComments(v){
  box.classList.add('show');box.querySelector('.g77-comment-close').onclick=()=>box.classList.remove('show');
  box.querySelector('form').onsubmit=e=>{e.preventDefault();const input=e.currentTarget.querySelector('input'),text=input.value.trim();if(!text)return;const s=socialState();s.comments=s.comments||{};s.comments[keyFor(v)]=[...commentsFor(v),{name:state?.profile?.name||'You',text,createdAt:new Date().toISOString()}].slice(-100);saveSocial(s);renderComments(v)}
 }
-function stopOtherVideos(except){track.querySelectorAll('video').forEach(v=>{if(v===except)return;try{v.pause();v.currentTime=0}catch(_){ }markPlayState(v,false)});activeVideo=except||null}
+function stopOtherVideos(except){track.querySelectorAll('video').forEach(v=>{if(v===except)return;try{v.pause()}catch(_){ }markPlayState(v,false)});activeVideo=except||null}
 function markPlayState(v,playing){const item=v?.closest('.g77-item');if(!item)return;item.classList.toggle('g77-playing',!!playing);if(playing)v.classList.add('g77-active-video');else v.classList.remove('g77-active-video')}
 function playVideo(v){if(!v||!root.classList.contains('active'))return Promise.reject(new Error('feed closed'));if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();stopOtherVideos(v);v.playsInline=true;v.autoplay=true;v.muted=muted;v.defaultMuted=muted;const retry=()=>{try{v.load()}catch(_){ }return v.play()};const p=v.play();return (p&&typeof p.then==='function'?p:Promise.resolve()).catch(()=>retry()).then(()=>{activeVideo=v;markPlayState(v,true)})}
 function getVisibleVideo(){const videos=[...track.querySelectorAll('video')];if(!videos.length)return null;const rr=track.getBoundingClientRect();let best=null,bestRatio=0;videos.forEach(v=>{const r=v.getBoundingClientRect(),top=Math.max(r.top,rr.top),bottom=Math.min(r.bottom,rr.bottom),visible=Math.max(0,bottom-top),ratio=r.height?visible/r.height:0;if(ratio>bestRatio){bestRatio=ratio;best=v}});return best}
@@ -2555,16 +2555,16 @@ function pauseNonVisible(){
  const visible=getVisibleVideo();
  track.querySelectorAll('video').forEach(v=>{
    if(v!==visible){
-     try{v.pause();v.currentTime=0}catch(_){}
+     try{v.pause()}catch(_){ }
      markPlayState(v,false);
+     if(activeVideo===v)activeVideo=null;
    }
  });
- if(!visible)activeVideo=null;
  return visible;
 }
 function pauseAllVideos(){
  track.querySelectorAll('video').forEach(v=>{
-   try{v.pause();v.currentTime=0}catch(_){}
+   try{v.pause();v.currentTime=0}catch(_){ }
    markPlayState(v,false);
  });
  activeVideo=null;
@@ -2577,24 +2577,24 @@ function observe77(){
    io=new IntersectionObserver(es=>{
      es.forEach(e=>{
        if(!e.isIntersecting||e.intersectionRatio<.55){
-         try{e.target.pause();e.target.currentTime=0}catch(_){}
+         try{e.target.pause()}catch(_){ }
          markPlayState(e.target,false);
          if(activeVideo===e.target)activeVideo=null;
        }
      });
+     if(root.classList.contains('active')){
+       clearTimeout(scrollTimer);
+       scrollTimer=setTimeout(()=>{if(root.classList.contains('active'))autoplayVisible()},80);
+     }
    },{root:track,threshold:[.25,.55,.75]});
    vids.forEach(v=>io.observe(v));
  }
  track.addEventListener('scroll',()=>{
    clearTimeout(scrollTimer);
    pauseNonVisible();
-   // Scrolling must never restart a video that the user already left.
-   // A new video only plays after the user explicitly taps it.
+   scrollTimer=setTimeout(()=>{if(root.classList.contains('active'))autoplayVisible()},120);
  },{passive:true});
- setTimeout(()=>{
-   // Initial feed behavior may start the first visible video.
-   if(root.classList.contains('active'))autoplayVisible();
- },60);
+ setTimeout(()=>{if(root.classList.contains('active'))autoplayVisible()},60);
 }
 async function playPromotedSong(v){
  try{

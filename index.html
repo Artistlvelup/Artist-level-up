@@ -2559,14 +2559,12 @@ function observe77(){
  track.addEventListener('scroll',()=>{clearTimeout(scrollTimer);pauseNonVisible();scrollTimer=setTimeout(autoplayVisible,100)},{passive:true});setTimeout(autoplayVisible,60)
 }
 async function playPromotedSong(v){
- const audio=document.getElementById('audioEngine');
  try{
-  if(!v?.song_id||!v.song_audio_url||!audio)throw new Error('No attached music');
-  track.querySelectorAll('video').forEach(x=>{try{x.pause()}catch(_){}});activeVideo=null;
-  audio.pause();audio.src=String(v.song_audio_url);audio.load();audio.muted=false;audio.volume=Number(document.getElementById('fullVolume')?.value||1);
-  if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();
-  await audio.play();
-  toastMsg('🎵 '+(v.song_title||'Music')+' is playing');
+  if(!v?.song_id||!v.song_audio_url)throw new Error('No attached music');
+  track.querySelectorAll('video').forEach(x=>{try{x.pause()}catch(_){}});
+  activeVideo=null;
+  const ok=typeof window.ALU_PLAY_CLOUD_SONG==='function'&&await window.ALU_PLAY_CLOUD_SONG({id:v.song_id,title:v.song_title,artist:v.artist_name,audioRemoteUrl:v.song_audio_url,coverArt:v.song_cover_url||''});
+  if(ok)toastMsg('🎵 '+(v.song_title||'Music')+' is playing');
  }catch(e){console.warn('Promoted music playback failed',e);toastMsg('Tap 🎵 again to play the attached music');}
 }
 function shareItem(v){

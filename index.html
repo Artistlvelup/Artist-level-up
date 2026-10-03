@@ -67,6 +67,47 @@
 .nav button span{width:30px;height:30px;font-size:16px;}
 
 .creator-room-choice{display:grid;gap:12px;margin-top:14px}.creator-room-box{width:100%;min-height:118px;border:1px solid var(--line);border-radius:20px;padding:18px 16px;text-align:left;color:#fff;cursor:pointer;background:linear-gradient(135deg,#171820,#111217);display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;box-shadow:0 10px 26px rgba(0,0,0,.22);touch-action:manipulation}.creator-room-box:active{transform:scale(.985)}.creator-room-box-icon{grid-row:1/3;font-size:38px;width:58px;height:58px;display:grid;place-items:center;border-radius:16px;background:#25262d}.creator-room-box b{font-size:18px}.creator-room-box small{color:var(--muted);font-size:12px;line-height:1.35}.creator-room-music{border-color:#665b18}.creator-room-video{border-color:#3c5478}.creator-room-picture{border-color:#6b3d62}.creator-tool-panel{margin-top:14px}.creator-tool-panel>.btn:first-child{margin-bottom:8px}
+
+<style id="artistLevelUpStudioV101CSS">
+#studio{padding:12px 10px 20px}
+.studio-shell{max-width:100%;overflow:hidden}
+.studio-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.studio-head h1{margin:7px 0 4px}
+.studio-transport{background:linear-gradient(145deg,#171922,#0d0e13);border-color:#343744}
+.studio-transport-row{display:flex;align-items:center;gap:7px}
+.studio-transport-btn{width:42px;height:42px;border:1px solid #3a3c47;border-radius:12px;background:#22242d;color:#fff;font-size:18px;font-weight:900}
+.studio-transport-btn.studio-play{background:#ffd21c;color:#111}
+.studio-transport-btn.studio-record{color:#ff6b75}
+.studio-transport-btn.is-on{box-shadow:0 0 0 2px rgba(255,210,28,.25) inset}
+.studio-time{min-width:80px;margin-left:auto;text-align:right}.studio-time b{display:block;font-variant-numeric:tabular-nums}.studio-time small{color:#8f93a2}
+.studio-transport-tools{display:grid;grid-template-columns:72px 72px 1fr;gap:8px;margin-top:12px}
+.studio-transport-tools label{display:block}.studio-transport-tools input,.studio-transport-tools select{margin:5px 0 0;height:38px;padding:8px}
+.studio-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0}
+.studio-action-grid .btn{margin:0;min-height:46px}
+.studio-meter{padding:11px}.studio-meter-track{height:9px;background:#252731;border-radius:99px;overflow:hidden;margin-top:8px}.studio-meter-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39d98a,#ffd21c,#ff5c67);transition:width .08s}
+.studio-tips{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:10px;color:#9296a4}
+.studio-ruler{height:24px;border-bottom:1px solid #2e3039;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),#292b34 calc(10% - 1px),#292b34 10%);border-radius:7px 7px 0 0;margin-top:8px}
+.studio-track{position:relative;border-bottom:1px solid #292b34;background:#111218;min-height:92px;overflow:hidden}
+.studio-track-head{position:absolute;left:0;top:0;bottom:0;width:126px;background:#171922;border-right:1px solid #30323c;padding:9px;z-index:2}
+.studio-track-head b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-track-head small{display:block;color:#8d91a0;font-size:9px;margin-top:3px}
+.studio-track-tools{display:flex;gap:3px;margin-top:6px}.studio-track-tools button{border:0;border-radius:7px;background:#292b34;color:#fff;font-size:10px;padding:5px 6px}
+.studio-track-tools button.on{background:#ffd21c;color:#111}
+.studio-clip{position:absolute;left:132px;top:10px;height:72px;border-radius:10px;background:linear-gradient(135deg,#293d61,#1c273b);border:1px solid #496b9d;min-width:110px;overflow:hidden;cursor:pointer}
+.studio-clip canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.7}
+.studio-clip span{position:absolute;left:8px;top:6px;font-size:11px;font-weight:900;text-shadow:0 1px 3px #000}
+.studio-empty{text-align:center;padding:26px 12px;color:#777c8b;font-size:12px}
+.studio-mixer-track{display:grid;grid-template-columns:1fr 72px 82px 72px;gap:7px;align-items:center;padding:10px 0;border-bottom:1px solid #2a2c35}
+.studio-mixer-track:last-child{border-bottom:0}
+.studio-mixer-track input[type=range]{width:100%;accent-color:#ffd21c}.studio-mixer-track select{margin:0;height:34px;padding:5px;font-size:10px}
+.studio-mixer-buttons{display:flex;gap:4px}.studio-mixer-buttons button{border:0;border-radius:7px;background:#292b34;color:#fff;padding:6px;font-size:10px}.studio-mixer-buttons button.on{background:#ffd21c;color:#111}
+.studio-master-strip{display:grid;grid-template-columns:auto 1fr 110px;gap:8px;align-items:center;padding:11px;margin-top:8px;background:#0e0f14;border:1px solid #2c2e38;border-radius:11px;font-size:11px}
+.studio-master-strip input{margin:0}
+.studio-fx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.studio-fx{border:1px solid #30323d;border-radius:12px;padding:10px;background:#171922;color:#fff;text-align:left;font-weight:900}.studio-fx div{font-size:9px;color:#858a9a;font-weight:500;margin-top:4px}.studio-fx.active{border-color:#665b18;background:#211d09}
+.studio-roadmap .stat{padding:10px;text-align:center}.studio-roadmap .stat b{font-size:16px}
+@media(max-width:380px){.studio-transport-btn{width:38px;height:38px}.studio-transport-tools{grid-template-columns:62px 62px 1fr}.studio-track-head{width:112px}.studio-clip{left:118px}.studio-mixer-track{grid-template-columns:1fr 60px 66px 58px}}
+</style>
 </style>
 <style id="coverUploadBoxFix">
 .cover-upload-box{position:relative;display:flex;align-items:center;gap:12px;padding:16px;border:2px dashed #665b18;border-radius:16px;background:linear-gradient(135deg,#19170b,#15161c);cursor:pointer;margin:5px 0 10px;min-height:76px;}
@@ -693,6 +734,86 @@ body.g77-open{overflow:hidden}
 })();
 </script>
 <div class="player" id="player"><div class="player-head"><button aria-label="Close player" class="player-cancel" data-action="closePlayer">✕</button></div><div class="row"><div class="cover" id="playerCover">🎵</div><div class="grow"><b id="playerTitle">Nothing playing</b><div class="muted" id="playerArtist">Artist Level Up</div></div><button class="iconbtn" data-action="prev">⏮</button><button class="iconbtn" data-action="play">▶</button><button class="iconbtn" data-action="next">⏭</button></div><div class="progress"><i id="playerProgress"></i></div></div>
+
+<div class="page" id="studio">
+  <div class="studio-shell">
+    <div class="studio-head">
+      <div>
+        <span class="pill">ARTIST LEVEL UP STUDIO</span>
+        <h1>🎛️ Studio</h1>
+        <p class="muted">A real mobile music workstation. Record, import, arrange, mix and export your song.</p>
+      </div>
+      <button class="btn" type="button" data-studio-action="close">✕</button>
+    </div>
+
+    <div class="studio-transport card">
+      <div class="studio-transport-row">
+        <button class="studio-transport-btn" type="button" data-studio-action="rewind">⏮</button>
+        <button class="studio-transport-btn" type="button" data-studio-action="stop">⏹</button>
+        <button class="studio-transport-btn studio-play" type="button" data-studio-action="play">▶</button>
+        <button class="studio-transport-btn studio-record" type="button" data-studio-action="record">⏺</button>
+        <button class="studio-transport-btn" type="button" data-studio-action="metronome">♩</button>
+        <div class="studio-time"><b id="studioClock">00:00.0</b><small id="studioStatus">Ready</small></div>
+      </div>
+      <div class="studio-transport-tools">
+        <label>BPM<input id="studioBpm" type="number" min="40" max="240" value="120"></label>
+        <label>Key<select id="studioKey"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></label>
+        <label>Master<input id="studioMaster" type="range" min="0" max="1" step=".01" value=".9"></label>
+      </div>
+    </div>
+
+    <div class="studio-action-grid">
+      <button class="btn primary" type="button" data-studio-action="record">🎙️ Record Vocal</button>
+      <button class="btn blue" type="button" data-studio-action="import">🎵 Import Audio</button>
+      <button class="btn green" type="button" data-studio-action="save">💾 Save Project</button>
+      <button class="btn" type="button" data-studio-action="load">📂 Load Project</button>
+      <button class="btn" type="button" data-studio-action="undo">↶ Undo</button>
+      <button class="btn" type="button" data-studio-action="redo">↷ Redo</button>
+      <button class="btn" type="button" data-studio-action="export">💿 Export WAV</button>
+      <input id="studioImportInput" type="file" accept="audio/*" multiple hidden>
+    </div>
+
+    <div class="studio-meter card">
+      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
+      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
+      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row between"><div><h2>🎼 Timeline</h2><p class="tiny muted">Move through your song and build multiple takes.</p></div><span class="pill" id="studioProjectBadge">Untitled</span></div>
+      <div class="studio-ruler" id="studioRuler"></div>
+      <div id="studioTracks"></div>
+      <div class="studio-empty" id="studioEmpty">No audio yet. Record a vocal or import a beat to start.</div>
+    </div>
+
+    <div class="card studio-mixer">
+      <div class="row between"><div><h2>🎚️ Mixer</h2><p class="tiny muted">Volume, pan, mute, solo and effects for every track.</p></div><span class="pill">MASTER</span></div>
+      <div id="studioMixerTracks"></div>
+      <div class="studio-master-strip"><b>MASTER</b><span>Limiter-ready master bus</span><input id="studioMaster2" type="range" min="0" max="1" step=".01" value=".9"></div>
+    </div>
+
+    <div class="card">
+      <h2>🧩 Studio Effects</h2>
+      <div class="studio-fx-grid">
+        <button class="studio-fx active" type="button" data-fx="eq">🎚️ EQ<div>3-band tone shaping</div></button>
+        <button class="studio-fx active" type="button" data-fx="compressor">🔊 Compressor<div>Control dynamics</div></button>
+        <button class="studio-fx" type="button" data-fx="reverb">🌊 Reverb<div>Room ambience</div></button>
+        <button class="studio-fx" type="button" data-fx="delay">⏱️ Delay<div>Echo / space</div></button>
+      </div>
+      <p class="tiny muted">These are live Web Audio processing modules. More advanced inserts, automation, MIDI, instruments, comping and pitch tools can be added on the same Studio engine.</p>
+    </div>
+
+    <div class="card studio-roadmap">
+      <h2>🚀 Artist Level Up Engine</h2>
+      <div class="grid3">
+        <div class="stat"><b>REC</b><small class="muted">Multi-take audio</small></div>
+        <div class="stat"><b>MIX</b><small class="muted">Track + master bus</small></div>
+        <div class="stat"><b>WAV</b><small class="muted">Offline export</small></div>
+      </div>
+      <p class="tiny muted">Studio is separate from Create. Creator Room upload tools remain under Create.</p>
+    </div>
+  </div>
+</div>
 <nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3243,7 +3364,7 @@ document.addEventListener('click',function(e){
 },true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModal',false);modal('aluHelpModal',false)}});
 })();
-</script><script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopPropagation();if(typeof window.creatorRoomShowPage==="function"){window.creatorRoomShowPage();}else if(typeof window.go==="function"){window.go("create");}} ,true);})();</script></body></html><script id="ownerDashboardV101">
+</script><script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.open==="function"){window.ALU_STUDIO_V101.open();}} ,true);})();</script></body></html><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escO(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}

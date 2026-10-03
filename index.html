@@ -2569,12 +2569,17 @@ async function render77(){
 }
 async function open77(){
  root.classList.add('active');root.setAttribute('aria-hidden','false');document.body.classList.add('g77-open');soundBtn.textContent=muted?'🔇':'🔊';
- try{await render77()}catch(e){console.warn('Global feed initial render skipped:',e);track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed is ready</b><div style="opacity:.7;margin-top:8px">Published videos and approved pictures will load here.</div></div></div>'}
+ track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed</b><div style="opacity:.7;margin-top:8px">Loading published videos and approved pictures…</div></div></div>';
  setTimeout(autoplayVisible,80);
- Promise.resolve().then(async()=>{try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await Promise.race([window.ALU_REFRESH_VIDEOS(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Video refresh timed out')),4000))])}catch(e){console.warn('Global video refresh skipped:',e)}try{await syncLocalApprovedPictures();await render77()}catch(e){console.warn('Global picture sync skipped:',e)}});
+ Promise.resolve().then(async()=>{
+  try{await render77()}catch(e){console.warn('Global feed render skipped:',e)}
+  try{if(typeof window.ALU_REFRESH_VIDEOS==='function')await Promise.race([window.ALU_REFRESH_VIDEOS(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Video refresh timed out')),4000))])}catch(e){console.warn('Global video refresh skipped:',e)}
+  try{await syncLocalApprovedPictures();await render77()}catch(e){console.warn('Global picture sync skipped:',e)}
+ });
 }
-function close77(){if(io)io.disconnect();clearTimeout(scrollTimer);track.querySelectorAll('video').forEach(v=>{try{v.pause();v.currentTime=0}catch(_){}});activeVideo=null;root.classList.remove('active');root.setAttribute('aria-hidden','true');document.body.classList.remove('g77-open')}
-root.querySelector('.g77-close').addEventListener('click',close77);
+function close77(e){if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation()}if(io)io.disconnect();clearTimeout(scrollTimer);track.querySelectorAll('video').forEach(v=>{try{v.pause();v.currentTime=0}catch(_){}});activeVideo=null;root.classList.remove('active');root.setAttribute('aria-hidden','true');document.body.classList.remove('g77-open')}
+root.querySelector('.g77-close').addEventListener('pointerdown',close77,true);
+root.querySelector('.g77-close').addEventListener('click',close77,true);
 soundBtn.addEventListener('click',e=>{e.stopPropagation();muted=!muted;soundBtn.textContent=muted?'🔇':'🔊';const v=activeVideo||getVisibleVideo();if(v){v.muted=muted;v.defaultMuted=muted;if(!v.paused)v.play().catch(()=>{})}});
 track.addEventListener('click',async e=>{
  const b=e.target.closest('[data-act]');if(!b)return;e.preventDefault();e.stopPropagation();const item=b.closest('.g77-item'),v=items[Number(item?.dataset.i||0)];if(!v)return;const a=b.dataset.act,k=keyFor(v),s=socialState();

@@ -3569,38 +3569,76 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModa
 function boot(){
  var studio=document.getElementById('studio');if(!studio){setTimeout(boot,100);return}
  if(studio.__aluFxRackV101)return;studio.__aluFxRackV101=true;
- var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(x=>x.querySelector('[data-fx]'));if(!card)return;
- var old=card.querySelector('.studio-fx-grid');if(old)old.style.display='none';
+ var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(function(x){return x.querySelector('[data-fx]')});if(!card)return;
+ var oldGrid=card.querySelector('.studio-fx-grid');if(oldGrid)oldGrid.style.display='none';
  var rack=document.createElement('div');rack.className='alu-fx-rack';
- rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Effects Rack</b><small> Add effects one slot at a time</small></div><span class="pill">V101</span></div><div class="alu-fx-slots"></div><div class="alu-fx-picker"></div><div class="alu-fx-note">Tap + Add Effect, choose an effect, then use the small power button to turn it on/off. Effects are processed in slot order.</div>';
+ rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Effects Rack</b><small> Add effects one slot at a time</small></div><span class="pill">V101</span></div><div class="alu-fx-slots"></div><div class="alu-fx-picker" aria-hidden="true"></div><div class="alu-fx-note">Tap + Add Effect, choose an effect, then use the small power button to turn it on/off. Effects are processed in slot order.</div>';
  card.appendChild(rack);
  var slots=rack.querySelector('.alu-fx-slots'),picker=rack.querySelector('.alu-fx-picker');
- var effects=[
-  ['Tone','EQ','eq'],['Tone','Filter','filter'],['Dynamics','Compressor','compressor'],['Dynamics','Limiter','limiter'],
-  ['Space','Reverb','reverb'],['Space','Delay','delay'],['Modulation','Chorus','chorus'],['Color','Saturation','saturation']
- ];
+ var effects=[['Tone','EQ','eq'],['Tone','Filter','filter'],['Dynamics','Compressor','compressor'],['Dynamics','Limiter','limiter'],['Space','Reverb','reverb'],['Space','Delay','delay'],['Modulation','Chorus','chorus'],['Color','Saturation','saturation']];
  var state=[];
- function selectedTrack(){var A=window.ALU_STUDIO_V101;return A&&A.selected&&A.find?A.find(A.selected):null}
- function sync(t){if(!t)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();if(t.nodes&&window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.render){}}
+ var active={};
+ function getTrack(){
+   var A=window.ALU_STUDIO_V101;
+   if(!A)return null;
+   if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}
+   if(Array.isArray(A.tracks)&&A.tracks.length)return A.tracks[0];
+   if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}
+   return null;
+ }
+ function applyToTrack(){
+   var t=getTrack(),A=window.ALU_STUDIO_V101;
+   if(!t)return;
+   t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);
+   if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t);
+ }
+ function closePicker(){picker.classList.remove('show');picker.setAttribute('aria-hidden','true');picker.innerHTML=''}
+ function openPicker(i){
+   picker.classList.add('show');picker.setAttribute('aria-hidden','false');
+   picker.innerHTML='<div class="alu-fx-cat">Choose effect for slot '+(i+1)+'</div><div class="alu-fx-options"></div>';
+   var box=picker.querySelector('.alu-fx-options');
+   effects.forEach(function(item){
+     var b=document.createElement('button');b.type='button';b.textContent=item[1];
+     b.addEventListener('click',function(e){
+       e.preventDefault();e.stopPropagation();
+       state[i]=item[2];active[item[2]]=true;
+       applyToTrack();
+       renderSlots();
+       closePicker();
+       var st=document.getElementById('aluStudioStatus');if(st)st.textContent=item[1]+' inserted in Slot '+(i+1)+' ✓';
+     },{passive:false});
+     box.appendChild(b);
+   });
+ }
  function renderSlots(){
-  slots.innerHTML='';
-  for(var i=0;i<6;i++){
-   var key=state[i];
-   var el=document.createElement('div');el.className='alu-fx-slot'+(key?'':' add');
-   if(!key){el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">＋ Add Effect</div><div class="slot-state">Choose an effect for this slot</div></div><span>›</span>';el.addEventListener('click',()=>openPicker(i));}
-   else{var label=effects.find(x=>x[2]===key)?.[1]||key;el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">'+label+'</div><div class="slot-state">Insert effect · slot '+(i+1)+'</div></div><button type="button" class="on" aria-label="Toggle effect">ON</button>';var on=el.querySelector('button');on.addEventListener('click',function(e){e.stopPropagation();var t=selectedTrack();if(!t)return;var active=t.proFx&&t.proFx.active||{};active[key]=active[key]===false?true:false;t.proFx.active=active;if(t.nodes&&window.ALU_STUDIO_V101)window.ALU_STUDIO_V101.apply&&window.ALU_STUDIO_V101.apply(t);on.classList.toggle('on',active[key]!==false)});el.addEventListener('click',function(){openPicker(i)});}
-   slots.appendChild(el);
-  }
+   slots.innerHTML='';
+   for(let i=0;i<6;i++){
+     var key=state[i],el=document.createElement('div');
+     el.className='alu-fx-slot'+(key?'':' add');
+     if(!key){
+       el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">＋ Add Effect</div><div class="slot-state">Choose an effect for this slot</div></div><span>›</span>';
+       el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false});
+     }else{
+       var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key;
+       var isOn=active[key]!==false;
+       el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">'+label+'</div><div class="slot-state">Insert effect · slot '+(i+1)+'</div></div><button type="button" class="'+(isOn?'on':'')+'" aria-label="Toggle effect">'+(isOn?'ON':'OFF')+'</button>';
+       var btn=el.querySelector('button');
+       btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!isOn;applyToTrack();renderSlots()},{passive:false});
+       el.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false});
+     }
+     slots.appendChild(el);
+   }
  }
- function openPicker(i){picker.classList.add('show');picker.innerHTML='<div class="alu-fx-cat">Choose effect for slot '+(i+1)+'</div><div class="alu-fx-options"></div>';
-  var box=picker.querySelector('.alu-fx-options');effects.forEach(function(e){var b=document.createElement('button');b.type='button';b.textContent=e[1];b.addEventListener('click',function(){state[i]=e[2];var t=selectedTrack();if(t){t.proFx=t.proFx||{};t.proFx.slots=state.slice();if(t.nodes&&window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.apply)window.ALU_STUDIO_V101.apply(t)}renderSlots();picker.classList.remove('show');});box.appendChild(b)});
- }
- var A=window.ALU_STUDIO_V101;
- if(A){
-  var oldRender=A.render;A.render=function(){var r=oldRender.apply(this,arguments);var t=selectedTrack();if(t&&t.proFx&&Array.isArray(t.proFx.slots)){state=t.proFx.slots.slice()}renderSlots();return r};
-  var oldFind=A.find; if(oldFind) A.find=oldFind;
+ function loadFromTrack(){
+   var t=getTrack();
+   if(t&&t.proFx&&Array.isArray(t.proFx.slots)){
+     state=t.proFx.slots.slice(0,6);
+     active=Object.assign({},t.proFx.active||{});
+   }
+   renderSlots();
  }
  renderSlots();
+ loadFromTrack();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

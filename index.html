@@ -7875,7 +7875,7 @@ function boot(){
        else if(act==='stop')stopLane(t);
        else if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;render()}
        else if(act==='solo'){t.solo=!t.solo;render()}
-       else if(act==='fx'){var fx=document.getElementById('aluStudioEffectsRoomPanel');if(fx)fx.scrollIntoView({behavior:'smooth',block:'start'})}
+       else if(act==='fx'){window.__ALU_VOCAL_LAYER_SELECTED=n;var fxBtns=document.querySelectorAll('[data-lane-effects]');for(var fi=0;fi<fxBtns.length;fi++){if(String(fxBtns[fi].getAttribute('data-track'))===String(t.id)){fxBtns[fi].click();break}}}
        else if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render()}
      },true);
      box.addEventListener('input',function(e){

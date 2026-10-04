@@ -7832,24 +7832,77 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<!-- V101 FINAL STUDIO REPAIR: persistent vocal lanes + transport controls -->
-<style id="aluV101FinalStudioRepairStyle">
+<!-- V101 STUDIO HANG FIX: stable lane/transport repair -->
+<style id="aluV101StableStudioRepairStyle">
 #studio .alu-vocal-layers{position:relative!important;display:block!important;z-index:99999!important;pointer-events:auto!important;margin:0 0 12px!important}
 #studio .alu-vocal-layer{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
 #studio .studio-transport,#studio .studio-action-grid{position:relative!important;z-index:99990!important;pointer-events:auto!important}
 #studio [data-studio-action]{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
 </style>
-<script id="aluV101FinalStudioRepair">
-(function(){'use strict';
-var layers=[['Lead / Normal Vocal','Lead / Normal Vocal'],['Chorus','Chorus'],['Ad-lib','Ad-lib'],['Backing Vocal','Backing Vocal'],['Harmony','Harmony'],['Extra Vocal','Extra Vocal']];
-function studio(){return document.getElementById('studio')}
-function render(){var s=studio();if(!s)return;var box=s.querySelector('.alu-vocal-layers');if(!box){box=document.createElement('div');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Choose a vocal line before recording.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';s.insertBefore(box,s.firstChild)}else if(box!==s.firstChild)s.insertBefore(box,s.firstChild);var grid=box.querySelector('.alu-vocal-layer-grid');if(!grid)return;var tracks=window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.getTracks?window.ALU_STUDIO_V101.getTracks():[],sel=Number(window.__ALU_VOCAL_LAYER_SELECTED||1);grid.innerHTML=layers.map(function(x,i){var n=i+1,t=tracks.find(function(a){return Number(a.vocalLayer||0)===n});return '<button type="button" class="alu-vocal-layer '+(sel===n?'selected ':'')+(t?'taken':'')+'" data-vocal-layer="'+n+'"><span class="vl-top"><span class="vl-no">'+n+'</span><span class="vl-name">Vocal Layer '+n+'</span></span><span class="vl-role">'+x[1]+'</span><span class="vl-state">'+(t?'✓ TAKE SAVED'+(sel===n?' · SELECTED':''):(sel===n?'● READY TO RECORD':'○ EMPTY'))+'</span></button>'}).join('')}
-function ensure(){if(!studio())return;window.__ALU_VOCAL_LAYER_SELECTED=Number(window.__ALU_VOCAL_LAYER_SELECTED||1);render()}
-function boot(){if(!studio()){setTimeout(boot,100);return}ensure();new MutationObserver(function(){if(studio())ensure()}).observe(studio(),{childList:true,subtree:true});setInterval(ensure,500)}
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.alu-vocal-layer');if(!b)return;e.preventDefault();e.stopImmediatePropagation();window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(b.getAttribute('data-vocal-layer'))||1));render()},true);
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-studio-action]');if(!b)return;var A=window.ALU_STUDIO_V101;if(!A)return;e.preventDefault();e.stopImmediatePropagation();var x=b.getAttribute('data-studio-action');try{if(x==='close'){if(typeof go==='function')go('home');return}if(x==='record'){A.rec?A.rec.stop():A.record();return}if(x==='stop'){A.rec?A.rec.stop():A.stop();return}if(x==='play'){A.playing?A.stop():A.play();return}if(x==='rewind'){A.stop();var c=document.getElementById('studioClock');if(c)c.textContent='00:00.0';return}if(x==='import'){document.getElementById('studioImportInput')?.click();return}if(x==='save'){A.save().catch(function(){});return}if(x==='load'){A.load&&A.load().catch(function(){});return}if(x==='undo'){A.undo();return}if(x==='redo'){A.redo();return}if(x==='export'){A.exportWav&&A.exportWav();return}}catch(err){console.error('V101 Studio control:',err)}},true);
-document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('[data-action="openStudioV101"]'))setTimeout(ensure,20)},true);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+<script id="aluV101StableStudioRepair">
+(function(){
+'use strict';
+var LAYERS=['Lead / Normal Vocal','Chorus','Ad-lib','Backing Vocal','Harmony','Extra Vocal'];
+function getStudio(){return document.getElementById('studio')}
+function render(){
+  var s=getStudio(); if(!s)return;
+  var box=s.querySelector('.alu-vocal-layers');
+  if(!box){
+    box=document.createElement('div'); box.className='alu-vocal-layers';
+    box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Choose a vocal line before recording.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';
+    s.insertBefore(box,s.firstChild);
+  }else if(box!==s.firstChild)s.insertBefore(box,s.firstChild);
+  var grid=box.querySelector('.alu-vocal-layer-grid'); if(!grid)return;
+  var A=window.ALU_STUDIO_V101, tracks=A&&A.getTracks?A.getTracks():[];
+  var sel=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1)));
+  var sig=sel+'|'+tracks.map(function(t){return String(t.id)+':'+String(t.vocalLayer||0)+':'+String(t.duration||0)}).join(',');
+  if(grid.getAttribute('data-v101-sig')===sig)return;
+  grid.setAttribute('data-v101-sig',sig);
+  grid.innerHTML=LAYERS.map(function(role,i){
+    var n=i+1, t=tracks.find(function(a){return Number(a.vocalLayer||0)===n});
+    return '<button type="button" class="alu-vocal-layer '+(sel===n?'selected ':'')+(t?'taken':'')+'" data-vocal-layer="'+n+'"><span class="vl-top"><span class="vl-no">'+n+'</span><span class="vl-name">Vocal Layer '+n+'</span></span><span class="vl-role">'+role+'</span><span class="vl-state">'+(t?'✓ TAKE SAVED'+(sel===n?' · SELECTED':''):(sel===n?'● READY TO RECORD':'○ EMPTY'))+'</span></button>';
+  }).join('');
+}
+function ensure(){
+  var s=getStudio(); if(!s)return;
+  window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1)));
+  render();
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('.alu-vocal-layer'); if(!b)return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(b.getAttribute('data-vocal-layer'))||1));
+  render();
+},true);
+document.addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-studio-action]'); if(!b)return;
+  var A=window.ALU_STUDIO_V101; if(!A)return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  var x=b.getAttribute('data-studio-action');
+  try{
+    if(x==='close'){if(typeof go==='function')go('home');return}
+    if(x==='record'){A.rec?A.rec.stop():A.record();return}
+    if(x==='stop'){A.rec?A.rec.stop():A.stop();return}
+    if(x==='play'){A.playing?A.stop():A.play();return}
+    if(x==='rewind'){A.stop();var c=document.getElementById('studioClock');if(c)c.textContent='00:00.0';return}
+    if(x==='import'){var f=document.getElementById('studioImportInput');if(f)f.click();return}
+    if(x==='save'){if(A.save)A.save().catch(function(){});return}
+    if(x==='load'){if(A.load)A.load().catch(function(){});return}
+    if(x==='undo'){if(A.undo)A.undo();return}
+    if(x==='redo'){if(A.redo)A.redo();return}
+    if(x==='export'){if(A.exportWav)A.exportWav();return}
+  }catch(err){console.error('V101 Studio control:',err)}
+},true);
+var lastStudio=null;
+function watch(){
+  var s=getStudio();
+  if(s!==lastStudio){lastStudio=s;if(s)ensure()}
+}
+var mo=new MutationObserver(watch);
+if(document.body)mo.observe(document.body,{childList:true,subtree:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensure();watch()},{once:true});
+else {ensure();watch()}
+setInterval(watch,1000);
 })();
 </script>
 </body></html>

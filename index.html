@@ -7759,23 +7759,47 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
   #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
 }
 </style>\n<style id="aluStudioPersistentVocalLayersV101">
-#studio .alu-vocal-layers{position:relative;top:auto;z-index:100;margin:0 0 14px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0e1016;padding:11px}
-#studio .alu-vocal-layers-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+#studio .alu-vocal-layers{position:relative;z-index:99999;margin:0 0 14px;border:1px solid #2d303a;border-radius:16px;background:#0d0f14;padding:10px;overflow:hidden}
+#studio .alu-vocal-layers-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
 #studio .alu-vocal-layers-head b{font-size:13px}
-#studio .alu-vocal-layers-head small{font-size:9px;color:#8f93a2}
-#studio .alu-vocal-layer-grid{display:grid;grid-template-columns:1fr;gap:7px}
-#studio .alu-vocal-layer{display:block;width:100%;border:1px solid #303440;border-radius:12px;background:linear-gradient(145deg,#191c24,#111319);color:#fff;text-align:left;padding:10px 11px;min-height:64px;cursor:pointer;touch-action:manipulation}
-#studio .alu-vocal-layer:active{transform:scale(.98)}
-#studio .alu-vocal-layer.selected{border-color:#ffd21c;box-shadow:0 0 0 1px rgba(255,210,28,.2) inset;background:linear-gradient(145deg,#29230b,#15161c)}
-#studio .alu-vocal-layer.taken{border-color:#39d98a}
-#studio .alu-vocal-layer .vl-top{display:flex;align-items:center;gap:7px}
-#studio .alu-vocal-layer .vl-no{width:24px;height:24px;border-radius:7px;background:#292c35;display:grid;place-items:center;font-size:10px;font-weight:900;flex:none}
-#studio .alu-vocal-layer.selected .vl-no{background:#ffd21c;color:#111}
-#studio .alu-vocal-layer .vl-name{font-size:11px;font-weight:900;line-height:1.1}
-#studio .alu-vocal-layer .vl-role{font-size:9px;color:#8f93a2;margin-top:4px}
-#studio .alu-vocal-layer .vl-state{font-size:8px;color:#39d98a;margin-top:5px;font-weight:800}
-#studio .alu-vocal-layer.selected .vl-state{color:#ffd21c}
-@media(max-width:380px){#studio .alu-vocal-layer{min-height:62px}}
+#studio .alu-vocal-layers-head small{display:block;font-size:9px;color:#8f93a2;margin-top:3px}
+#studio .alu-vocal-timeline{border:1px solid #292d36;border-radius:12px;background:#0a0c11;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+#studio .alu-vocal-ruler{position:sticky;top:0;z-index:4;display:grid;grid-auto-flow:column;grid-auto-columns:70px;height:25px;min-width:720px;padding-left:132px;border-bottom:1px solid #252934;background:#11141b;color:#777d8c;font-size:8px}
+#studio .alu-vocal-ruler span{padding:7px 0 0 6px;border-left:1px solid #242833}
+#studio .alu-vocal-lane{display:grid;grid-template-columns:132px minmax(720px,1fr);min-height:96px;border-bottom:1px solid #242833;background:#10131a;cursor:pointer}
+#studio .alu-vocal-lane:last-child{border-bottom:0}
+#studio .alu-vocal-lane.selected{background:linear-gradient(90deg,#17170e,#10131a)}
+#studio .alu-vocal-header{padding:8px 7px;border-right:1px solid #292d36;position:sticky;left:0;z-index:3;background:#11141b}
+#studio .alu-vocal-lane.selected .alu-vocal-header{background:#17170e;border-right-color:#5d5014}
+#studio .alu-vocal-id{display:flex;align-items:center;gap:5px}
+#studio .alu-vocal-no{width:21px;height:21px;border-radius:6px;display:grid;place-items:center;background:#292d36;color:#dfe3ec;font-size:9px;font-weight:900}
+#studio .alu-vocal-lane.selected .alu-vocal-no{background:#ffd21c;color:#111}
+#studio .alu-vocal-name{font-size:9px;font-weight:900;line-height:1.15}
+#studio .alu-vocal-role{font-size:8px;color:#8f93a2;margin:4px 0 6px;line-height:1.2}
+#studio .alu-vocal-status{font-size:7px;color:#39d98a;font-weight:900;margin-bottom:6px}
+#studio .alu-vocal-lane.selected .alu-vocal-status{color:#ffd21c}
+#studio .alu-vocal-mini-controls{display:flex;gap:3px}
+#studio .alu-vocal-mini-controls button{width:22px;height:21px;padding:0;border:1px solid #383d49;border-radius:6px;background:#242833;color:#e8ebf2;font-size:8px;font-weight:900;cursor:pointer;touch-action:manipulation}
+#studio .alu-vocal-mini-controls button.on{background:#ffd21c;color:#111;border-color:#ffd21c}
+#studio .alu-vocal-mini-controls button.rec{background:#4a1c22;border-color:#7e343d;color:#ffb9bf}
+#studio .alu-vocal-clip-area{position:relative;min-width:720px;min-height:96px;background:repeating-linear-gradient(90deg,transparent 0,transparent 69px,#20242d 70px),#0c0f15}
+#studio .alu-vocal-clip{position:absolute;left:10px;top:14px;height:47px;min-width:48px;border:1px solid #4a5261;border-radius:9px;background:linear-gradient(180deg,#263342,#17212c);overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+#studio .alu-vocal-clip.empty{left:10px;right:10px;top:14px;border:1px dashed #303641;background:rgba(255,255,255,.015);box-shadow:none}
+#studio .alu-vocal-wave{width:100%;height:100%;display:block}
+#studio .alu-vocal-empty{position:absolute;inset:0;display:grid;place-items:center;color:#555c69;font-size:8px;font-weight:800;letter-spacing:.4px}
+#studio .alu-vocal-clip-meta{position:absolute;left:8px;top:4px;font-size:7px;font-weight:900;color:#dfe7f2;pointer-events:none}
+#studio .alu-vocal-bottom{position:absolute;left:10px;right:10px;bottom:7px;display:flex;align-items:center;gap:7px}
+#studio .alu-vocal-bottom label{font-size:7px;color:#737a89;white-space:nowrap}
+#studio .alu-vocal-bottom input[type=range]{width:80px;height:12px;margin:0;padding:0;accent-color:#ffd21c}
+#studio .alu-vocal-fx{margin-left:auto;border:1px solid #3a414e;border-radius:7px;background:#202530;color:#dce2ed;font-size:7px;font-weight:900;padding:5px 7px}
+@media(max-width:430px){
+ #studio .alu-vocal-ruler{grid-auto-columns:60px;min-width:612px;padding-left:118px}
+ #studio .alu-vocal-lane{grid-template-columns:118px minmax(612px,1fr)}
+ #studio .alu-vocal-clip-area{min-width:612px}
+ #studio .alu-vocal-header{padding:7px 6px}
+ #studio .alu-vocal-name{font-size:8px}
+ #studio .alu-vocal-role{font-size:7px}
+}
 </style>
 <script id="aluStudioPersistentVocalLayersV101">
 (function(){
@@ -7794,46 +7818,134 @@ function boot(){
  if(window.__ALU_PERSISTENT_VOCAL_LAYERS_V101)return;
  window.__ALU_PERSISTENT_VOCAL_LAYERS_V101=true;
  if(!window.__ALU_VOCAL_LAYER_SELECTED)window.__ALU_VOCAL_LAYER_SELECTED=1;
- function esc(v){return String(v??'').replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])}
+ function esc(v){return String(v??'').replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c)})}
+ function fmt(sec){sec=Number(sec||0);var m=Math.floor(sec/60),s=(sec%60).toFixed(1).padStart(4,'0');return String(m).padStart(2,'0')+':'+s}
+ function getTracks(){return window.ALU_STUDIO_V101?.getTracks?.()||[]}
+ function laneTrack(n){return getTracks().find(function(t){return Number(t.vocalLayer||0)===n})}
+ function drawWave(canvas,track){
+   if(!canvas||!track||!track.blob)return;
+   var key=String(track.id||'')+':'+String(track.duration||0);
+   if(canvas.getAttribute('data-wave-key')===key)return;
+   canvas.setAttribute('data-wave-key',key);
+   var ctx2=canvas.getContext('2d'),w=canvas.width=720,h=canvas.height=94;
+   function paint(data){
+     var bins=96,step=Math.max(1,Math.floor(data.length/bins)),mid=h/2;
+     ctx2.clearRect(0,0,w,h);ctx2.fillStyle='#253443';
+     for(var i=0;i<bins;i++){
+       var sum=0,count=0,start=i*step,end=Math.min(data.length,start+step);
+       for(var j=start;j<end;j+=Math.max(1,Math.floor(step/20))){sum+=Math.abs(data[j]||0);count++}
+       var amp=Math.max(3,Math.min(h*.38,(sum/Math.max(1,count))*h*2.8));
+       var x=i*(w/bins),bw=Math.max(2,w/bins-1);
+       ctx2.fillRect(x,mid-amp,bw,amp*2);
+     }
+   }
+   try{
+     var AC=window.AudioContext||window.webkitAudioContext;
+     if(!AC){paint(new Float32Array(1000).map(function(){return Math.random()}));return}
+     var ac=window.__ALU_WAVE_CTX||(window.__ALU_WAVE_CTX=new AC());
+     track.blob.arrayBuffer().then(function(buf){return ac.decodeAudioData(buf.slice(0))}).then(function(ab){
+       var ch=ab.getChannelData(0);paint(ch);
+     }).catch(function(){paint(new Float32Array(1000))});
+   }catch(e){paint(new Float32Array(1000))}
+ }
+ function makeRuler(){
+   var labels=[],max=120;
+   var tracks=getTracks();
+   tracks.forEach(function(t){max=Math.max(max,Number(t.duration||0))});
+   max=Math.max(60,Math.ceil(max/10)*10);
+   for(var i=0;i<=max;i+=10)labels.push('<span>'+fmt(i)+'</span>');
+   return {html:labels.join(''),max:max};
+ }
  function ensure(){
-   var hub=studio.querySelector('.studio-vocal-hub'),head=hub&&hub.querySelector('.studio-vocal-hub-head');
    var box=studio.querySelector('.alu-vocal-layers');
    if(!box){
-     box=document.createElement('div');box.className='alu-vocal-layers';
-     box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Tap a line before you record. Each line keeps its own vocal take.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';
+     box=document.createElement('section');box.className='alu-vocal-layers';
+     box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · record, arrange and mix each take independently.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
      studio.insertBefore(box,studio.firstChild);
      box.addEventListener('click',function(e){
-       var btn=e.target.closest('.alu-vocal-layer');if(!btn)return;
-       window.__ALU_VOCAL_LAYER_SELECTED=Number(btn.getAttribute('data-vocal-layer'))||1;
+       var ctl=e.target.closest('[data-vocal-control]');if(ctl)return;
+       var lane=e.target.closest('.alu-vocal-lane');if(!lane)return;
+       window.__ALU_VOCAL_LAYER_SELECTED=Number(lane.getAttribute('data-vocal-layer'))||1;
        render();
        var label=LAYERS[window.__ALU_VOCAL_LAYER_SELECTED-1]?.role||'Vocal';
        if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+window.__ALU_VOCAL_LAYER_SELECTED+' selected · '+label);
      });
-   }else if(box!==studio.firstChild){
-     studio.insertBefore(box,studio.firstChild);
+     box.addEventListener('click',function(e){
+       var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
+       e.preventDefault();e.stopPropagation();
+       var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
+       if(act==='select'){window.__ALU_VOCAL_LAYER_SELECTED=n;render();return}
+       if(!t){window.__ALU_VOCAL_LAYER_SELECTED=n;render();if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+n+' selected · ready to record');return}
+       if(act==='play'){
+         if(t.__laneAudio){try{t.__laneAudio.pause();t.__laneAudio.currentTime=0}catch(_e){}}
+         t.__laneAudio=new Audio(URL.createObjectURL(t.blob));t.__laneAudio.preload='auto';t.__laneAudio.volume=Number(t.volume??1);t.__laneAudio.play().catch(function(){});
+         t.__laneAudio.onended=function(){try{URL.revokeObjectURL(t.__laneAudio.src)}catch(_e){}};
+       }else if(act==='stop'){
+         if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio.currentTime=0}
+       }else if(act==='mute'){
+         t.mute=!t.mute;render();
+       }else if(act==='solo'){
+         t.solo=!t.solo;render();
+       }else if(act==='record'){
+         window.__ALU_VOCAL_LAYER_SELECTED=n;
+         var rb=document.querySelector('[data-studio-action="record"]');
+         if(rb)rb.click(); else if(A&&A.record)A.record();
+         render();
+       }else if(act==='fx'){
+         var fx=document.getElementById('aluStudioEffectsRoomPanel');
+         if(fx)fx.scrollIntoView({behavior:'smooth',block:'start'});
+       }
+     });
    }
+   if(box!==studio.firstChild)studio.insertBefore(box,studio.firstChild);
    render();
  }
  function render(){
-   var grid=studio.querySelector('.alu-vocal-layer-grid');if(!grid)return;
-   var tracks=window.ALU_STUDIO_V101?.getTracks?.()||[];
-   var selected=Number(window.__ALU_VOCAL_LAYER_SELECTED||1);
-   grid.innerHTML=LAYERS.map(function(x){
-     var t=tracks.find(function(t){return Number(t.vocalLayer||0)===x.n});
-     var active=selected===x.n;
-     return '<button type="button" class="alu-vocal-layer '+(active?'selected ':'')+(t?'taken':'')+'" data-vocal-layer="'+x.n+'">'+
-       '<span class="vl-top"><span class="vl-no">'+x.n+'</span><span class="vl-name">Vocal Layer '+x.n+'</span></span>'+
-       '<span class="vl-role">'+esc(x.role)+'</span>'+
-       '<span class="vl-state">'+(t?'✓ TAKE SAVED'+(active?' · SELECTED':''):(active?'● READY TO RECORD':'○ EMPTY'))+'</span></button>';
+   var box=studio.querySelector('.alu-vocal-layers');if(!box)return;
+   var lanes=box.querySelector('.alu-vocal-lanes'),ruler=box.querySelector('.alu-vocal-ruler');if(!lanes||!ruler)return;
+   var tracks=getTracks(),selected=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1)));
+   var rr=makeRuler();ruler.innerHTML=rr.html;
+   ruler.style.gridTemplateColumns='repeat('+((rr.max/10)+1)+',70px)';
+   var sig=selected+'|'+tracks.map(function(t){return String(t.id)+':'+String(t.vocalLayer||0)+':'+String(t.duration||0)+':'+String(t.volume??1)+':'+String(t.mute)+':'+String(t.solo)}).join(',');
+   if(lanes.getAttribute('data-v101-sig')===sig)return;
+   lanes.setAttribute('data-v101-sig',sig);
+   var minTimeline=Math.max(720,rr.max*6);
+   lanes.innerHTML=LAYERS.map(function(x){
+     var t=tracks.find(function(a){return Number(a.vocalLayer||0)===x.n}),active=selected===x.n,dur=Number(t?.duration||0);
+     var pct=t?Math.max(4,Math.min(96,(dur/rr.max)*100)):0;
+     return '<div class="alu-vocal-lane '+(active?'selected':'')+'" data-vocal-layer="'+x.n+'">'+
+       '<div class="alu-vocal-header"><div class="alu-vocal-id"><span class="alu-vocal-no">'+x.n+'</span><span class="alu-vocal-name">Vocal Layer '+x.n+'</span></div>'+
+       '<div class="alu-vocal-role">'+esc(x.role)+'</div><div class="alu-vocal-status">'+(t?'✓ '+fmt(dur)+' · Audio':(active?'● READY TO RECORD':'○ EMPTY'))+'</div>'+
+       '<div class="alu-vocal-mini-controls">'+
+       '<button type="button" data-vocal-control="play" data-layer="'+x.n+'" title="Play">▶</button>'+
+       '<button type="button" data-vocal-control="stop" data-layer="'+x.n+'" title="Stop">■</button>'+
+       '<button type="button" class="rec" data-vocal-control="record" data-layer="'+x.n+'" title="Record">●</button>'+
+       '<button type="button" class="'+(t&&t.mute?'on':'')+'" data-vocal-control="mute" data-layer="'+x.n+'">M</button>'+
+       '<button type="button" class="'+(t&&t.solo?'on':'')+'" data-vocal-control="solo" data-layer="'+x.n+'">S</button>'+
+       '</div></div>'+
+       '<div class="alu-vocal-clip-area" style="min-width:'+minTimeline+'px">'+
+       (t?'<div class="alu-vocal-clip" style="width:'+pct+'%;"><canvas class="alu-vocal-wave" width="720" height="94"></canvas><div class="alu-vocal-clip-meta">'+esc(x.role)+' · '+fmt(dur)+'</div></div>':'<div class="alu-vocal-clip empty"><div class="alu-vocal-empty">'+(active?'TAP ● TO RECORD INTO THIS LANE':'EMPTY LANE · SELECT TO RECORD')+'</div></div>')+
+       '<div class="alu-vocal-bottom"><label>VOL</label><input type="range" min="0" max="1" step=".01" value="'+Number(t?.volume??1)+'" data-vocal-control="volume" data-layer="'+x.n+'"><label>PAN</label><input type="range" min="-1" max="1" step=".01" value="'+Number(t?.pan??0)+'" data-vocal-control="pan" data-layer="'+x.n+'"><button class="alu-vocal-fx" type="button" data-vocal-control="fx" data-layer="'+x.n+'">🎛️ EFFECTS</button></div>'+
+       '</div></div>';
    }).join('');
+   lanes.querySelectorAll('.alu-vocal-wave').forEach(function(cv){
+     var lane=cv.closest('.alu-vocal-lane'),n=Number(lane.getAttribute('data-vocal-layer')),t=laneTrack(n);drawWave(cv,t);
+   });
+   lanes.querySelectorAll('input[data-vocal-control]').forEach(function(inp){
+     inp.addEventListener('input',function(e){
+       var n=Number(inp.getAttribute('data-layer')),t=laneTrack(n);if(!t)return;
+       var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
+       if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=v}
+       if(a==='pan')t.pan=v;
+     });
+   });
  }
  ensure();
- var lastCount=-1,lastSignature='';
+ var last='';
  setInterval(function(){
-   var tracks=window.ALU_STUDIO_V101?.getTracks?.()||[];
-   var sig=tracks.map(function(t){return String(t.id)+':'+String(t.vocalLayer||0)+':'+String(t.duration||0)}).join('|')+'|'+String(window.__ALU_VOCAL_LAYER_SELECTED||1);
-   if(sig!==lastSignature){lastSignature=sig;ensure()}
- },300);
+   var tracks=getTracks(),sig=String(window.__ALU_VOCAL_LAYER_SELECTED||1)+'|'+tracks.map(function(t){return String(t.id)+':'+String(t.vocalLayer||0)+':'+String(t.duration||0)+':'+String(t.volume??1)+':'+String(t.mute)+':'+String(t.solo)}).join(',');
+   if(sig!==last){last=sig;ensure()}
+ },500);
  window.ALU_VOCAL_LAYERS_V101={layers:LAYERS,refresh:render};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
@@ -7843,49 +7955,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <!-- V101 STUDIO HANG FIX: stable lane/transport repair -->
 <style id="aluV101StableStudioRepairStyle">
 #studio .alu-vocal-layers{position:relative!important;display:block!important;z-index:99999!important;pointer-events:auto!important;margin:0 0 12px!important}
-#studio .alu-vocal-layer{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
+#studio .alu-vocal-lane{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
 #studio .studio-transport,#studio .studio-action-grid{position:relative!important;z-index:99990!important;pointer-events:auto!important}
 #studio [data-studio-action]{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
 </style>
 <script id="aluV101StableStudioRepair">
 (function(){
 'use strict';
-var LAYERS=['Lead / Normal Vocal','Chorus','Ad-lib','Backing Vocal','Harmony','Extra Vocal'];
-function getStudio(){return document.getElementById('studio')}
-function render(){
-  var s=getStudio(); if(!s)return;
-  var box=s.querySelector('.alu-vocal-layers');
-  if(!box){
-    box=document.createElement('div'); box.className='alu-vocal-layers';
-    box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Choose a vocal line before recording.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';
-    s.insertBefore(box,s.firstChild);
-  }else if(box!==s.firstChild)s.insertBefore(box,s.firstChild);
-  var grid=box.querySelector('.alu-vocal-layer-grid'); if(!grid)return;
-  var A=window.ALU_STUDIO_V101, tracks=A&&A.getTracks?A.getTracks():[];
-  var sel=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1)));
-  var sig=sel+'|'+tracks.map(function(t){return String(t.id)+':'+String(t.vocalLayer||0)+':'+String(t.duration||0)}).join(',');
-  if(grid.getAttribute('data-v101-sig')===sig)return;
-  grid.setAttribute('data-v101-sig',sig);
-  grid.innerHTML=LAYERS.map(function(role,i){
-    var n=i+1, t=tracks.find(function(a){return Number(a.vocalLayer||0)===n});
-    return '<button type="button" class="alu-vocal-layer '+(sel===n?'selected ':'')+(t?'taken':'')+'" data-vocal-layer="'+n+'"><span class="vl-top"><span class="vl-no">'+n+'</span><span class="vl-name">Vocal Layer '+n+'</span></span><span class="vl-role">'+role+'</span><span class="vl-state">'+(t?'✓ TAKE SAVED'+(sel===n?' · SELECTED':''):(sel===n?'● READY TO RECORD':'○ EMPTY'))+'</span></button>';
-  }).join('');
-}
-function ensure(){
-  var s=getStudio(); if(!s)return;
-  window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1)));
-  render();
-}
-document.addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('.alu-vocal-layer'); if(!b)return;
-  e.preventDefault(); e.stopImmediatePropagation();
-  window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(b.getAttribute('data-vocal-layer'))||1));
-  render();
-},true);
 document.addEventListener('click',function(e){
   var b=e.target.closest&&e.target.closest('[data-studio-action]'); if(!b)return;
   var A=window.ALU_STUDIO_V101; if(!A)return;
-  e.preventDefault(); e.stopImmediatePropagation();
+  e.preventDefault();e.stopImmediatePropagation();
   var x=b.getAttribute('data-studio-action');
   try{
     if(x==='close'){if(typeof go==='function')go('home');return}
@@ -7901,16 +7981,6 @@ document.addEventListener('click',function(e){
     if(x==='export'){if(A.exportWav)A.exportWav();return}
   }catch(err){console.error('V101 Studio control:',err)}
 },true);
-var lastStudio=null;
-function watch(){
-  var s=getStudio();
-  if(s!==lastStudio){lastStudio=s;if(s)ensure()}
-}
-var mo=new MutationObserver(watch);
-if(document.body)mo.observe(document.body,{childList:true,subtree:true});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensure();watch()},{once:true});
-else {ensure();watch()}
-setInterval(watch,1000);
 })();
 </script>
 </body></html>

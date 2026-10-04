@@ -7751,7 +7751,7 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
   #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
 }
 </style>\n<style id="aluStudioPersistentVocalLayersV101">
-#studio .alu-vocal-layers{margin:0 0 12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0e1016;padding:11px}
+#studio .alu-vocal-layers{position:relative;z-index:18;margin:0 0 12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0e1016;padding:11px}
 #studio .alu-vocal-layers-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
 #studio .alu-vocal-layers-head b{font-size:13px}
 #studio .alu-vocal-layers-head small{font-size:9px;color:#8f93a2}
@@ -7789,12 +7789,11 @@ function boot(){
  function esc(v){return String(v??'').replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])}
  function ensure(){
    var hub=studio.querySelector('.studio-vocal-hub'),head=hub&&hub.querySelector('.studio-vocal-hub-head');
-   if(!hub||!head)return;
-   var box=hub.querySelector('.alu-vocal-layers');
+   var box=studio.querySelector('.alu-vocal-layers');
    if(!box){
      box=document.createElement('div');box.className='alu-vocal-layers';
      box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Tap a line before you record. Each line keeps its own vocal take.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';
-     head.insertAdjacentElement('afterend',box);
+     studio.insertBefore(box,studio.firstChild);
      box.addEventListener('click',function(e){
        var btn=e.target.closest('.alu-vocal-layer');if(!btn)return;
        window.__ALU_VOCAL_LAYER_SELECTED=Number(btn.getAttribute('data-vocal-layer'))||1;
@@ -7802,6 +7801,8 @@ function boot(){
        var label=LAYERS[window.__ALU_VOCAL_LAYER_SELECTED-1]?.role||'Vocal';
        if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+window.__ALU_VOCAL_LAYER_SELECTED+' selected · '+label);
      });
+   }else if(box!==studio.firstChild){
+     studio.insertBefore(box,studio.firstChild);
    }
    render();
  }

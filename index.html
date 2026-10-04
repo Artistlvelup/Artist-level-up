@@ -1092,6 +1092,12 @@ body:has(#studio.page.active){overflow:hidden!important}
       </div>
     </div>
 
+    <div class="studio-meter card">
+      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
+      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
+      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
+    </div>
+
     <div class="studio-action-grid">
       <button class="btn primary" type="button" data-studio-action="record">🎙️ Record Vocal</button>
       <button class="btn blue" type="button" data-studio-action="import">🎵 Import Audio</button>
@@ -1101,12 +1107,6 @@ body:has(#studio.page.active){overflow:hidden!important}
       <button class="btn" type="button" data-studio-action="redo">↷ Redo</button>
       <button class="btn" type="button" data-studio-action="export">💿 Export WAV</button>
       <input id="studioImportInput" type="file" accept="audio/*" multiple hidden>
-    </div>
-
-    <div class="studio-meter card">
-      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
-      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
-      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
     </div>
 
     <div class="card">

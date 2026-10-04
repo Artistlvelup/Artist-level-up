@@ -7497,4 +7497,94 @@ function fft(r,m,inv){var n=r.length,j=0;for(var i=0;i<n;i++){if(i<j){var t=r[i]
 async function reduce(b,str){var N=1024,H=256,L=b.length,R=b.sampleRate,C=b.numberOfChannels,O=new AudioBuffer({length:L,numberOfChannels:C,sampleRate:R}),F=Math.max(1,Math.ceil((L-N)/H)+1),NF=Math.max(1,Math.min(F,Math.ceil(R*.5/H)));for(var ch=0;ch<C;ch++){var s=b.getChannelData(ch),d=O.getChannelData(ch),no=new Float32Array(N/2+1),re=new Float32Array(N),im=new Float32Array(N),win=new Float32Array(N),wt=new Float32Array(L);for(var n=0;n<N;n++)win[n]=.5-.5*Math.cos(2*Math.PI*n/(N-1));for(var f=0;f<NF;f++){var st=f*H;for(var n=0;n<N;n++){var ix=st+n;re[n]=(ix<L?s[ix]:0)*win[n];im[n]=0}fft(re,im,0);for(var k=0;k<=N/2;k++)no[k]+=Math.hypot(re[k],im[k])}for(var k=0;k<no.length;k++)no[k]/=NF;for(var f=0;f<F;f++){var st=f*H;for(var n=0;n<N;n++){var ix=st+n;re[n]=(ix<L?s[ix]:0)*win[n];im[n]=0}fft(re,im,0);for(var k=0;k<=N/2;k++){var mag=Math.hypot(re[k],im[k]),ph=Math.atan2(im[k],re[k]),z=Math.max(no[k]*(.12+.28*(1-str)),mag-no[k]*str);re[k]=z*Math.cos(ph);im[k]=z*Math.sin(ph);if(k>0&&k<N/2){re[N-k]=re[k];im[N-k]=-im[k]}}fft(re,im,1);for(var n=0;n<N;n++){var ix=st+n;if(ix<L){d[ix]+=re[n]*win[n];wt[ix]+=win[n]*win[n]}}}for(var i=0;i<L;i++)d[i]=wt[i]>.00001?d[i]/wt[i]:s[i]}return O}
 async function gate(b,thr){var O=new AudioBuffer({length:b.length,numberOfChannels:b.numberOfChannels,sampleRate:b.sampleRate}),floor=.05,atk=Math.max(1,Math.floor(b.sampleRate*.006)),rel=Math.max(atk,Math.floor(b.sampleRate*.12));for(var c=0;c<b.numberOfChannels;c++){var s=b.getChannelData(c),d=O.getChannelData(c),env=0,g=1;for(var i=0;i<s.length;i++){var x=Math.abs(s[i]),a=x>env?.01:.00035;env+=(x-env)*a;var db=20*Math.log10(Math.max(1e-5,env)),t=db<thr?floor:1;g+=(t-g)*(t<g?1/atk:1/rel);d[i]=s[i]*g}}return O}
 async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');return}var bs=root().querySelectorAll('[data-noise-action]');bs.forEach(function(x){x.disabled=true});try{msg(kind==='reduce'?'Analysing noise profile…':'Applying noise gate…');var ac=new(window.AudioContext||window.webkitAudioContext)(),b=await ac.decodeAudioData((await t.blob.arrayBuffer()).slice(0)),o=kind==='reduce'?await reduce(b,Number(aluNRStrength.value)/100):await gate(b,Number(aluGateThreshold.value));A.replaceTrack(t.id,Object.assign({},t,{blob:wav(o),duration:o.duration,audio:null,nodes:null}));msg(kind==='reduce'?'✓ Noise reduced. Preview the clip.':'✓ Noise gate applied. Quiet sections are reduced.')}catch(e){msg('Could not process clip: '+(e&&e.message||'try again'))}bs.forEach(function(x){x.disabled=false})}document.addEventListener('click',function(e){var bt=e.target.closest?.('#studio [data-noise-action]');if(bt){e.preventDefault();e.stopPropagation();apply(bt.getAttribute('data-noise-action'))}},true);ensure()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot()})();</script>
+<style id="effectsRoomButtonReworkV101">
+/* V101 Effects Room — clean mobile button layout + color-coded controls */
+#studio .studio-effects-room-panel .alu-fx-list{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+#studio .studio-effects-room-panel .alu-fx-row{
+  min-height:62px;
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr) 56px;
+  grid-template-rows:1fr;
+  align-items:center;
+  gap:8px;
+  padding:8px 9px;
+  border-radius:13px;
+}
+#studio .studio-effects-room-panel .alu-fx-no{
+  grid-row:1;
+  width:32px;
+  height:32px;
+}
+#studio .studio-effects-room-panel .alu-fx-row>div:nth-child(2){
+  min-width:0;
+}
+#studio .studio-effects-room-panel .alu-fx-name{
+  font-size:11px;
+  line-height:1.2;
+}
+#studio .studio-effects-room-panel .alu-fx-state{
+  margin-top:3px;
+}
+#studio .studio-effects-room-panel .alu-fx-row button{
+  grid-column:3;
+  grid-row:1;
+  width:56px;
+  height:32px;
+  min-width:56px;
+  padding:0;
+  border-radius:10px;
+  font-size:9px;
+  letter-spacing:.4px;
+  background:linear-gradient(135deg,#343c4d,#202633);
+  border-color:#59667c;
+  color:#e9efff;
+}
+#studio .studio-effects-room-panel .alu-fx-row button.on{
+  background:linear-gradient(135deg,#35e0c4,#15998d);
+  border-color:#68f3df;
+  color:#061513;
+}
+#studio .studio-effects-room-panel .alu-fx-row:nth-child(1) button{background:linear-gradient(135deg,#245f96,#163b61);border-color:#4aaeff}
+#studio .studio-effects-room-panel .alu-fx-row:nth-child(2) button{background:linear-gradient(135deg,#2b6f9f,#174463);border-color:#58bfff}
+#studio .studio-effects-room-panel .alu-fx-row:nth-child(3) button{background:linear-gradient(135deg,#315a8c,#1b3558);border-color:#69a8ff}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(4) .alu-fx-row button{background:linear-gradient(135deg,#8a6125,#513813);border-color:#e9b44f}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(5) .alu-fx-row button{background:linear-gradient(135deg,#9a3d58,#5c2133);border-color:#ff7696}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(6) .alu-fx-row button{background:linear-gradient(135deg,#6544a0,#392568);border-color:#b795ff}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(7) .alu-fx-row button{background:linear-gradient(135deg,#2478a0,#17485f);border-color:#64d2ff}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(8) .alu-fx-row button{background:linear-gradient(135deg,#27815f,#17523d);border-color:#6ee7b7}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(9) .alu-fx-row button{background:linear-gradient(135deg,#9b4d88,#5c2b50);border-color:#f69ad9}
+#studio .studio-effects-room-panel .alu-fx-row.active button{
+  background:linear-gradient(135deg,#42e6cf,#159e91);
+  border-color:#73f7e5;
+  color:#061513;
+}
+#studio .studio-effects-room-panel .alu-fx-row.active{
+  box-shadow:0 0 0 1px rgba(66,230,207,.14),0 5px 14px rgba(0,0,0,.22);
+}
+#studio .studio-effects-room-panel .alu-fx-tools button{
+  min-height:44px;
+  border-radius:12px;
+  font-weight:900;
+}
+#studio .studio-effects-room-panel .alu-fx-tools button:first-child{
+  background:linear-gradient(135deg,#e05a6b,#7d2639);
+  border-color:#ff8290;
+}
+#studio .studio-effects-room-panel .alu-fx-tools button:nth-child(2){
+  background:linear-gradient(135deg,#4b9ee5,#22528e);
+  border-color:#76c4ff;
+}
+@media(max-width:380px){
+  #studio .studio-effects-room-panel .alu-fx-row{
+    grid-template-columns:30px minmax(0,1fr) 52px;
+    gap:7px;
+    padding:7px;
+  }
+  #studio .studio-effects-room-panel .alu-fx-row button{width:52px;min-width:52px}
+}
+</style>
 </body></html>

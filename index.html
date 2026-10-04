@@ -7905,7 +7905,7 @@ function boot(){
      (t?'<div class="alu-vocal-clip" style="width:'+pct+'%;"><canvas class="alu-vocal-wave" width="720" height="94"></canvas><div class="alu-vocal-clip-meta">'+esc(x.role)+' · '+fmt(dur)+'</div></div>':'<div class="alu-vocal-clip empty"><div class="alu-vocal-empty">'+(active?'TAP ● TO RECORD INTO THIS LANE':'EMPTY LANE · SELECT TO RECORD')+'</div></div>')+
      '<div class="alu-vocal-bottom"><span class="alu-vocal-fx-title">FX</span>'+
      x.fx.map(function(k){return '<button type="button" class="alu-vocal-fx-chip '+(t&&af[k]?'on':'')+'" data-vocal-control="fxToggle" data-layer="'+x.n+'" data-fx="'+k+'">'+FX[k]+'</button>'}).join('')+
-     '<label>VOL</label><input type="range" min="0" max="1" step=".01" value="'+Number(t?.volume??1)+'" data-vocal-control="volume" data-layer="'+x.n+'"><label>PAN</label><input type="range" min="-1" max="1" step=".01" value="'+Number(t?.pan??0)+'" data-vocal-control="pan" data-layer="'+x.n+'"><button class="alu-vocal-fx-chip" type="button" data-vocal-control="fx" data-layer="'+x.n+'">🎛️ EFFECTS</button></div>'+
+     '<label>VOL</label><input type="range" min="0" max="1" step=".01" value="'+Number(t?.volume??1)+'" data-vocal-control="volume" data-layer="'+x.n+'"><label>PAN</label><input type="range" min="-1" max="1" step=".01" value="'+Number(t?.pan??0)+'" data-vocal-control="pan" data-layer="'+x.n+'"><button class="alu-vocal-fx-chip" type="button" data-vocal-control="fx" data-layer="'+x.n+'">🎛️ EFFECTS</button>'+(t?'<button class="alu-vocal-delete" type="button" data-vocal-control="delete" data-layer="'+x.n+'">🗑️ DELETE AUDIO</button>':'')+'</div>'+
      '</div></div>';
    }).join('');
    lanes.querySelectorAll('.alu-vocal-wave').forEach(function(cv){var lane=cv.closest('.alu-vocal-lane'),n=Number(lane.getAttribute('data-vocal-layer')),t=laneTrack(n);drawWave(cv,t)});
@@ -7940,6 +7940,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .alu-vocal-mini-controls button.on,
 #studio .alu-vocal-fx-chip.on{background:#ffd21c!important;color:#111!important;border-color:#ffd21c!important}
 #studio .alu-vocal-lane.selected .alu-vocal-no{box-shadow:none!important}
+#studio .alu-vocal-delete{min-width:112px!important;height:34px!important;padding:0 10px!important;border:1px solid #71343a!important;border-radius:8px!important;background:#32191d!important;color:#ffb9bf!important;font-weight:700!important;outline:none!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent!important}
+#studio .alu-vocal-delete:active,#studio .alu-vocal-delete:focus,#studio .alu-vocal-delete:focus-visible{outline:none!important;box-shadow:none!important;transform:none!important}
 </style>
 <script id="aluV101LaneTouchFix">
 (function(){
@@ -7976,6 +7978,13 @@ function boot(){
    else if(a==='stop'){if(t.__laneAudio)try{t.__laneAudio.pause();t.__laneAudio.currentTime=0}catch(_e){}}
    else if(a==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;}
    else if(a==='solo'){t.solo=!t.solo;}
+   else if(a==='delete'){
+     try{if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio.src='';t.__laneAudio=null;}}catch(_e){}
+     try{if(t.playAudio){t.playAudio.pause();t.playAudio.src='';t.playAudio=null;}}catch(_e){}
+     if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.remove)window.ALU_STUDIO_V101.remove(t.id);
+     window.__ALU_VOCAL_LAYER_SELECTED=n;
+     return;
+   }
    else if(a==='fxToggle'){
      t.proFx=t.proFx||{};t.proFx.slots=Array.isArray(t.proFx.slots)?t.proFx.slots:[];t.proFx.active=t.proFx.active||{};
      var k=b.getAttribute('data-fx');if(t.proFx.slots.indexOf(k)<0)t.proFx.slots.push(k);t.proFx.active[k]=t.proFx.active[k]!==true;

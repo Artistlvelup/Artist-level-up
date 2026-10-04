@@ -87,7 +87,7 @@
 .studio-meter{padding:11px}.studio-meter-track{height:9px;background:#252731;border-radius:99px;overflow:hidden;margin-top:8px}.studio-meter-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39d98a,#ffd21c,#ff5c67);transition:width .08s}
 .studio-tips{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:10px;color:#9296a4}
 .studio-ruler{height:24px;border-bottom:1px solid #2e3039;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),#292b34 calc(10% - 1px),#292b34 10%);border-radius:7px 7px 0 0;margin-top:8px}
-.studio-track{position:relative;border-bottom:1px solid #292b34;background:#111218;min-height:92px;overflow:hidden}
+.studio-track{position:relative;border-bottom:1px solid #292b34;background:#111218;min-height:136px;overflow:hidden}
 .studio-track-head{position:absolute;left:0;top:0;bottom:0;width:226px;background:#171922;border-right:1px solid #30323c;padding:6px;z-index:2;overflow:hidden}
 .studio-lane-engine{height:100%;display:flex;flex-direction:column;gap:4px}
 .studio-lane-title{display:grid;grid-template-columns:20px 1fr;column-gap:5px;align-items:center;min-width:0}
@@ -95,16 +95,26 @@
 .studio-lane-title small{grid-column:2;color:#8d91a0;font-size:8px}
 .studio-lane-icon{grid-row:1/3;font-size:14px}
 .studio-lane-transport{display:flex;gap:3px}
-.studio-lane-transport button,.studio-lane-fx button{border:1px solid #3a3d49;border-radius:6px;background:#242731;color:#fff;min-width:25px;height:24px;padding:0 5px;font-size:9px;font-weight:900;cursor:pointer;touch-action:manipulation}
-.studio-lane-transport button:active,.studio-lane-fx button:active{transform:scale(.94)}
+.studio-lane-transport button,.studio-lane-effects button{border:1px solid #3a3d49;border-radius:6px;background:#242731;color:#fff;min-width:25px;height:24px;padding:0 5px;font-size:9px;font-weight:900;cursor:pointer;touch-action:manipulation}
+.studio-lane-transport button:active,.studio-lane-effects button:active{transform:scale(.94)}
 .studio-lane-transport button.rec{color:#ff6973}
-.studio-lane-transport button.on,.studio-lane-fx button.on{background:#ffd21c;color:#111;border-color:#ffd21c}
+.studio-lane-transport button.on,.studio-lane-effects button.on{background:#ffd21c;color:#111;border-color:#ffd21c}
 .studio-lane-mix{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .studio-lane-mix label{font-size:7px;color:#858a99;font-weight:900}
 .studio-lane-mix input{display:block;width:100%;height:12px;margin:1px 0 0;accent-color:#ffd21c}
-.studio-lane-fx{display:flex;gap:3px;align-items:center;overflow:hidden}
-.studio-lane-fx>span{font-size:7px;color:#858a99;font-weight:900}
-.studio-lane-fx button{height:20px;min-width:32px;font-size:7px}
+.studio-lane-effects{display:flex;align-items:center}
+.studio-lane-effects button{width:100%;height:27px;font-size:9px;background:linear-gradient(135deg,#303747,#20242f);border-color:#59657b}
+.studio-lane-effects button.on{background:#ffd21c;color:#111;border-color:#ffd21c}
+.studio-effects-room{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(5,6,10,.78);backdrop-filter:blur(5px)}
+.studio-effects-room.show{display:flex}
+.studio-effects-room-panel{width:min(96vw,760px);max-height:92vh;overflow:auto;border:1px solid #3b4050;border-radius:16px;background:#101218;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.studio-effects-room-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#151821;border-bottom:1px solid #2e323d}
+.studio-effects-room-head b{font-size:13px}
+.studio-effects-room-head small{display:block;color:#8d91a0;font-size:9px;margin-top:2px}
+.studio-effects-room-close{border:1px solid #3a3d49;border-radius:8px;background:#242731;color:#fff;width:34px;height:32px;font-size:20px;line-height:1;cursor:pointer}
+.studio-effects-room-panel .alu-fx-rack{margin:0;border:0;border-radius:0;box-shadow:none}
+.studio-effects-room-panel .alu-fx-rack-head{position:sticky;top:0;z-index:2}
+.studio-effects-host-v101{display:none!important}
 .studio-lane-status{font-size:7px;color:#858a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .studio-track-head b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -958,9 +968,8 @@ function render(){let box=$('studioTracks'),mix=$('studioMixerTracks');if(!box||
 '<button type="button" data-lane-action="solo" data-track="'+t.id+'" class="'+(t.solo?'on':'')+'">S</button>'+
 '</div>'+
 '<div class="studio-lane-mix"><label>VOL <input data-lane-mix="volume" data-track="'+t.id+'" type="range" min="0" max="1.5" step=".01" value="'+(t.volume??1)+'"></label><label>PAN <input data-lane-mix="pan" data-track="'+t.id+'" type="range" min="-1" max="1" step=".01" value="'+(t.pan??0)+'"></label></div>'+
-'<div class="studio-lane-fx"><span>FX</span>'+
-['eq','compressor','reverb','delay','chorus','saturation'].map(function(k){var on=Array.isArray(t.proFx&&t.proFx.slots)&&t.proFx.slots.indexOf(k)>=0&&(!t.proFx.active||t.proFx.active[k]!==false);var names={eq:'EQ',compressor:'COMP',reverb:'REV',delay:'DLY',chorus:'CHO',saturation:'SAT'};return '<button type="button" data-lane-fx="'+k+'" data-track="'+t.id+'" class="'+(on?'on':'')+'">'+names[k]+'</button>'}).join('')+
-'</div><div class="studio-lane-status">'+(S.selected===t.id?'● ACTIVE':'Tap lane controls — no popup')+'</div></div></div>'+
+'<div class="studio-lane-effects"><button type="button" data-lane-effects data-track="'+t.id+'" aria-label="Open effects for '+esc(t.name)+'">🎛️ EFFECTS</button></div>'+
+'<div class="studio-lane-status">'+(S.selected===t.id?'● ACTIVE · Effects opens in room':'Tap lane controls')+'</div></div></div>'+
 '<div class="studio-clip" data-track="'+t.id+'" style="width:'+Math.max(110,Math.min(700,(t.duration||1)*36))+'px"><canvas></canvas><span>'+esc(t.name)+'</span></div>';box.appendChild(q);wave(q.querySelector('canvas'),t.blob);let m=document.createElement('div');m.className='studio-mixer-track';m.innerHTML='<div><b>'+esc(t.name)+'</b><div class="tiny muted">'+fmt(t.duration)+'</div></div><div class="studio-volume-control"><button type="button" class="studio-vol-btn" data-volume-step="-0.1" data-track="'+t.id+'" aria-label="Decrease volume">−</button><div class="studio-volume-center"><input data-mix="volume" data-track="'+t.id+'" type="range" min="0" max="1.5" step=".01" value="'+(t.volume??1)+'"><span class="studio-volume-value" data-volume-value="'+t.id+'">'+Math.round(Number(t.volume??1)*100)+'%</span></div><button type="button" class="studio-vol-btn" data-volume-step="0.1" data-track="'+t.id+'" aria-label="Increase volume">+</button></div><input data-mix="pan" data-track="'+t.id+'" type="range" min="-1" max="1" step=".01" value="'+(t.pan??0)+'"><div class="studio-mixer-buttons"><button data-track="'+t.id+'" data-track-act="mute" class="'+(t.mute?'on':'')+'">M</button><button data-track="'+t.id+'" data-track-act="solo" class="'+(t.solo?'on':'')+'">S</button></div>';mix.appendChild(m)});$('studioProjectBadge').textContent=S.name+' · '+S.bpm+' BPM';$('studioBpm').value=S.bpm;$('studioKey').value=S.key}
 function track(id){return S.tracks.find(t=>String(t.id)===String(id))}
 function aluMakeSatCurve(amount){let n=1024,k=Math.max(1,Number(amount||1))*80,curve=new Float32Array(n);for(let i=0;i<n;i++){let x=i*2/n-1;curve[i]=((1+k)*x)/(1+k*Math.abs(x))}return curve}
@@ -977,6 +986,26 @@ async function save(){await saveDB();note('💾 Studio project saved on this dev
 async function load(){let p=await loadDB();if(!p)return note('No saved Studio project found.');S.name=p.name||'Untitled';S.bpm=p.bpm||120;S.key=p.key||'C';S.tracks=p.tracks||[];render();note('📂 Studio project loaded ✓')}
 function init(){render();$('studioMaster').oninput=e=>$('studioMaster2').value=e.target.value;$('studioMaster2').oninput=e=>$('studioMaster').value=e.target.value;$('studioBpm').onchange=()=>{S.bpm=Math.max(40,Math.min(240,Number($('studioBpm').value)||120));render()};$('studioKey').onchange=()=>{S.key=$('studioKey').value;render()};$('studioImportInput').onchange=e=>{if(e.target.files?.length)importAudio([...e.target.files]);e.target.value=''};document.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{let k=b.dataset.fx;S.fx[k]=!S.fx[k];b.classList.toggle('active',S.fx[k]);S.tracks.forEach(apply)})}
 document.addEventListener('click',async e=>{let a=e.target.closest?.('[data-studio-action]');if(a){let x=a.dataset.studioAction;if(x==='close'){go('home');return}if(x==='record'){S.rec?S.rec.stop():record();return}if(x==='stop'){S.rec?S.rec.stop():stop();return}if(x==='play'){S.playing?stop():play();return}if(x==='rewind'){stop();$('studioClock').textContent='00:00.0';return}if(x==='import'){$('studioImportInput').click();return}if(x==='save'){save().catch(()=>note('Could not save project.'));return}if(x==='load'){load().catch(()=>note('Could not load project.'));return}if(x==='undo'){undo();return}if(x==='redo'){let z=S.redo.pop();if(z){S.undo.push(snap());S.tracks=z;render();note('Redo ✓')}return}if(x==='export'){exportWav();return}if(x==='metronome'){a.classList.toggle('is-on');note(a.classList.contains('is-on')?'Metronome on':'Metronome off');return}}
+let laneFxRoom=e.target.closest?.('[data-lane-effects]');if(laneFxRoom){
+e.preventDefault();e.stopPropagation();
+let t=track(laneFxRoom.dataset.track);if(!t)return;
+S.selected=t.id;
+let room=document.getElementById('studioEffectsRoomV101');
+if(!room){
+ room=document.createElement('div');room.id='studioEffectsRoomV101';room.className='studio-effects-room';
+ room.innerHTML='<div class="studio-effects-room-panel" role="dialog" aria-modal="true" aria-label="Track effects"><div class="studio-effects-room-head"><div><b>🎛️ '+esc(t.name)+' — Effects</b><small>Choose and adjust effects for this vocal track only.</small></div><button type="button" class="studio-effects-room-close" aria-label="Close effects">×</button></div><div class="studio-effects-room-body"></div></div>';
+ document.body.appendChild(room);
+ room.addEventListener('click',function(ev){if(ev.target===room)room.classList.remove('show')});
+ room.querySelector('.studio-effects-room-close').addEventListener('click',function(){room.classList.remove('show')});
+ document.addEventListener('keydown',function(ev){if(ev.key==='Escape')room.classList.remove('show')});
+}
+let body=room.querySelector('.studio-effects-room-body'),rack=document.querySelector('.alu-fx-rack');
+if(rack&&rack.parentElement!==body)body.appendChild(rack);
+let title=room.querySelector('.studio-effects-room-head b');if(title)title.textContent='🎛️ '+t.name+' — Effects';
+if(window.ALU_FX_RACK_V101&&typeof window.ALU_FX_RACK_V101.sync==='function')window.ALU_FX_RACK_V101.sync();
+if(window.ALU_FX_RACK_V101&&typeof window.ALU_FX_RACK_V101.render==='function')window.ALU_FX_RACK_V101.render();
+room.classList.add('show');return;
+}
 let lane=e.target.closest?.('[data-lane-action]');if(lane){let t=track(lane.dataset.track);if(!t)return;S.selected=t.id;let act=lane.dataset.laneAction;if(act==='mute'||act==='solo'){S.undo.push(snap());t[act]=!t[act];render();return}if(act==='play'){S.tracks.forEach(x=>{if(x!==t&&x.audio)x.audio.pause()});let a=node(t);apply(t);a.muted=!!t.mute;ctx().resume().then(()=>a.play().catch(()=>{}));note('Playing '+t.name);return}if(act==='pause'){if(t.audio)t.audio.pause();return}if(act==='stop'){if(t.audio){t.audio.pause();try{t.audio.currentTime=0}catch(e){}}return}if(act==='record'){if(typeof record==='function')record();return}}let tbtn=e.target.closest?.('[data-track-act]');if(tbtn){let t=track(tbtn.dataset.track);if(!t)return;if(tbtn.dataset.trackAct==='delete'){S.undo.push(snap());S.tracks=S.tracks.filter(x=>x!==t);render()}else{S.undo.push(snap());t[tbtn.dataset.trackAct]=!t[tbtn.dataset.trackAct];render()}return}
 let vb=e.target.closest?.('[data-volume-step]');if(vb){let t=track(vb.dataset.track);if(t){S.undo.push(snap());t.volume=Math.max(0,Math.min(1.5,Number(t.volume??1)+Number(vb.dataset.volumeStep||0)));if(t.nodes)apply(t);render();note((Math.round(t.volume*100))+'% volume');}return}
 let lfx=e.target.closest?.('[data-lane-fx]');if(lfx){let t=track(lfx.dataset.track);if(!t)return;S.selected=t.id;t.proFx=t.proFx||{};t.proFx.slots=Array.isArray(t.proFx.slots)?t.proFx.slots:[];t.proFx.active=t.proFx.active||{};let k=lfx.dataset.laneFx;if(t.proFx.slots.indexOf(k)<0){t.proFx.slots.push(k);t.proFx.active[k]=true}else{t.proFx.active[k]=!(t.proFx.active[k]!==false)}if(t.nodes)apply(t);render();return}let lm=e.target.closest?.('[data-lane-mix]');if(lm){let t=track(lm.dataset.track);if(t){S.selected=t.id;t[lm.dataset.laneMix]=Number(lm.value);if(t.nodes)apply(t);let val=document.querySelector('[data-volume-value="'+t.id+'"]');if(val&&lm.dataset.laneMix==='volume')val.textContent=Math.round(Number(t.volume)*100)+'%';}return}let mi=e.target.closest?.('[data-mix]');if(mi){let t=track(mi.dataset.track);if(t){t[mi.dataset.mix]=Number(mi.value);let val=document.querySelector('[data-volume-value="'+t.id+'"]');if(val&&mi.dataset.mix==='volume')val.textContent=Math.round(Number(t.volume)*100)+'%';if(t.nodes)apply(t)}return}
@@ -3642,6 +3671,7 @@ function boot(){
  var studio=document.getElementById('studio');if(!studio){setTimeout(boot,100);return}
  if(studio.__aluFxRackV101Complete)return;studio.__aluFxRackV101Complete=true;
  var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(function(x){return x.querySelector('[data-fx]')});if(!card)return;
+ card.classList.add('studio-effects-host-v101');
  var oldGrid=card.querySelector('.studio-fx-grid');if(oldGrid)oldGrid.style.display='none';
  var rack=document.createElement('div');rack.className='alu-fx-rack';
  rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Complete Effects Rack</b><small>All Studio effects are together here. Turn on only what you need.</small></div><span class="pill">V101</span></div><div class="alu-fx-tools"><button type="button" data-fx-all>ALL OFF</button><button type="button" data-fx-master>CHAIN BYPASS</button></div><div class="alu-fx-groups"></div><div class="alu-fx-editor" aria-hidden="true"></div><div class="alu-fx-note">Effects are grouped like a mobile DAW: Tone → Dynamics → Color → Modulation → Space → Stereo → Vocal/Pitch. Each effect stays in the rack once instead of being added one-by-one.</div>';
@@ -3667,6 +3697,7 @@ function boot(){
  function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group';var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ON · tap name to adjust':'OFF · ready')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'">'+(active[key]?'ON':'OFF')+'</button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
  function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')}
  syncFromTrack();render();
+ window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

@@ -1,3 +1,904 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<title>Artist Level Up — Full App Prototype</title>
+<style>
+:root{--bg:#08090c;--panel:#15161c;--panel2:#1c1d24;--line:#2b2d36;--text:#fff;--muted:#a9abb5;--gold:#ffd21c;--green:#39d98a;--red:#ff5c67;--blue:#61a7ff}*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}.app{width:100%;max-width:520px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:94px}header{position:sticky;top:0;z-index:20;background:rgba(15,16,21,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 16px}.brand{font-weight:900;font-size:19px;letter-spacing:.4px}.header-user{font-size:12px;color:var(--gold);font-weight:800;margin-top:7px}.brand span{color:var(--gold)}.tag{font-size:10px;color:var(--muted);margin-top:3px}.page{display:none;padding:18px}.page.active{display:block}h1{font-size:27px;margin:7px 0 8px}h2{font-size:18px;margin:8px 0 12px}h3{font-size:15px;margin:5px 0}.muted{color:var(--muted);font-size:13px;line-height:1.45}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}.stat b{font-size:20px;display:block;margin-top:3px}.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;background:var(--panel2);color:#fff;margin:4px 2px}.btn.primary{background:var(--gold);color:#111}.btn.green{background:#173d2b;color:#bff6d9}.btn.red{background:#482027;color:#ffd1d5}.btn.blue{background:#18314e;color:#cbe1ff}.btn:active{transform:scale(.98)}.btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}.btn:disabled{opacity:.45;cursor:not-allowed}.full{width:100%}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.between{justify-content:space-between}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#312b10;color:var(--gold);font-size:10px;font-weight:800}.song,.artist,.listrow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.song:last-child,.artist:last-child,.listrow:last-child{border-bottom:0}.cover{width:48px;height:48px;border-radius:11px;background:linear-gradient(135deg,#2d2f3b,#6c5310);display:grid;place-items:center;font-size:20px;flex:none}.grow{flex:1}.actions{display:flex;gap:3px}.iconbtn{border:0;background:#25262d;color:#fff;border-radius:10px;width:38px;height:36px;cursor:pointer}.nav{position:fixed;z-index:100;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(11,minmax(0,1fr));background:#15161c;border-top:1px solid var(--line);padding-bottom:max(5px,env(safe-area-inset-bottom))}.nav button{border:0;background:none;color:#92949e;padding:7px 2px 6px;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}.nav button.active{color:var(--gold)}.nav span{font-size:17px;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--gold);color:#111;font-weight:900;margin-bottom:0;box-shadow:0 1px 5px rgba(0,0,0,.25)}.search{width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:#0f1015;color:#fff;outline:none}.hero{padding:18px;border-radius:18px;background:linear-gradient(135deg,#241e05,#171820);border:1px solid #403914;margin-bottom:12px}.genre{cursor:pointer;text-align:center;min-height:90px;display:flex;flex-direction:column;justify-content:center}.genre b{font-size:14px}.genre small{color:var(--muted);margin-top:4px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:none;align-items:flex-end}.modal.show{display:flex}.sheet{width:min(520px,100%);margin:auto;background:#15161c;border:1px solid var(--line);border-radius:20px 20px 0 0;padding:18px;max-height:85vh;overflow:auto}.close{float:right;background:#2a2b32;border:0;color:#fff;border-radius:9px;padding:7px 10px;cursor:pointer}input,select,textarea{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:#0d0e12;color:#fff;margin:5px 0 10px}label{font-size:12px;color:var(--muted)}.toast{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:#fff;color:#111;padding:10px 14px;border-radius:999px;font-weight:800;font-size:12px;z-index:300;display:none;max-width:calc(100% - 32px);text-align:center;white-space:normal;line-height:1.35}.toast.show{display:block}.progress{height:6px;background:#292b33;border-radius:99px;overflow:hidden}.progress>i{display:block;height:100%;width:0;background:var(--gold)}.player{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);width:min(500px,calc(100% - 16px));background:#30364d;border:1px solid #8b93b5;border-radius:14px;padding:7px 8px;z-index:25;display:none;box-shadow:0 8px 26px rgba(0,0,0,.45);pointer-events:none}.player.show{display:block}.player .player-head{pointer-events:auto;display:flex;justify-content:flex-end}.player .player-cancel{pointer-events:auto;border:0;background:#3a4054;color:#fff;border-radius:999px;width:32px;height:32px;font-size:16px;font-weight:900;cursor:pointer}.player .row{pointer-events:auto}.player .iconbtn{flex:0 0 38px}.player .cover{width:58px;height:58px;border-radius:12px;font-size:24px}.player .cover img{width:100%;height:100%;object-fit:cover;border-radius:12px}.player .progress{margin-top:5px}.app{padding-bottom:112px}.tiny{font-size:11px}.ok{color:#9ff0bf}.danger{color:#ff9da5}.hidden{display:none!important}
+
+/* PROMOTE PAGE MOBILE ALIGNMENT FIX */
+#promote{width:100%;max-width:760px;margin:0 auto;box-sizing:border-box}
+#promote>h1,#promote>p,#promote>.pill{display:block}
+#promote .card{width:100%;box-sizing:border-box;margin:16px 0}
+#promote .card label{display:block;width:100%;box-sizing:border-box;margin:12px 0 5px;text-align:left}
+#promote .card input,#promote .card select{display:block;width:100%;box-sizing:border-box;margin:0 0 2px;min-height:46px}
+#promote .card .hero{width:100%;box-sizing:border-box;margin:18px 0 14px!important;text-align:center}
+#promote .card .btn.full{display:block;width:100%;box-sizing:border-box;margin-top:12px}
+#promote .pill{margin-bottom:8px}
+#promote h2{line-height:1.25}
+@media(max-width:600px){#promote{padding-left:0;padding-right:0}#promote>h1{font-size:28px}#promote .card{padding:16px;border-radius:16px}#promote .card input,#promote .card select{font-size:15px}#promote .card .hero b{display:block;line-height:1.25}}
+.nav button{min-width:0;position:relative;z-index:101}.nav button[data-go="admin"]{color:#ffd21c}.admin-status{font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}.grid>.btn{min-width:0;}
+.level-achievement{display:block;width:100%;text-align:left;border:1px solid #2fbf71;border-radius:18px;padding:16px;background:linear-gradient(135deg,#0c2d1d,#123d28 55%,#0a1f15);color:#fff;cursor:pointer;box-shadow:0 8px 24px rgba(20,180,100,.14);margin:12px 0}.level-achievement:active{transform:scale(.99)}.level-achievement .la-top{display:flex;align-items:center;gap:10px}.level-achievement .la-icon{width:42px;height:42px;border-radius:13px;background:#1d8f52;display:grid;place-items:center;font-size:22px;flex:none}.level-achievement .la-title{font-weight:900;font-size:16px}.level-achievement .la-sub{font-size:12px;color:#b8e9cb;margin-top:3px}.level-achievement .la-points{font-size:13px;font-weight:900;color:#d9ffe7;margin-top:12px}.level-achievement .la-bar{height:8px;background:#173b28;border-radius:99px;overflow:hidden;margin-top:8px}.level-achievement .la-bar i{display:block;height:100%;width:0;background:#39d98a;border-radius:99px}.level-achievement .la-bottom{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11px;color:#a9dabb}.level-achievement .la-arrow{font-weight:900;color:#7ff0ad}
+
+/* Growth quick-action squares — isolated from Discover/Admin */
+.growth-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.growth-action{min-height:92px;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:12px;text-align:left;color:#fff;font-weight:800;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.18);transition:transform .15s ease}
+.growth-action:active{transform:scale(.97)}
+.growth-action .ga-icon{font-size:26px;display:block;margin-bottom:7px}
+.growth-action .ga-label{font-size:13px;line-height:1.15}
+.growth-action .ga-sub{font-size:10px;opacity:.72;margin-top:4px}
+.ga-profile{background:linear-gradient(135deg,#2563eb,#172554)}
+.ga-register{background:linear-gradient(135deg,#9333ea,#3b0764)}
+.ga-upload{background:linear-gradient(135deg,#059669,#064e3b)}
+.ga-promote{background:linear-gradient(135deg,#d97706,#78350f)}
+@media(min-width:700px){.growth-action-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* V32 player polish: larger artwork; queue controls are only Repeat + Shuffle. */
+.player .cover{width:76px!important;height:76px!important;border-radius:12px!important;overflow:hidden;background:#0b0c10!important;flex:none}
+.player .cover img{width:100%!important;height:100%!important;object-fit:contain!important;border-radius:12px!important;background:#0b0c10!important}
+
+/* V78 MARKETPLACE */
+#marketplace .marketbeat{border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.025);border-radius:18px;padding:14px;margin-bottom:12px}
+#marketplace .marketbeat h3{margin:0 0 5px;font-size:19px}
+#marketplace .marketmeta{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0;color:#b9bbc4;font-size:12px}
+#marketplace .pricebox{font-size:23px;font-weight:900}
+#marketplace .licence-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:10px}
+#marketplace .licence-row button{min-width:0}
+@media(max-width:520px){#marketplace .licence-row{grid-template-columns:1fr}}
+
+.commission-page{padding-top:10px}.commission-head{margin-bottom:10px}.commission-page h1{margin:6px 0 4px}.commission-stats{margin:8px 0 10px}.commission-stats .stat{padding:10px}.commission-sales{margin-top:8px}.commission-sales .listrow{padding:12px 0}.commission-sales .btn{white-space:nowrap}
+
+/* V97 HOME QUICK ACTIONS: match Marketplace gold treatment only. */
+.home-quick-actions .home-quick-action{border:2px solid var(--gold)!important;background:linear-gradient(135deg,#211b05,#15161c)!important;}
+/* LOCKED MASTER SURFACE: Home shortcut layout only — 6 top, 3 larger bottom. */
+#home .home-quick-actions{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:stretch}
+#home .home-quick-actions .home-quick-action{min-width:0;margin:0;padding:10px 4px;min-height:74px;font-size:11px;line-height:1.15}
+#home .home-quick-actions .home-quick-action:nth-child(n+7){grid-column:span 2;min-height:96px;font-size:13px;padding:14px 6px}
+@media(max-width:380px){#home .home-quick-actions{gap:6px}#home .home-quick-actions .home-quick-action{font-size:10px;padding:8px 2px;min-height:70px}#home .home-quick-actions .home-quick-action:nth-child(n+7){font-size:12px;min-height:92px}}
+
+/* LOCKED MASTER — BOTTOM SHORTCUT ICONS ONLY: 6 TOP / 4 BOTTOM */
+.nav{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:52px;padding-top:4px;padding-bottom:max(5px,env(safe-area-inset-bottom));}
+.nav button{font-size:10px !important;padding:4px 2px 3px !important;}
+.nav button:nth-child(n+7){font-size:11px !important;}
+.nav button:nth-child(n+7) span{width:38px;height:38px;font-size:19px;border-radius:10px;}
+.nav button span{width:30px;height:30px;font-size:16px;}
+
+.creator-room-choice{display:grid;gap:12px;margin-top:14px}.creator-room-box{width:100%;min-height:118px;border:1px solid var(--line);border-radius:20px;padding:18px 16px;text-align:left;color:#fff;cursor:pointer;background:linear-gradient(135deg,#171820,#111217);display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;box-shadow:0 10px 26px rgba(0,0,0,.22);touch-action:manipulation}.creator-room-box:active{transform:scale(.985)}.creator-room-box-icon{grid-row:1/3;font-size:38px;width:58px;height:58px;display:grid;place-items:center;border-radius:16px;background:#25262d}.creator-room-box b{font-size:18px}.creator-room-box small{color:var(--muted);font-size:12px;line-height:1.35}.creator-room-music{border-color:#665b18}.creator-room-video{border-color:#3c5478}.creator-room-picture{border-color:#6b3d62}.creator-tool-panel{margin-top:14px}.creator-tool-panel>.btn:first-child{margin-bottom:8px}
+
+
+#studio{padding:12px 10px 20px}
+.studio-shell{max-width:100%;overflow:hidden}
+.studio-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.studio-head h1{margin:7px 0 4px}
+.studio-transport{background:linear-gradient(145deg,#171922,#0d0e13);border-color:#343744}
+.studio-transport-row{display:flex;align-items:center;gap:7px}
+.studio-transport-btn{width:42px;height:42px;border:1px solid #3a3c47;border-radius:12px;background:#22242d;color:#fff;font-size:18px;font-weight:900}
+.studio-transport-btn.studio-play{background:#ffd21c;color:#111}
+.studio-transport-btn.studio-record{color:#ff6b75}
+.studio-transport-btn.is-on{box-shadow:0 0 0 2px rgba(255,210,28,.25) inset}
+.studio-time{min-width:80px;margin-left:auto;text-align:right}.studio-time b{display:block;font-variant-numeric:tabular-nums}.studio-time small{color:#8f93a2}
+.studio-transport-tools{display:grid;grid-template-columns:72px 72px 1fr;gap:8px;margin-top:12px}
+.studio-transport-tools label{display:block}.studio-transport-tools input,.studio-transport-tools select{margin:5px 0 0;height:38px;padding:8px}
+.studio-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0}
+.studio-action-grid .btn{margin:0;min-height:46px}
+.studio-meter{padding:11px}.studio-meter-track{height:9px;background:#252731;border-radius:99px;overflow:hidden;margin-top:8px}.studio-meter-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39d98a,#ffd21c,#ff5c67);transition:width .08s}
+.studio-tips{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:10px;color:#9296a4}
+.studio-ruler{height:24px;border-bottom:1px solid #2e3039;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),#292b34 calc(10% - 1px),#292b34 10%);border-radius:7px 7px 0 0;margin-top:8px}
+.studio-track{position:relative;border-bottom:1px solid #292b34;background:#111218;min-height:92px;overflow:hidden}
+.studio-track-head{position:absolute;left:0;top:0;bottom:0;width:126px;background:#171922;border-right:1px solid #30323c;padding:9px;z-index:2}
+.studio-track-head b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.studio-track-head small{display:block;color:#8d91a0;font-size:9px;margin-top:3px}
+.studio-track-tools{display:flex;gap:3px;margin-top:6px}.studio-track-tools button{border:0;border-radius:7px;background:#292b34;color:#fff;font-size:10px;padding:5px 6px}
+.studio-track-tools button.on{background:#ffd21c;color:#111}
+.studio-clip{position:absolute;left:132px;top:10px;height:72px;border-radius:10px;background:linear-gradient(135deg,#293d61,#1c273b);border:1px solid #496b9d;min-width:110px;overflow:hidden;cursor:pointer}
+.studio-clip canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.7}
+.studio-clip span{position:absolute;left:8px;top:6px;font-size:11px;font-weight:900;text-shadow:0 1px 3px #000}
+.studio-empty{text-align:center;padding:26px 12px;color:#777c8b;font-size:12px}
+.studio-mixer-track{display:grid;grid-template-columns:1fr 72px 82px 72px;gap:7px;align-items:center;padding:10px 0;border-bottom:1px solid #2a2c35}
+.studio-mixer-track:last-child{border-bottom:0}
+.studio-mixer-track input[type=range]{width:100%;accent-color:#ffd21c}.studio-mixer-track select{margin:0;height:34px;padding:5px;font-size:10px}
+.studio-mixer-buttons{display:flex;gap:4px}.studio-mixer-buttons button{border:0;border-radius:7px;background:#292b34;color:#fff;padding:6px;font-size:10px}.studio-mixer-buttons button.on{background:#ffd21c;color:#111}
+.studio-master-strip{display:grid;grid-template-columns:auto 1fr 110px;gap:8px;align-items:center;padding:11px;margin-top:8px;background:#0e0f14;border:1px solid #2c2e38;border-radius:11px;font-size:11px}
+.studio-master-strip input{margin:0}
+.studio-fx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.studio-fx{border:1px solid #30323d;border-radius:12px;padding:10px;background:#171922;color:#fff;text-align:left;font-weight:900}.studio-fx div{font-size:9px;color:#858a9a;font-weight:500;margin-top:4px}.studio-fx.active{border-color:#665b18;background:#211d09}
+.studio-roadmap .stat{padding:10px;text-align:center}.studio-roadmap .stat b{font-size:16px}
+@media(max-width:380px){.studio-transport-btn{width:38px;height:38px}.studio-transport-tools{grid-template-columns:62px 62px 1fr}.studio-track-head{width:112px}.studio-clip{left:118px}.studio-mixer-track{grid-template-columns:1fr 60px 66px 58px}}
+
+</style>
+<style id="coverUploadBoxFix">
+.cover-upload-box{position:relative;display:flex;align-items:center;gap:12px;padding:16px;border:2px dashed #665b18;border-radius:16px;background:linear-gradient(135deg,#19170b,#15161c);cursor:pointer;margin:5px 0 10px;min-height:76px;}
+.cover-upload-box:active{transform:scale(.99)}
+.cover-upload-box input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;}
+.cover-upload-icon{width:48px;height:48px;border-radius:13px;background:#2a2610;display:grid;place-items:center;font-size:25px;flex:none;}
+.cover-upload-box b{font-size:14px}.cover-upload-box .muted{margin-top:3px}
+#create .art-preview{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;overflow:hidden;}
+#create .art-preview img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:18px;background:#222;}
+</style>
+<style id="discoverSquareLayoutFix">
+#discover .discover-box{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:10px;}
+#discover .discover-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 2px 8px;}
+#discover .discover-heading h2{margin:0;}
+#discover .discover-song-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+#discover .discover-song-grid .song{display:block;background:var(--panel2);border:1px solid var(--line);border-radius:15px;padding:9px;margin:0;min-width:0;}
+#discover .discover-song-grid .song-art{width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;margin-bottom:8px;font-size:30px;}
+#discover .discover-song-grid .grow{min-width:0;}
+#discover .discover-song-grid .grow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#discover .discover-song-grid .actions{margin-top:8px;justify-content:space-between;}
+#discover .discover-song-grid .iconbtn:first-child{flex:1;width:auto;font-size:11px;font-weight:800;}
+#discover .discover-song-grid .iconbtn:last-child{flex:0 0 38px;}
+#discover .discover-genres{grid-template-columns:repeat(2,minmax(0,1fr));}
+#discover .discover-genres .card{margin:0;}
+@media(max-width:360px){#discover .discover-song-grid{gap:8px;}#discover .discover-song-grid .song{padding:7px;}#discover .discover-song-grid .muted{font-size:11px;}#discover .discover-song-grid .tiny{font-size:9px;}}
+</style>
+<style id="discoverGenreSmallCenterFix">
+/* Compact genre tiles: centered, square, directly below the music section. */
+#discover .discover-genres{
+  display:grid !important;
+  grid-template-columns:repeat(4,88px) !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:10px !important;
+  margin:4px auto 8px !important;
+}
+#discover .discover-genres .genre{
+  width:88px !important;
+  height:88px !important;
+  min-height:88px !important;
+  aspect-ratio:1/1 !important;
+  padding:8px !important;
+  margin:0 !important;
+  border-radius:16px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  box-shadow:0 8px 18px rgba(0,0,0,.16) !important;
+}
+#discover .discover-genres .genre b{font-size:12px !important;line-height:1.15 !important;}
+#discover .discover-genres .genre small{font-size:8px !important;margin-top:4px !important;opacity:.78;}
+#discover .discover-genres .genre:nth-child(1){background:linear-gradient(145deg,#ff7a18,#af002d) !important;}
+#discover .discover-genres .genre:nth-child(2){background:linear-gradient(145deg,#7f5cff,#4b1fa8) !important;}
+#discover .discover-genres .genre:nth-child(3){background:linear-gradient(145deg,#00c6ff,#0072ff) !important;}
+#discover .discover-genres .genre:nth-child(4){background:linear-gradient(145deg,#ff4d8d,#c81d77) !important;}
+#discover .discover-genres .genre:nth-child(5){background:linear-gradient(145deg,#00d084,#087f5b) !important;}
+#discover .discover-genres .genre:nth-child(6){background:linear-gradient(145deg,#ffd166,#ef8354) !important;}
+#discover .discover-genres .genre:nth-child(7){background:linear-gradient(145deg,#00b4d8,#0077b6) !important;}
+#discover .discover-genres .genre:nth-child(8){background:linear-gradient(145deg,#a78bfa,#6d28d9) !important;}
+#discover .discover-genres .genre:active{transform:scale(.97);}
+@media(max-width:520px){
+  #discover .discover-genres{grid-template-columns:repeat(3,82px) !important;gap:9px !important;}
+  #discover .discover-genres .genre{width:82px !important;height:82px !important;min-height:82px !important;}
+}
+@media(max-width:330px){
+  #discover .discover-genres{grid-template-columns:repeat(2,82px) !important;}
+}
+</style>
+<style id="adminSquareSixFix">
+/* Admin summary: six square boxes in one compact 4-by-2 block. */
+#admin .admin-stat-grid{display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:8px !important;}
+#admin .admin-stat-grid .admin-stat-card{min-width:0;min-height:0;aspect-ratio:1/1;padding:9px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+#admin .admin-stat-grid .admin-stat-card .muted{font-size:10px;line-height:1.15;}
+#admin .admin-stat-grid .admin-stat-card b{font-size:18px;line-height:1.1;margin-top:4px;}
+#admin .admin-stat-grid .admin-stat-card small{font-size:8px;line-height:1.15;margin-top:5px;}
+@media(max-width:360px){#admin .admin-stat-grid{gap:6px !important;}#admin .admin-stat-grid .admin-stat-card{padding:6px;}#admin .admin-stat-grid .admin-stat-card .muted{font-size:9px;}#admin .admin-stat-grid .admin-stat-card b{font-size:15px;}#admin .admin-stat-grid .admin-stat-card small{font-size:7px;}}
+</style><style id="videoPromotionCss">#promoteVideoTarget{min-width:0}#campaignVideo{width:100%;min-height:46px}#promote .promotion-type-active{box-shadow:0 0 0 2px rgba(255,210,28,.28) inset}</style><style id="globalFeedV101Polish">#globalDiscoveryFeedV77 .g77-actions{bottom:86px;gap:9px}#globalDiscoveryFeedV77 .g77-action{min-width:52px}#globalDiscoveryFeedV77 .g77-music-action{border-color:rgba(255,210,28,.5);color:#ffd21c}#globalDiscoveryFeedV77 .g77-music-action.on{background:#ffd21c;color:#111}</style><style id="promoteBusinessCss">#promote .card{box-sizing:border-box}#promote label{display:block;margin-top:12px}#promote input,#promote select{box-sizing:border-box;width:100%;display:block}#promote .grid3{gap:10px}#promote .stat{min-width:0;box-sizing:border-box}#promote .stat b{word-break:break-word}</style><style id="adminStatCardFix">.admin-stat-card{appearance:none;border:1px solid #30313a;text-align:left;color:inherit;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;background:var(--card,#17181f);font:inherit;width:100%;}.admin-stat-card:hover,.admin-stat-card:focus{transform:translateY(-2px);border-color:var(--gold,#ffd21c);box-shadow:0 8px 24px rgba(0,0,0,.22);outline:none}.admin-stat-card:active{transform:translateY(0)}.admin-stat-card small{display:block;margin-top:7px;color:#8f8f98;font-size:11px;font-weight:700}</style>
+<style id="aluLayoutCleanup">
+/* Keep utility card CSS inside the document so it can never appear as visible text. */
+.song-art{width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none;background:linear-gradient(135deg,#2d2f3b,#6c5310);display:grid;place-items:center;font-size:22px}.profile-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#25262d;display:block}.header-profile-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#25262d;border:1px solid rgba(255,255,255,.2);vertical-align:middle;margin-right:7px;display:none}.header-user{display:inline-flex;align-items:center;gap:0}.art-preview{width:140px;height:140px;border-radius:18px;object-fit:cover;background:linear-gradient(135deg,#2d2f3b,#6c5310);display:grid;place-items:center;font-size:40px;border:1px solid var(--line);margin:8px 0}.admin-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:#25262d;display:grid;place-items:center;font-size:20px;flex:none}
+/* Responsive button/layout cleanup */
+.grid, .grid3 { min-width: 0; }
+.grid > *, .grid3 > * { min-width: 0; box-sizing: border-box; }
+.grid button, .grid3 button { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr !important; }
+  .grid3 { grid-template-columns: 1fr !important; }
+  .grid button, .grid3 button, .btn { width: 100%; }
+  .listrow { flex-wrap: wrap; gap: 8px; }
+  .listrow > .btn, .listrow > button { flex: 1 1 140px; }
+}
+</style>
+<style id="genreColorUpgrade">
+/* Colorful compact genre tiles */
+#discover .discover-genres .card{
+  min-height:82px !important;
+  aspect-ratio:1/1;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.16) !important;
+  color:#fff !important;
+  font-weight:900;
+  font-size:13px;
+  border-radius:16px !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18);
+  transition:transform .18s ease,filter .18s ease;
+}
+#discover .discover-genres .card:hover{transform:translateY(-2px);filter:brightness(1.12);}
+#discover .discover-genres .card:nth-child(1){background:linear-gradient(135deg,#ff4d6d,#ff8a3d)!important}
+#discover .discover-genres .card:nth-child(2){background:linear-gradient(135deg,#7c3aed,#ec4899)!important}
+#discover .discover-genres .card:nth-child(3){background:linear-gradient(135deg,#06b6d4,#2563eb)!important}
+#discover .discover-genres .card:nth-child(4){background:linear-gradient(135deg,#f59e0b,#ef4444)!important}
+#discover .discover-genres .card:nth-child(5){background:linear-gradient(135deg,#10b981,#14b8a6)!important}
+#discover .discover-genres .card:nth-child(6){background:linear-gradient(135deg,#8b5cf6,#3b82f6)!important}
+#discover .discover-genres .card:nth-child(7){background:linear-gradient(135deg,#f97316,#eab308)!important}
+#discover .discover-genres .card:nth-child(8){background:linear-gradient(135deg,#ec4899,#f43f5e)!important}
+#discover .discover-genres .card:nth-child(9){background:linear-gradient(135deg,#22c55e,#84cc16)!important}
+#discover .discover-genres .card:nth-child(10){background:linear-gradient(135deg,#0ea5e9,#06b6d4)!important}
+#discover .discover-genres .card:nth-child(11){background:linear-gradient(135deg,#a855f7,#6366f1)!important}
+#discover .discover-genres .card:nth-child(12){background:linear-gradient(135deg,#ef4444,#f97316)!important}
+#discover .discover-genres .card:nth-child(13){background:linear-gradient(135deg,#14b8a6,#0f766e)!important}
+#discover .discover-genres .card:nth-child(14){background:linear-gradient(135deg,#eab308,#f59e0b)!important}
+#discover .discover-genres .card:nth-child(15){background:linear-gradient(135deg,#3b82f6,#06b6d4)!important}
+#discover .discover-genres .card:nth-child(16){background:linear-gradient(135deg,#f43f5e,#8b5cf6)!important}
+#discover .discover-genres .card:nth-child(17){background:linear-gradient(135deg,#16a34a,#15803d)!important}
+#discover .discover-genres .card:nth-child(18){background:linear-gradient(135deg,#0891b2,#1d4ed8)!important}
+</style>
+<style id="risingArtistsUpgrade">
+#discover #artists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+#discover #artists .artist-card{background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:10px;text-align:center;min-width:0;}
+#discover #artists .artist-avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:28px;font-weight:900;color:#fff;border:2px solid rgba(255,255,255,.18);background:linear-gradient(135deg,#7c3aed,#ec4899);}
+#discover #artists .artist-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#discover #artists .artist-genre{font-size:11px;color:var(--muted);margin:3px 0 8px;}
+#discover #artists .artist-actions{display:flex;gap:6px;}
+#discover #artists .artist-actions button{flex:1;font-size:11px;padding:8px 5px;}
+@media(max-width:360px){#discover #artists{gap:8px;}#discover #artists .artist-card{padding:8px;}#discover #artists .artist-avatar{width:62px;height:62px;font-size:24px;}}
+</style>
+<style id="artistEntryAndGrowthPolish">
+.artist-entry-card{margin:14px 0;display:flex;align-items:center;gap:12px;padding:16px;border:1px solid rgba(255,210,28,.28);border-radius:20px;background:linear-gradient(135deg,#211b05,#17181f);box-shadow:0 10px 26px rgba(0,0,0,.18)}
+.artist-entry-icon{width:52px;height:52px;flex:none;border-radius:16px;display:grid;place-items:center;font-size:27px;background:linear-gradient(145deg,#ff7a18,#af002d)}
+.artist-entry-card h2{margin:5px 0 3px}.artist-entry-card p{margin:0}.artist-entry-btn{flex:none;white-space:nowrap}
+.growth-action{aspect-ratio:1/1;min-height:0 !important;padding:10px !important;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:18px !important;box-sizing:border-box}
+.growth-action .ga-icon{font-size:27px;margin-bottom:6px}.growth-action .ga-label{font-size:12px}.growth-action .ga-sub{font-size:9px;margin-top:4px}
+.growth-action.ga-profile{background:linear-gradient(145deg,#7f5cff,#4b1fa8) !important}.growth-action.ga-register{background:linear-gradient(145deg,#ff4d8d,#c81d77) !important}.growth-action.ga-upload{background:linear-gradient(145deg,#00c6ff,#0072ff) !important}.growth-action.ga-promote{background:linear-gradient(145deg,#00d084,#087f5b) !important}
+@media(max-width:520px){.artist-entry-card{align-items:flex-start;flex-wrap:wrap}.artist-entry-card .artist-entry-btn{width:100%}.growth-action-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:9px !important}}
+</style>
+<style id="dashboardInsightsV44">
+#dashboardInsightsCard{border:1px solid rgba(255,255,255,.10);background:linear-gradient(145deg,#111a2a,#11141c);}
+#dashboardInsightsCard .stat{min-height:92px !important;aspect-ratio:auto !important;display:flex !important;flex-direction:column !important;justify-content:center !important;}
+#dashboardInsightsCard .stat b{font-size:22px !important;}
+.dash-bar-row{display:grid;grid-template-columns:minmax(72px,1fr) 3fr auto;gap:8px;align-items:center;margin:9px 0;}
+.dash-bar-track{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;}
+.dash-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#ffd21c,#ff8a3d);width:0;transition:width .35s ease;}
+@media(max-width:520px){#dashboardInsightsCard .grid3{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:6px !important;}#dashboardInsightsCard .stat{padding:8px !important;min-height:82px !important;}#dashboardInsightsCard .stat .muted{font-size:9px !important;}#dashboardInsightsCard .stat b{font-size:17px !important;}.dash-bar-row{grid-template-columns:70px 1fr auto;gap:6px;}}
+</style>
+<style id="registrationAnalyticsRound">
+/* Round all dashboard/stat analytics boxes: no straight corners. */
+.stat, .admin-stat-card, .growth-action-card, .artist-entry-card { border-radius: 22px !important; }
+.stat { min-height: 112px; display:flex; flex-direction:column; justify-content:center; }
+
+/* Easy registration for every new user, without hiding the artist path. */
+.user-entry-card{margin:18px 0;padding:22px;border:1px solid #3d4250;border-radius:24px;background:linear-gradient(135deg,#171b2a,#101116);box-shadow:0 14px 36px rgba(0,0,0,.22)}
+.user-entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.user-entry-grid .btn{min-height:58px;border-radius:18px;font-weight:800}
+@media(max-width:640px){.user-entry-grid{grid-template-columns:1fr}.stat{min-height:104px}}
+</style>
+<style id="premiumAnalyticsPolish">
+/* Premium analytics: rounded, compact, colorful cards — never long straight stacks. */
+#dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+#dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{
+  border-radius:20px !important;
+  min-width:0;
+  min-height:96px;
+  aspect-ratio:1/1;
+  padding:12px !important;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10) !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18);
+}
+#dashboard .grid3:nth-of-type(1) .stat:nth-child(1), #growthCenter .grid3:nth-of-type(1) .stat:nth-child(1), #admin .admin-stat-card:nth-child(1){background:linear-gradient(145deg,#152b4b,#102039);border-color:#2e6db1 !important;}
+#dashboard .grid3:nth-of-type(1) .stat:nth-child(2), #growthCenter .grid3:nth-of-type(1) .stat:nth-child(2), #admin .admin-stat-card:nth-child(2){background:linear-gradient(145deg,#321d49,#241534);border-color:#8a4db7 !important;}
+#dashboard .grid3:nth-of-type(1) .stat:nth-child(3), #growthCenter .grid3:nth-of-type(1) .stat:nth-child(3), #admin .admin-stat-card:nth-child(3){background:linear-gradient(145deg,#49310f,#30210b);border-color:#b47a22 !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(1), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(1), #admin .admin-stat-card:nth-child(4){background:linear-gradient(145deg,#123d2b,#0d2b20);border-color:#2f9b6b !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(2), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(2), #admin .admin-stat-card:nth-child(5){background:linear-gradient(145deg,#3d2028,#2b171d);border-color:#a94f60 !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(3), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(3), #admin .admin-stat-card:nth-child(6){background:linear-gradient(145deg,#202b48,#172039);border-color:#5877c5 !important;}
+#admin .admin-stat-card:nth-child(7){background:linear-gradient(145deg,#3b2711,#271a0b);border-color:#c18a2e !important;}
+#dashboard .stat .muted, #growthCenter .stat .muted, #admin .admin-stat-card .muted{font-size:10px;line-height:1.15;}
+#dashboard .stat b, #growthCenter .stat b, #admin .admin-stat-card b{font-size:21px;line-height:1.05;margin-top:5px;}
+#admin .admin-stat-card small{font-size:8px;line-height:1.15;margin-top:5px;}
+#growthCenter .grid3 .stat:hover, #dashboard .stat:hover, #admin .admin-stat-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.28);}
+/* Discover: keep genre tiles compact, rounded and colorful. */
+#discover .discover-genres{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:8px !important;}
+#discover .discover-genres .genre{min-height:74px !important;border-radius:18px !important;border:1px solid rgba(255,255,255,.10);padding:8px 5px !important;background:linear-gradient(145deg,#20233b,#171923);box-shadow:0 6px 16px rgba(0,0,0,.16);}
+#discover .discover-genres .genre:nth-child(4n+1){background:linear-gradient(145deg,#39204d,#21162e);border-color:#814fa4;}
+#discover .discover-genres .genre:nth-child(4n+2){background:linear-gradient(145deg,#183d3a,#102826);border-color:#3d9b92;}
+#discover .discover-genres .genre:nth-child(4n+3){background:linear-gradient(145deg,#49320f,#2d210b);border-color:#b17a24;}
+#discover .discover-genres .genre:nth-child(4n){background:linear-gradient(145deg,#173452,#10263d);border-color:#3e78b3;}
+#discover .discover-genres .genre b{font-size:12px;}
+@media(max-width:640px){
+  #dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:9px !important;}
+  #dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{min-height:112px;aspect-ratio:1/1;}
+  #discover .discover-genres{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
+}
+@media(max-width:360px){
+  #dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{gap:7px !important;}
+  #dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{min-height:96px;padding:9px !important;border-radius:17px !important;}
+  #dashboard .stat b, #growthCenter .stat b, #admin .admin-stat-card b{font-size:17px;}
+  #discover .discover-genres{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:6px !important;}
+}
+</style>
+<style id="artistAnalysisPro">
+/* Artist analytics: compact professional cards, balanced on mobile and desktop. */
+#dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:9px !important;align-items:stretch;}
+#dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{aspect-ratio:1/1 !important;min-height:0 !important;height:auto !important;padding:10px !important;border-radius:18px !important;display:flex !important;justify-content:center !important;align-items:flex-start !important;overflow:hidden !important;position:relative;box-shadow:0 7px 18px rgba(0,0,0,.20) !important;}
+#dashboard .stat:nth-child(1), #growthCenter .grid3 .stat:nth-child(1), #admin .admin-stat-card:nth-child(1){background:linear-gradient(145deg,#17395d,#10253c) !important;border-color:#3979b8 !important;}
+#dashboard .stat:nth-child(2), #growthCenter .grid3 .stat:nth-child(2), #admin .admin-stat-card:nth-child(2){background:linear-gradient(145deg,#432050,#291432) !important;border-color:#9a55c5 !important;}
+#dashboard .stat:nth-child(3), #growthCenter .grid3 .stat:nth-child(3), #admin .admin-stat-card:nth-child(3){background:linear-gradient(145deg,#51360f,#302008) !important;border-color:#c48b2e !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(1), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(1), #admin .admin-stat-card:nth-child(4){background:linear-gradient(145deg,#123e31,#0c2920) !important;border-color:#37a577 !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(2), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(2), #admin .admin-stat-card:nth-child(5){background:linear-gradient(145deg,#49212c,#2d151d) !important;border-color:#b9576b !important;}
+#dashboard .grid3:nth-of-type(2) .stat:nth-child(3), #growthCenter .grid3:nth-of-type(2) .stat:nth-child(3), #admin .admin-stat-card:nth-child(6){background:linear-gradient(145deg,#202d52,#151f39) !important;border-color:#587bc8 !important;}
+#admin .admin-stat-card:nth-child(7){background:linear-gradient(145deg,#402a0d,#281a07) !important;border-color:#c38a2b !important;}
+#dashboard .stat .muted, #growthCenter .stat .muted, #admin .admin-stat-card .muted{font-size:9px !important;line-height:1.15 !important;white-space:normal;}
+#dashboard .stat b, #growthCenter .stat b, #admin .admin-stat-card b{font-size:18px !important;line-height:1.05 !important;margin-top:5px !important;word-break:break-word;}
+#admin .admin-stat-card small{font-size:8px !important;line-height:1.15 !important;margin-top:5px !important;}
+#dashboard .stat:hover, #growthCenter .grid3 .stat:hover, #admin .admin-stat-card:hover{transform:translateY(-2px);box-shadow:0 11px 24px rgba(0,0,0,.28) !important;}
+@media(max-width:640px){
+ #dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:7px !important;}
+ #dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{border-radius:15px !important;padding:8px !important;}
+ #dashboard .stat b, #growthCenter .stat b, #admin .admin-stat-card b{font-size:15px !important;}
+ #admin .admin-stat-card small{font-size:7px !important;}
+}
+@media(max-width:370px){
+ #dashboard .grid3, #growthCenter .grid3, #admin .admin-stat-grid{gap:5px !important;}
+ #dashboard .stat, #growthCenter .grid3 .stat, #admin .admin-stat-card{padding:7px !important;border-radius:13px !important;}
+ #dashboard .stat .muted, #growthCenter .stat .muted, #admin .admin-stat-card .muted{font-size:8px !important;}
+ #dashboard .stat b, #growthCenter .stat b, #admin .admin-stat-card b{font-size:13px !important;}
+}
+/* V34 MINI-PLAYER UI ONLY: compact footprint so it does not cover app controls. */
+.player{width:min(440px,calc(100% - 24px));padding:5px 6px;bottom:76px;border-radius:12px}
+.player .player-head{min-height:0}
+.player .player-cancel{width:28px;height:28px;font-size:14px}
+.player .cover{width:54px!important;height:54px!important;border-radius:10px!important}
+.player .row{gap:6px}
+.player .iconbtn{width:34px;height:32px}
+.player #aluQueueControlsMini{gap:4px!important;margin:4px 0 0!important}
+.player #aluQueueControlsMini .btn{padding:5px 8px!important;margin:0!important;font-size:10px!important;border-radius:9px!important}
+</style>
+<style id="aluNotificationsV43">
+.notification-bell{position:relative;border:1px solid #3a3b45;background:#17181f;color:#fff;border-radius:12px;width:42px;height:42px;display:grid;place-items:center;cursor:pointer;font-size:20px;margin-left:auto}
+.notification-badge{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#ff3b30;color:#fff;font-size:10px;font-weight:900;display:none;align-items:center;justify-content:center;border:2px solid #0b0c10}
+#notifications .notification-item{display:flex;gap:12px;align-items:flex-start;padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+#notifications .notification-item:last-child{border-bottom:0}
+#notifications .notification-item.unread{background:linear-gradient(90deg,rgba(255,210,28,.08),transparent);border-radius:12px}
+#notifications .notification-icon{width:42px;height:42px;border-radius:12px;background:#20222b;display:grid;place-items:center;font-size:20px;flex:none}
+#notifications .notification-title{font-weight:900;font-size:16px;line-height:1.25}
+#notifications .notification-body{font-size:14px;line-height:1.45;color:var(--muted);margin-top:3px}
+#notifications .notification-time{font-size:11px;color:#7f818d;margin-top:6px}
+.notification-empty{padding:28px 10px;text-align:center;color:var(--muted)}
+@media(max-width:520px){.notification-bell{width:40px;height:40px}.notification-badge{font-size:9px;min-width:18px;height:18px}.notification-item{padding:13px 2px!important}}
+</style><style id="artistProV39Css">
+.pro-v39-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pro-v39-tool{background:linear-gradient(145deg,#171922,#111218);border:1px solid #343743;border-radius:16px;padding:14px;min-height:142px}.pro-v39-tool h3{margin:7px 0 5px}.pro-v39-icon{font-size:25px}.pro-v39-tool .btn{margin-top:9px;width:100%}.pro-v39-hero{background:linear-gradient(135deg,#29200a,#171820 58%,#111218);border:1px solid #5a4c16}.pro-v39-check{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}.pro-v39-check:last-child{border-bottom:0}.pro-v39-check b{display:block}.pro-v39-check span{color:#9ff0bf;font-weight:900}.pro-v39-note{border:1px dashed #4a4c58;background:#111218;border-radius:14px;padding:12px}.pro-v39-price{font-size:28px;font-weight:900}.pro-v39-small{font-size:11px;color:var(--muted)}@media(max-width:430px){.pro-v39-grid{grid-template-columns:1fr}}
+</style>
+<style id="alu-pro-readable-text-v41">
+/* V41: larger, clearer Pro text only */
+#pro .pro-v39-check b{font-size:18px !important;line-height:1.35 !important}
+#pro .pro-v39-check .muted{font-size:16px !important;line-height:1.5 !important}
+#pro .pro-v39-tool h3{font-size:20px !important}
+#pro .pro-v39-tool p{font-size:16px !important;line-height:1.5 !important}
+#pro .pro-v39-tool .btn{font-size:17px !important;min-height:46px !important}
+#pro .pro-v39-note b{font-size:18px !important}
+#pro .pro-v39-note .muted{font-size:16px !important;line-height:1.5 !important}
+#pro .card > h2{font-size:22px !important}
+</style>
+<style id="readabilityFixV75">
+/* V75 readability: keep compact UI, but make small text easier to read. */
+.muted{font-size:14px !important;line-height:1.5 !important}
+.tiny{font-size:12px !important;line-height:1.4 !important}
+label{font-size:13px !important}
+.pill{font-size:11px !important;padding:5px 9px !important}
+.tag{font-size:11px !important}
+.nav button{font-size:11px !important}
+.genre small{font-size:11px !important}
+#promote .card label{font-size:13px !important}
+#promote .card .muted,#promote .card .tiny{font-size:13px !important}
+/* Campaign receiving-bank details: compact, but readable. */
+#campaignReceivingBankDetails,
+#campaignReceivingBankDetails *{font-size:13px !important;line-height:1.45 !important}
+#campaignReceivingBankDetails h3{font-size:15px !important}
+#campaignReceivingBankDetails .tiny,
+#campaignReceivingBankDetails .muted{font-size:13px !important}
+@media(max-width:360px){
+ .muted{font-size:13px !important}
+ .tiny{font-size:12px !important}
+ label{font-size:13px !important}
+ .nav button{font-size:10px !important}
+}
+</style>
+
+<style id="globalDiscoveryV76Style">
+/* V76 GLOBAL DISCOVERY: video-first worldwide feed */
+#globalVideoDiscovery{margin:14px 0;padding:12px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,#11131a,#0b0c10)}
+#globalVideoDiscovery .gvd-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+#globalVideoDiscovery .gvd-feed{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px}
+#globalVideoDiscovery .gvd-feed::-webkit-scrollbar{display:none}
+.gvd-card{position:relative;flex:0 0 min(86vw,360px);height:min(72vh,560px);min-height:430px;border-radius:18px;overflow:hidden;background:#050608;scroll-snap-align:start;border:1px solid rgba(255,255,255,.10)}
+.gvd-card video,.gvd-card .gvd-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#050608}
+.gvd-card:after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.9));pointer-events:none}
+.gvd-info{position:absolute;left:12px;right:64px;bottom:12px;z-index:2}
+.gvd-info b{font-size:16px}.gvd-info .muted{color:#eee}.gvd-actions{position:absolute;right:9px;bottom:18px;z-index:3;display:flex;flex-direction:column;gap:8px}.gvd-actions button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.58);color:#fff;font-size:17px}
+.gvd-badge{position:absolute;top:10px;left:10px;z-index:3;background:rgba(0,0,0,.58);padding:5px 9px;border-radius:999px;font-size:10px;font-weight:900}
+#globalVideoDiscovery.empty{display:none}
+#globalVideoFullFeed{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.gvf-card{position:relative;height:min(78vh,680px);min-height:500px;border-radius:20px;overflow:hidden;background:#050608;border:1px solid var(--line);scroll-snap-align:start}
+.gvf-card video,.gvf-card .gvf-poster{width:100%;height:100%;object-fit:cover;display:block;background:#050608}
+.gvf-card:after{content:"";position:absolute;inset:48% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.92));pointer-events:none}
+.gvf-info{position:absolute;left:14px;right:70px;bottom:16px;z-index:2}.gvf-info h3{margin:4px 0}.gvf-actions{position:absolute;right:10px;bottom:18px;z-index:3;display:flex;flex-direction:column;gap:9px}.gvf-actions button{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;border:1px solid rgba(255,255,255,.22);font-size:18px}
+@media(max-width:360px){.gvd-card{flex-basis:84vw;min-height:400px}.gvf-card{min-height:460px}.gvd-info b{font-size:14px}}
+</style>
+
+<style id="globalFullscreenFeedV77Style">
+#globalDiscoveryFeedV77 .g77-video-controls{position:absolute;left:10px;right:10px;bottom:72px;z-index:4;display:block;padding:0;background:none;backdrop-filter:none}
+#globalDiscoveryFeedV77 .g77-seek{display:block;width:100%;height:4px;margin:0;padding:0;accent-color:#fff;cursor:pointer;opacity:.96}
+#globalDiscoveryFeedV77 .g77-time{font-size:10px;font-weight:800;color:#fff;white-space:nowrap;text-align:right;margin:0 2px 4px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+#globalDiscoveryFeedV77 .g77-skip{display:flex;align-items:center;justify-content:center;width:44px;height:28px;border:0;border-radius:14px;background:rgba(0,0,0,.62);color:#fff;font-size:11px;font-weight:900;line-height:1;cursor:pointer;pointer-events:auto;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+#globalDiscoveryFeedV77 .g77-skip:active{transform:scale(.96)}
+#globalDiscoveryFeedV77 .g77-video-buttons{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:5px}
+#globalDiscoveryFeedV77{position:fixed;inset:0;z-index:2147483000;background:#111;display:none;overflow:hidden;touch-action:pan-y;pointer-events:none}
+#globalDiscoveryFeedV77.active{pointer-events:auto}
+#globalDiscoveryFeedV77.active{display:block}
+#globalDiscoveryFeedV77 .g77-track{height:100%;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+#globalDiscoveryFeedV77 .g77-item{position:relative;height:100svh;min-height:100vh;width:100%;scroll-snap-align:start;background:#111;overflow:hidden}
+#globalDiscoveryFeedV77 .g77-picture-media{width:100%;height:100%;object-fit:cover;display:block;background:#111}
+#globalDiscoveryFeedV77 video{width:100%;height:100%;object-fit:cover;background:#111;display:block}
+#globalDiscoveryFeedV77 .g77-gradient{position:absolute;inset:auto 0 0;height:42%;background:linear-gradient(transparent,rgba(0,0,0,.9));pointer-events:none}
+#globalDiscoveryFeedV77 .g77-meta{position:absolute;left:16px;right:82px;bottom:108px;color:#fff;z-index:2}
+#globalDiscoveryFeedV77 .g77-title{font-size:20px;font-weight:900;margin-bottom:7px}
+#globalDiscoveryFeedV77 .g77-artist{font-size:15px;font-weight:800;margin-bottom:7px}
+#globalDiscoveryFeedV77 .g77-caption{font-size:13px;line-height:1.4;opacity:.9}
+#globalDiscoveryFeedV77 .g77-actions{position:absolute;right:12px;bottom:92px;display:flex;flex-direction:column;gap:12px;z-index:3}
+#globalDiscoveryFeedV77 .g77-action{width:52px;min-height:48px;border:0;border-radius:16px;background:rgba(0,0,0,.48);color:#fff;font-weight:800;font-size:22px;backdrop-filter:blur(8px);cursor:pointer}
+#globalDiscoveryFeedV77 .g77-action span{display:block;font-size:9px;margin-top:2px}
+#globalDiscoveryFeedV77 .g77-close{position:fixed;right:14px;top:18px;z-index:2147483647;width:52px;height:52px;border:2px solid #fff;border-radius:50%;background:#111;color:#fff;font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+#globalDiscoveryFeedV77 .g77-sound{position:absolute;right:14px;top:72px;z-index:5;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:19px}
+#globalDiscoveryFeedV77 .g77-empty{height:100%;display:grid;place-items:center;text-align:center;color:#fff;padding:30px;font-size:16px}
+#globalDiscoveryFeedV77 .g77-action.on{background:rgba(255,210,28,.82);color:#111}
+#globalDiscoveryFeedV77 .g77-comment-panel,#globalDiscoveryFeedV77 .g77-share-menu{position:absolute;left:12px;right:12px;bottom:12px;z-index:20;background:rgba(12,13,17,.97);border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#globalDiscoveryFeedV77 .g77-comment-panel{height:min(52vh,460px);display:none;flex-direction:column}.g77-comment-panel.show{display:flex!important}
+#globalDiscoveryFeedV77 .g77-comment-head,#globalDiscoveryFeedV77 .g77-share-head{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:10px}.g77-comment-head button,.g77-share-head button{background:none;border:0;color:#fff;font-size:24px}
+#globalDiscoveryFeedV77 .g77-comment-list{overflow:auto;flex:1}.g77-comment{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);color:#fff;font-size:13px}.g77-comment b{font-size:12px}.g77-comment-empty{color:#aaa;padding:20px 0;text-align:center}
+#globalDiscoveryFeedV77 .g77-comment-form{display:flex;gap:8px;margin-top:10px}.g77-comment-form input{flex:1;min-width:0;background:#202127;border:1px solid #383a43;color:#fff;border-radius:12px;padding:12px}.g77-comment-form button{border:0;border-radius:12px;padding:0 15px;font-weight:800}
+#globalDiscoveryFeedV77 .g77-share-menu{bottom:88px}.g77-share-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.g77-share-grid button{border:1px solid #383a43;background:#202127;color:#fff;border-radius:12px;padding:12px;font-weight:700}
+body.g77-open{overflow:hidden}
+</style>
+
+<style id="aluBottomNavColorSquaresV98">
+/* V98 — bottom navigation icon squares only. Quick Actions and all other UI remain unchanged. */
+.nav button:nth-child(1) span{background:#f2c94c !important;color:#17130a !important;}
+.nav button:nth-child(2) span{background:#3b82f6 !important;color:#fff !important;}
+.nav button:nth-child(3) span{background:#8b5cf6 !important;color:#fff !important;}
+.nav button:nth-child(4) span{background:#14b8a6 !important;color:#061512 !important;}
+.nav button:nth-child(5) span{background:#f59e0b !important;color:#1b1204 !important;}
+.nav button:nth-child(6) span{background:#ec4899 !important;color:#fff !important;}
+.nav button:nth-child(7) span{background:#22c55e !important;color:#06150b !important;}
+.nav button:nth-child(8) span{background:#7c3aed !important;color:#fff !important;}
+.nav button:nth-child(9) span{background:#ef4444 !important;color:#fff !important;}
+.nav button:nth-child(10) span{background:#4f46e5 !important;color:#fff !important;}
+</style>
+
+<style id="ownerDashboardV101">
+#ownerDashboard .owner-hero{border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);border-radius:18px;padding:16px;margin:10px 0 14px}
+#ownerDashboard .owner-stat{min-height:110px}
+#ownerDashboard .owner-stat b{font-size:25px;display:block;margin-top:5px}
+#ownerDashboard .owner-sale{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:12px;margin:8px 0}
+</style>
+<style id="producerDashboardV101">
+#producerDashboard .producer-hero{border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);border-radius:18px;padding:16px;margin:10px 0 14px}
+#producerDashboard .producer-status{display:flex;align-items:center;gap:9px;padding:11px;border-radius:13px;background:#101116;border:1px solid var(--line);margin:10px 0}
+#producerDashboard .producer-dot{width:11px;height:11px;border-radius:50%;background:var(--red);flex:none}.producer-dot.ok{background:var(--green)}
+#producerDashboard .beat-row{border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:12px;margin:8px 0}
+#producerDashboard .beat-row h3{font-size:15px;margin:0 0 4px}.producer-money{font-weight:900;color:var(--gold)}
+#producerDashboard .file-drop{position:relative;border:2px dashed #665b18;border-radius:15px;padding:14px;background:#11110d;cursor:pointer;margin:6px 0 10px}
+#producerDashboard .file-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+</style>
+<style id="avatarSocialStyle">
+.profile-avatar,.header-profile-avatar{border-radius:50%!important;object-fit:cover!important;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.profile-avatar:active,.header-profile-avatar:active{transform:scale(.97)}
+.avatar-viewer{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:24px}
+.avatar-viewer.show{display:flex}
+.avatar-viewer-panel{position:relative;width:min(92vw,460px);height:min(92vw,460px);display:flex;align-items:center;justify-content:center}
+.avatar-viewer-image{width:100%;height:100%;object-fit:contain;border-radius:8px;background:#08090c;box-shadow:0 18px 55px rgba(0,0,0,.65)}
+.avatar-viewer-close{position:absolute;right:-4px;top:-46px;width:38px;height:38px;border:0;border-radius:50%;background:#25262d;color:#fff;font-size:24px;font-weight:900;cursor:pointer}
+@media(max-width:520px){.avatar-viewer{padding:18px}.avatar-viewer-panel{width:min(92vw,430px);height:min(92vw,430px)}.avatar-viewer-close{right:0;top:-44px}}
+</style>
+<style id="v101WelcomeRedesign">
+#profile .alu-welcome-card{position:relative;overflow:hidden;margin-top:14px;padding:18px;border:1px solid rgba(255,121,72,.42);border-radius:24px;background:radial-gradient(circle at 92% 8%,rgba(255,93,0,.24),transparent 32%),radial-gradient(circle at 8% 90%,rgba(255,0,122,.20),transparent 34%),linear-gradient(145deg,#241006 0%,#4a160d 48%,#16082d 100%);box-shadow:0 18px 46px rgba(0,0,0,.40)}
+#profile .alu-welcome-card:before{content:"";position:absolute;inset:-35%;pointer-events:none;background:conic-gradient(from 180deg,transparent,rgba(54,224,255,.07),transparent,rgba(190,83,255,.07),transparent);animation:aluWelcomeGlow 8s linear infinite}
+@keyframes aluWelcomeGlow{to{transform:rotate(360deg)}}
+#profile .alu-welcome-top{position:relative;display:flex;align-items:center;gap:14px}
+#profile .alu-welcome-avatar-wrap{width:88px;height:88px;flex:none;border-radius:24px;padding:3px;background:linear-gradient(135deg,#18d8d2,#6c63ff,#d946ef);box-shadow:0 10px 28px rgba(39,205,255,.22);display:grid;place-items:center}
+#profile .alu-welcome-avatar{width:82px!important;height:82px!important;border-radius:21px;display:none;object-fit:cover;background:linear-gradient(145deg,#14284b,#35135d);border:0}
+#profile .alu-welcome-avatar[src]{display:block}
+#profile .alu-welcome-avatar-wrap:after{content:"🎧";font-size:34px;filter:drop-shadow(0 5px 12px rgba(0,0,0,.35))}
+#profile .alu-welcome-avatar[src]+*{}
+#profile .alu-welcome-badge{display:inline-block;padding:6px 9px;border-radius:999px;background:rgba(24,216,210,.10);border:1px solid rgba(94,236,226,.28);color:#bdf8f3;font-size:10px;font-weight:900;letter-spacing:.35px}
+#profile .alu-welcome-card h2{font-size:24px;margin:9px 0 3px;color:#fff}
+#profile .alu-welcome-handle{font-size:12px;color:#9fb9d8;font-weight:700}
+#profile .alu-welcome-message{position:relative;display:flex;flex-direction:column;gap:5px;margin:18px 0 14px;padding:14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}
+#profile .alu-welcome-message strong{font-size:14px;color:#fff}
+#profile .alu-welcome-message span{font-size:12px;line-height:1.5;color:#b7c8dc}
+#profile .alu-welcome-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#profile .alu-welcome-stats>div{min-width:0;padding:11px 8px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center}
+#profile .alu-welcome-stats small{display:block;color:#8ea6bf;font-size:9px;margin-bottom:4px}
+#profile .alu-welcome-stats b{font-size:15px;color:#fff;word-break:break-word}
+#profile .alu-welcome-email{position:relative;margin:12px 2px 0;color:#91a7bd;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#profile .alu-welcome-actions{display:grid;grid-template-columns:1.25fr 1fr;gap:8px;margin-top:14px}
+#profile .alu-welcome-actions .btn{margin:0;min-width:0}
+#profile .alu-welcome-primary{background:linear-gradient(135deg,#08bfc7,#635bff)!important;color:#fff!important;border:1px solid rgba(255,255,255,.16)}
+#profile .alu-welcome-secondary{background:#1b2340!important;color:#dce8ff!important;border:1px solid rgba(111,224,255,.16)}
+@media(max-width:380px){#profile .alu-welcome-card{padding:15px}#profile .alu-welcome-avatar-wrap{width:72px;height:72px;border-radius:20px}#profile .alu-welcome-avatar{width:66px!important;height:66px!important;border-radius:17px}#profile .alu-welcome-card h2{font-size:20px}#profile .alu-welcome-actions{grid-template-columns:1fr}}
+</style>
+<style id="aluLegalSupportV101">
+.alu-legal-hub .grid{grid-template-columns:1fr 1fr}
+.alu-legal-modal{position:fixed;inset:0;z-index:260;background:rgba(0,0,0,.78);display:none;align-items:flex-end;padding:0}
+.alu-legal-modal.show{display:flex}
+.alu-legal-sheet{width:min(520px,100%);max-height:88vh;overflow:auto;background:#15161c;border:1px solid var(--line);border-radius:20px 20px 0 0;padding:18px}
+.alu-legal-sheet h2{margin:4px 0 10px}.alu-legal-sheet h3{margin:16px 0 6px;color:var(--gold)}
+.alu-legal-sheet p,.alu-legal-sheet li{font-size:13px;line-height:1.55;color:#d8d9df}.alu-legal-sheet ul{padding-left:20px}
+.alu-legal-actions{display:flex;gap:8px;position:sticky;bottom:0;background:#15161c;padding-top:12px}
+.alu-chat{background:#0d0e12;border:1px solid var(--line);border-radius:16px;padding:10px;max-height:45vh;overflow:auto}
+.alu-chat-msg{padding:9px 11px;border-radius:13px;margin:7px 0;max-width:88%;font-size:12px;line-height:1.4}
+.alu-chat-bot{background:#25262d}.alu-chat-user{background:#312b10;margin-left:auto;color:#fff}
+.alu-chat-quick{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.alu-chat-quick button{font-size:11px}
+.alu-support-form textarea{min-height:100px;resize:vertical}
+@media(max-width:380px){.alu-legal-hub .grid{grid-template-columns:1fr}}
+</style>\n<style id="topSettingsStudioV101">header{position:sticky;top:0;z-index:120}.header-top-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}.header-top-actions .top-nav-btn{border:1px solid var(--line);background:#202129;color:#fff;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:900;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.header-top-actions .top-nav-btn.primary{background:var(--gold);color:#111;border-color:var(--gold)}.header-top-actions .top-nav-btn:active{transform:scale(.97)}\n</style>\n</head>
+<body>
+<div id="globalDiscoveryFeedV77" aria-hidden="true">
+  <button class="g77-close" type="button" aria-label="Close">×</button>
+  <button class="g77-sound" type="button" aria-label="Sound">🔇</button>
+  <div class="g77-track" id="g77Track"></div>
+</div>
+<span id="aluBuildVersion" style="display:none">V78</span><div class="app">
+<header><div class="brand">ARTIST <span>LEVEL UP</span></div><div class="tag">CREATE • PROMOTE • GROW — GLOBAL MUSIC PLATFORM</div><button class="header-user" id="headerUser" type="button" aria-label="Open profile"><img id="headerUserAvatar" class="header-profile-avatar" alt="Profile picture"/><span id="headerUserLabel">Welcome 👋</span></button><button class="notification-bell" id="notificationBell" type="button" data-action="openNotifications" aria-label="Notifications">🔔<span class="notification-badge" id="notificationBadge">0</span></button><div class="header-top-actions" aria-label="Main shortcuts"><button class="top-nav-btn primary" type="button" data-go="settings">⚙️ Settings</button></div></header>
+<section class="page active" id="home"><span class="pill">HOME</span><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><div class="row"><div class="grow"><span class="pill">💎 ARTIST PRO</span><h2 style="margin-bottom:4px">Unlock Artist Pro</h2><p class="muted">More tools to grow, promote and manage your music.</p></div><button class="btn primary" data-go="pro">View Pro</button></div></div><h1>Welcome to Artist Level Up 🌍</h1><p class="muted">Discover music, support artists and build your own music career.</p><div class="user-entry-card">
+<span class="pill">WELCOME</span>
+<h2 style="margin:10px 0 6px">Create your account</h2>
+<p class="muted">Join Artist Level Up to follow artists, save music, build playlists and keep your activity in one place.</p>
+<div class="user-entry-grid">
+<button class="btn primary" data-action="openUserRegister">👤 Register / Join</button>
+</div>
+</div><div class="artist-entry-card"><div class="artist-entry-icon">🎤</div><div class="grow"><span class="pill">FOR ARTISTS</span><h2>Are you an artist?</h2><p class="muted">Create your artist account once. Your Profile page is for editing your details and photo later.</p></div><button class="btn primary artist-entry-btn" data-go="register">🎤 Create Artist Account</button></div><div class="hero"><h2>Level Up your sound</h2><p class="muted">Upload, promote, connect with fans and track your growth from one place.</p><button class="btn primary" data-go="create">+ Create / Upload</button><button class="btn" data-go="discover">Explore Music</button></div><div id="globalVideoDiscovery" class="empty"><div class="gvd-head"><div><span class="pill">🌍 GLOBAL DISCOVERY</span><h2 style="margin:6px 0 2px">Watch. Discover. Repeat.</h2><div class="tiny muted">Videos from artists around the world — no searching required.</div></div><button class="btn" data-go="videos">Open Feed</button></div><div class="gvd-feed" id="globalVideoDiscoveryFeed"></div></div><div class="card" style="margin:12px 0;border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><button class="btn primary full" type="button" data-global-discovery-open="1">🌍 Open Global Feed</button><p class="tiny muted" style="margin:7px 0 0;text-align:center">Photos and published videos from artists worldwide</p></div><h2>Trending Worldwide</h2><div id="homeSongs"></div><h2>Quick actions</h2><div class="grid home-quick-actions"><button class="btn card home-quick-action" data-go="discover">🔎<br/>Discover</button><button class="btn card home-quick-action" data-go="videos">🎬<br/>Video Hub</button><button class="btn card home-quick-action" data-go="videos">➕🎬<br/>Upload Video</button><button class="btn card home-quick-action" data-go="library">📚<br/>Library</button><button class="btn card home-quick-action" data-go="dashboard">📈<br/>Dashboard</button><button class="btn card home-quick-action" data-go="marketplace">🛒<br/>Marketplace</button><button class="btn card home-quick-action" data-go="wallet">💰<br/>Wallet</button><button class="btn card home-quick-action" data-go="promote">🚀<br/>Promote</button><button class="btn card home-quick-action" data-go="course">🎓<br/>Course</button><button class="btn card home-quick-action" data-go="producerDashboard">🎛️<br/>Producer Center</button><button class="btn card home-quick-action" data-go="ownerDashboard">👑<br/>Owner Dashboard</button></div></section>
+<section class="page" id="discover"><span class="pill">DISCOVER</span><h1>Discover 🌍</h1><div class="discover-box"><input class="search" id="search" placeholder="Search songs, artists or genres..."/><div class="discover-heading"><h2>Music for you 🎵</h2><span class="tiny muted">Scroll to explore</span></div><div class="discover-song-grid" id="discoverSongs"></div><div class="discover-heading"><h2>Genres</h2><span class="tiny muted">Pick a sound</span></div><div class="grid discover-genres" id="genres"></div><div class="discover-heading"><h2>Rising Artists</h2><span class="tiny muted">Find new talent</span></div><div id="artists"></div></div></section>
+<section class="page" id="videos"><span class="pill">🎬 ALU FEED</span><h1>Video &amp; Picture Feed 🔥</h1><p class="muted">Watch videos, see artist and user pictures, and share your own post from the feed.</p>
+<div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div></section>
+<section class="page" id="create"><span class="pill">CREATE ROOM</span><h1>Creator Room 🎨</h1>
+<div class="creator-room-choice" id="creatorRoomChoice">
+  <button class="creator-room-box creator-room-music" type="button" onclick="return openCreatorTool('music',event)">
+    <span class="creator-room-box-icon">🎵</span><b>Upload Music</b><small>Add your song, artwork and audio file</small>
+  </button>
+  <button class="creator-room-box creator-room-video" type="button" onclick="return openCreatorTool('video',event)">
+    <span class="creator-room-box-icon">🎬</span><b>Upload Video</b><small>Add your music video and details</small>
+  </button>
+  <button class="creator-room-box creator-room-picture" type="button" onclick="return openCreatorTool('picture',event)">
+    <span class="creator-room-box-icon">🖼️</span><b>Create / Upload Picture</b><small>Add a picture and caption</small>
+  </button>
+</div><div class="card creator-tool-panel" id="creatorMusicPanel" style="display:none"><button class="btn" type="button" onclick="return showCreatorChoices(event)">← Back to Creator Room</button><h2>Upload Music</h2><label>Song title</label><input id="songTitle" placeholder="e.g. Bigger Dreams"/><label>Genre</label><select id="songGenre"><option>Afrobeats</option><option>Amapiano</option><option>Hip-Hop</option><option>Gospel</option><option>Pop</option><option>R&amp;B</option><option>Latin</option><option>Highlife</option></select><label>Cover art / song picture</label><div class="cover-art-size-note">Use a square <b>1:1 artwork</b>. Recommended: <b>3000 × 3000 px</b>. The app accepts square artwork only, so the complete picture stays visible without cropping.</div><div class="cover-upload-box" id="coverUploadBox"><div class="cover-upload-icon">🖼️</div><div><b>Upload song picture</b><div class="tiny muted">Tap here to choose your cover image</div></div><input accept="image/*" aria-label="Upload song picture" id="audioCoverFile" type="file"/></div><div class="art-preview" id="audioCoverPreview">🖼️<span class="tiny muted">No picture selected</span></div><label>Audio file</label><input accept="audio/*" id="audioFile" type="file"/><button class="btn primary full" data-action="upload">Upload &amp; Submit for Review</button><p class="muted">Local prototype: the selected audio stays available in this browser for testing.</p></div><div class="card creator-tool-panel" id="creatorPicturePanel" style="display:none"><button class="btn" type="button" onclick="showCreatorChoices()">← Back to Creator Room</button><div class="row between"><div><span class="pill">🖼️ PICTURE</span><h2 style="margin:8px 0 4px">Upload Picture</h2></div><span class="tiny muted">Create Room</span></div><p class="muted">Upload a picture/post from the same Create room. Add a caption and preview it before saving.</p><label>Picture</label><input id="createPictureFile" accept="image/*" type="file"/><div id="createPicturePreview" class="card" style="display:none;padding:10px;margin:8px 0"><img id="createPicturePreviewImg" alt="Picture preview" style="width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:#08090c"/></div><label>Caption (optional)</label><textarea id="createPictureCaption" rows="3" placeholder="Write something about this picture..."></textarea><button class="btn primary full" type="button" data-action="createPictureUpload">🖼️ Upload Picture</button><p class="tiny muted" id="createPictureStatus"></p></div><div class="card creator-tool-panel" id="creatorVideoPanel" style="display:none"><button class="btn" type="button" onclick="showCreatorChoices()">← Back to Creator Room</button><h2>🎬 Upload a Video</h2><label>Artist name</label><input id="aluVideoArtistName" placeholder="Your artist name" readonly/><label>Video title</label><input id="aluVideoTitle" placeholder="e.g. My New Music Video"/><label>Video file</label><input id="aluVideoFile" accept="video/*" type="file"/><label>Attach the exact music you want this video to promote</label><select id="aluVideoSong"><option value="">Choose the song to promote</option></select><p class="tiny muted">When this video is published, viewers can tap 🎵 Music to open and stream the attached song.</p><div id="aluVideoFormatPreview" class="card" style="display:none;margin-top:10px;padding:10px"><video id="aluVideoUploadPreview" controls playsinline preload="metadata" style="width:100%;border-radius:12px;background:#050608;max-height:300px"></video></div><label>Description</label><textarea id="aluVideoDescription" rows="3" placeholder="Tell fans what this video is about"></textarea><label>Hashtags</label><input id="aluVideoHashtags" placeholder="#Afrobeats #NewMusic #ArtistLevelUp"/><button class="btn primary full" data-action="uploadArtistVideo" type="button">🎬 Upload Video</button><p class="tiny muted">New videos enter review first. Approved videos can appear in Discover.</p></div><div class="card" id="createUploadSummaryCard" style="display:none" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><div class="row between"><div><span class="pill">📦 ALL MY UPLOADS</span><h2 style="margin:8px 0 4px">Create Room</h2></div><span class="tiny muted">Music · Video · Picture</span></div><p class="muted">Everything you upload from this app is collected here in one place.</p><div id="createUploadSummary"></div></div><div class="card" style="display:none"><h2>My Catalogue</h2><div id="catalogue"></div></div></section>
+<section class="page" id="course"><span class="pill">🎓 ARTIST LEVEL UP ACADEMY</span><h1>Music Growth Course 🎥</h1><p class="muted">Watch the lessons, learn how to grow your music career, and continue from where you stopped.</p><div class="hero"><span class="pill">START LEARNING</span><h2 style="margin-top:10px">How to Blow &amp; Build Your Music Career</h2><p class="muted">15 practical lessons across 5 modules — from meaningful songwriting to promotion, branding and audience growth.</p><div class="grid3"><div class="stat"><span class="muted">Modules</span><b>5</b></div><div class="stat"><span class="muted">Lessons</span><b>15</b></div><div class="stat"><span class="muted">Format</span><b>Video</b></div></div></div><div class="card" id="coursePurchaseCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#17180f,#15161c);margin-bottom:14px"><span class="pill">💳 FULL COURSE</span><h2 style="margin-top:10px">Full Course Access</h2><div style="font-size:30px;font-weight:900">₦15,000</div><p class="muted">One-time payment for all 15 video lessons across 5 modules. Pay once — unlock the entire course.</p><div class="tiny muted" id="courseAccessStatus" style="margin:8px 0"></div><div class="card" id="courseBankDetails" style="margin:10px 0;background:rgba(255,255,255,.03)"><b>🏦 Pay by bank transfer</b><div class="tiny muted" id="courseBankText" style="margin-top:6px">Owner bank details have not been set yet.</div></div><div id="coursePaymentForm"><label>Your name</label><input autocomplete="name" id="coursePayerName" placeholder="Full name"/><label>Your bank</label><input id="coursePayerBank" placeholder="Bank you paid from"/><label>Your account number</label><input id="coursePayerAccount" inputmode="numeric" placeholder="Account number"/><label>Payment reference (optional)</label><input id="coursePaymentRef" placeholder="Transfer reference / narration"/><button class="btn primary full" data-action="submitCoursePayment" type="button">💳 I Have Paid — Unlock Course</button></div></div><div class="card" id="coursePlayerCard" style="display:none"><div class="row between"><div class="grow"><span class="pill">NOW PLAYING</span><h2 id="coursePlayerTitle" style="margin-top:8px">Course lesson</h2></div><button class="iconbtn" data-action="closeCoursePlayer" type="button">✕</button></div><video controls="" id="courseVideoPlayer" playsinline="" preload="metadata" style="width:100%;margin-top:10px;border-radius:14px;background:#000;max-height:300px"></video><p class="tiny muted" id="coursePlayerMeta"></p></div><div class="card"><div class="row between"><div><span class="pill">INSTRUCTOR STUDIO</span><h2 style="margin-top:8px">Add Course Video</h2></div><span class="tiny muted">Owner tool</span></div><p class="muted">Upload a lesson video from your phone. The video is saved in this browser for testing and linked to the selected lesson.</p><label>Module</label><select id="courseModule"></select><label>Lesson</label><select id="courseLesson"></select><label>Video file</label><input accept="video/*" id="courseVideoFile" type="file"/><button class="btn primary full" data-action="uploadCourseVideo">🎥 Upload Course Video</button><p class="tiny muted">For the prototype, course videos stay on this device. Cloud video hosting will be connected before public launch.</p></div><div id="courseModules"></div></section><section class="page" id="pro"><span class="pill">💎 ARTIST PRO</span><h1>Artist Pro 💎</h1><div class="hero pro-v39-hero"><div class="row"><div class="grow"><span class="pill">₦2,500 / MONTH</span><h2 id="proHeadline">Tools built for your music career</h2><p class="muted">Get practical tools for promotion, analytics, releases and your artist profile — not just a Pro badge.</p></div><div style="font-size:34px">💎</div></div><span class="pill" id="proStatus">FREE PLAN</span><div class="tiny muted" id="proExpiryInfo" style="margin-top:8px"></div></div><div class="grid"><div class="card"><h2>Monthly</h2><div class="pro-v39-price">₦2,500</div><p class="muted">30 days of Pro access</p><button type="button" class="btn primary full" data-action="upgradePro" data-plan="Monthly" data-price="2500" onclick="window.action('upgradePro',this);return false;">Upgrade to Pro</button></div><div class="card"><h2>Yearly</h2><div class="pro-v39-price">₦25,000</div><p class="muted">12 months · save ₦5,000</p><button type="button" class="btn primary full" data-action="upgradePro" data-plan="Yearly" data-price="25000" onclick="window.action('upgradePro',this);return false;">Upgrade Yearly</button></div></div><div class="card"><span class="pill">WHAT YOU GET</span><h2>Professional tools</h2><div class="pro-v39-check"><span>✓</span><div><b>Advanced Analytics</b><div class="muted">See your music activity, plays and campaign performance in one dashboard.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Promotion Suite</b><div class="muted">Create and manage music promotion campaigns from one place.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Release Campaigns</b><div class="muted">Prepare a focused promotion plan around a new song.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Pro Artist Profile</b><div class="muted">Present your artist identity with a dedicated Pro experience.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Growth Resources</b><div class="muted">Access Pro-focused lessons and practical artist-growth guidance.</div></div></div></div><div class="pro-v39-grid"><div class="pro-v39-tool"><div class="pro-v39-icon">📊</div><h3>Analytics</h3><p class="muted">Track plays, followers and campaign activity.</p><button type="button" class="btn blue" data-action="proTool" data-tool="analytics" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">🚀</div><h3>Promote</h3><p class="muted">Build a campaign for your music.</p><button type="button" class="btn green" data-action="proTool" data-tool="promote" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">🎯</div><h3>Release Campaign</h3><p class="muted">Get your next release ready for promotion.</p><button type="button" class="btn primary" data-action="proTool" data-tool="release" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">⭐</div><h3>Pro Profile</h3><p class="muted">Improve how your artist profile is presented.</p><button type="button" class="btn" data-action="proTool" data-tool="profile" onclick="window.action('proTool',this);return false;">Open</button></div></div><div class="card"><h2>Why Pro?</h2><div class="pro-v39-note"><b>Built around useful tools.</b><p class="muted" style="margin-bottom:0">Pro should help an artist do real work inside Artist Level Up. We will only promise features the platform can actually deliver.</p></div></div><div class="card"><p class="muted">Test mode: no real payment is taken yet. Payment processing and any live audience/analytics data will be connected and verified before public launch.</p></div></section><section class="page" id="dashboard"><span class="pill">ARTIST DASHBOARD</span><h1>Level Up Dashboard 📈</h1><p class="muted">Your artist control center — track your music, audience and growth from one place.</p><div class="grid3"><div class="stat"><span class="muted">Streams</span><b id="statStreams">0</b></div><div class="stat"><span class="muted">Followers</span><b id="statFollowers">0</b></div><div class="stat"><span class="muted">Earnings</span><b id="statEarn">₦0</b></div></div><div class="grid3"><div class="stat"><span class="muted">Likes</span><b id="statLikes">0</b></div><div class="stat"><span class="muted">Tracks</span><b id="statTracks">0</b></div><div class="stat"><span class="muted">Pro</span><b id="statPro">FREE</b></div></div><div class="card"><h2>📈 Growth</h2><p class="muted">Your performance snapshot updates as people interact with your catalogue.</p><div class="progress"><i id="growth"></i></div><p class="tiny muted" id="growthText">Keep sharing your music to grow.</p></div><div class="card dashboard-insights" id="dashboardInsightsCard"><div class="row between"><div><span class="pill">ARTIST INSIGHTS</span><h2 style="margin-top:8px">📊 Your Performance</h2></div><span class="tiny muted">Based on activity stored in the app</span></div><div class="grid3" style="margin-top:12px"><div class="stat"><span class="muted">Listeners*</span><b id="dashListeners">0</b></div><div class="stat"><span class="muted">Campaigns</span><b id="dashCampaigns">0</b></div><div class="stat"><span class="muted">Published</span><b id="dashPublished">0</b></div></div><div class="card" style="margin-top:12px;background:rgba(255,255,255,.025)"><div class="row between"><b>📈 Music activity</b><span class="tiny muted" id="dashActivityLabel">No activity yet</span></div><div id="dashActivityBars" style="margin-top:12px"></div></div><p class="tiny muted" style="margin:10px 0 0">*Listener count is an estimate for this prototype, based on available engagement data. Verified unique-listener analytics will be connected before public launch.</p></div><div class="card"><div class="row between"><div><h2>🔥 Top Songs</h2><p class="tiny muted">Your most-played tracks</p></div><span class="pill">TOP 5</span></div><div id="dashboardTopSongs"></div></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#17180f,#15161c)"><span class="pill">PROMOTE</span><h2 style="margin-top:10px">🚀 Promote Your Music</h2><p class="muted">Put your song in front of more listeners and create a campaign.</p><button class="btn primary full" data-go="promote">🚀 OPEN PROMOTE</button></div><div class="card"><h2>⚡ Quick Actions</h2><div class="grid"><button class="btn blue" data-go="promote">🚀 Promote</button><button class="btn primary" data-go="growthCenter">📈 Growth Center</button><button class="btn primary" data-go="videos">🎬 Upload Video</button><button class="btn" data-go="wallet">💰 Wallet</button><button class="btn" data-go="profile">👤 Profile</button><button class="btn" data-go="register">🎤 Register</button><button class="btn" data-go="create">🎵 Upload</button></div></div></section>
+<section class="page" id="growthCenter"><span class="pill">ARTIST GROWTH CENTER</span><h1>Grow Your Music 🚀</h1><p class="muted">One place to track your progress, set targets and see what actions are moving your artist career forward.</p><div class="hero"><div class="row"><div class="grow"><span class="pill">LEVEL UP</span><h2 id="growthLevelTitle" style="margin-top:8px">Rising Artist</h2><p class="muted" id="growthLevelText">Build your catalogue, get streams and keep engaging with listeners.</p></div><div style="font-size:42px">🏆</div></div><div class="progress" style="margin-top:12px"><i id="growthLevelBar"></i></div><p class="tiny muted" id="growthLevelProgress">0 XP</p></div><div class="grid3"><div class="stat"><span class="muted">Streams</span><b id="growthStreams">0</b></div><div class="stat"><span class="muted">Followers</span><b id="growthFollowers">0</b></div><div class="stat"><span class="muted">Songs</span><b id="growthSongs">0</b></div></div><div class="grid3"><div class="stat"><span class="muted">Likes</span><b id="growthLikes">0</b></div><div class="stat"><span class="muted">Campaigns</span><b id="growthCampaigns">0</b></div><div class="stat"><span class="muted">Published</span><b id="growthPublished">0</b></div></div><button aria-label="Open Level Up achievements" class="level-achievement" data-action="openLevelAchievements" type="button"><div class="la-top"><div class="la-icon">🏆</div><div class="grow"><div class="la-title">Level Up Achievement</div><div class="la-sub" id="growthAchievementLine">Keep earning points to reach the next level.</div></div><div class="la-arrow">›</div></div><div class="la-points" id="growthAchievementPoints">0 / 500 XP</div><div class="la-bar"><i id="growthAchievementBar"></i></div><div class="la-bottom"><span id="growthAchievementRemaining">500 points remaining</span><span>Tap to view ›</span></div></button><div class="card"><h2>⚡ Quick Growth Actions</h2><p class="muted">Your shortcuts stay here. Discover and Admin remain separate.</p><div class="growth-action-grid">
+<button class="growth-action ga-profile" data-go="profile" type="button"><span class="ga-icon">👤</span><span class="ga-label">Artist Profile</span><div class="ga-sub">Create / edit profile</div></button>
+<button class="growth-action ga-register" data-go="register" type="button"><span class="ga-icon">🎤</span><span class="ga-label">Artist Register</span><div class="ga-sub">Register an artist</div></button>
+<button class="growth-action ga-upload" data-go="create" type="button"><span class="ga-icon">🎵</span><span class="ga-label">Upload Music</span><div class="ga-sub">Add a new song</div></button>
+<button class="growth-action ga-promote" data-go="promote" type="button"><span class="ga-icon">🚀</span><span class="ga-label">Promote Music</span><div class="ga-sub">Create a campaign</div></button>
+</div></div><div class="card"><h2>🎯 My Growth Goals</h2><p class="muted">Set simple targets and track them from this page.</p><div class="grid"><div><label>Stream target</label><input id="goalStreams" min="0" placeholder="1000" type="number"/></div><div><label>Follower target</label><input id="goalFollowers" min="0" placeholder="100" type="number"/></div></div><button class="btn primary full" data-action="saveGrowthGoals">💾 Save Goals</button><div class="tiny muted" id="growthGoalStatus" style="margin-top:8px"></div></div><div class="card"><h2>📊 Goal Progress</h2><div class="listrow"><div class="grow"><b>Streams</b><div class="progress" style="margin-top:7px"><i id="goalStreamBar"></i></div><div class="tiny muted" id="goalStreamText">0 / 0</div></div></div><div class="listrow"><div class="grow"><b>Followers</b><div class="progress" style="margin-top:7px"><i id="goalFollowerBar"></i></div><div class="tiny muted" id="goalFollowerText">0 / 0</div></div></div></div><div class="card"><h2>⚡ Next Actions</h2><div id="growthNextActions"></div></div><div class="card"><h2>🏆 Achievements</h2><div id="growthAchievements"></div></div></section>
+<section class="page" id="ownerDashboard">
+<span class="pill">OWNER · LIVE</span><h1>Owner Dashboard 👑</h1>
+<p class="muted">Live marketplace control panel for Artist Level Up. Financial figures below come from the production database.</p>
+<div class="owner-hero"><div class="row between"><div><span class="pill">SECURE OWNER ACCESS</span><h2 style="margin:10px 0 4px">Platform Overview</h2><p class="muted" style="margin:0">Sales, your marketplace commission, producer payouts and platform activity in one place.</p></div><div style="font-size:42px">👑</div></div></div>
+<div class="grid3">
+<div class="stat owner-stat"><span class="muted">Marketplace sales</span><b id="ownerTotalSales">₦0</b><small>Completed paid orders</small></div>
+<div class="stat owner-stat"><span class="muted">Your commission</span><b id="ownerCommission">₦0</b><small>Platform fee recorded</small></div>
+<div class="stat owner-stat"><span class="muted">Producer payouts</span><b id="ownerProducerPayouts">₦0</b><small>Producer share recorded</small></div>
+<div class="stat owner-stat"><span class="muted">Paid orders</span><b id="ownerPaidOrders">0</b><small>Successful marketplace sales</small></div>
+<div class="stat owner-stat"><span class="muted">Pending orders</span><b id="ownerPendingOrders">0</b><small>Not marked paid</small></div>
+<div class="stat owner-stat"><span class="muted">Published beats</span><b id="ownerPublishedBeats">0</b><small>Live in marketplace</small></div>
+<div class="stat owner-stat"><span class="muted">Connected producers</span><b id="ownerConnectedProducers">0</b><small>Paystack payout accounts</small></div>
+<div class="stat owner-stat"><span class="muted">Platform users</span><b id="ownerTotalUsers">0</b><small>Profiles recorded</small></div>
+<div class="stat owner-stat"><span class="muted">Total marketplace orders</span><b id="ownerTotalOrders">0</b><small>Paid + pending</small></div>
+</div>
+<div class="card"><div class="row between"><div><h2 style="margin:0">🧾 Recent Paid Sales</h2><div class="tiny muted" id="ownerDashboardStatus">Loading live data…</div></div><button class="btn" data-action="ownerDashboardRefresh">↻ Refresh</button></div><div id="ownerRecentSales" style="margin-top:10px"></div></div>
+<div class="grid"><button class="btn primary" data-go="commissionEarningsPage">💰 Commission / Earnings</button><button class="btn" data-go="marketplace">🛒 Beat Marketplace</button><button class="btn" data-go="producerDashboard">🎛️ Producer Center</button><button class="btn" data-go="admin">⚙️ Admin Control Center</button></div>
+</section>
+<section class="page" id="admin"><span class="pill">OWNER CONTROL CENTER</span><h1>Admin Dashboard 👑</h1><p class="muted">Your private control center for Artist Level Up. Review music, monitor campaigns, track platform revenue and manage artist activity.</p><div class="hero" style="border-color:var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><span class="pill">ADMIN MODE · PROTOTYPE</span><h2 style="margin:10px 0 4px">Artist Level Up Control</h2><p class="muted" style="margin:0">Production version should require a secure admin login.</p></div><div style="font-size:44px">👑</div></div></div><div class="admin-stat-grid" style="margin-top:12px"><button class="stat admin-stat-card" data-admin-jump="songs" type="button"><span class="muted">Total songs</span><b id="adminSongs">0</b><small>Tap to manage music →</small></button><button class="stat admin-stat-card" data-admin-jump="pending" type="button"><span class="muted">Pending review</span><b id="adminPending">0</b><small>Tap to review →</small></button><button class="stat admin-stat-card" data-admin-jump="campaigns" type="button"><span class="muted">Campaigns</span><b id="adminCampaigns">0</b><small>Tap to monitor →</small></button><button class="stat admin-stat-card" data-admin-jump="streams" type="button"><span class="muted">Total streams</span><b id="adminStreams">0</b><small>Tap to view analytics →</small></button><button class="stat admin-stat-card" data-admin-jump="artists" type="button"><span class="muted">Artists</span><b id="adminArtists">0</b><small>Tap to manage artists →</small></button><button class="stat admin-stat-card" data-admin-jump="users" type="button"><span class="muted">Users</span><b id="adminUsers">0</b><small>Registered platform users</small></button><button class="stat admin-stat-card" data-admin-jump="revenue" type="button"><span class="muted">Platform revenue</span><b id="adminRevenue">₦0</b><small>Tap to view revenue →</small></button></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div class="row between"><div><span class="pill">👑 OWNER</span><h2 style="margin-top:8px">Live Owner Dashboard</h2></div><span>🔐</span></div><p class="muted">Open the secure live marketplace financial dashboard.</p><button class="btn primary full" data-go="ownerDashboard">👑 Open Owner Dashboard</button></div><div class="card"><h2>🎤 Artist Registration</h2><p class="muted">Open the artist registration form so new artists can create their account.</p><button class="btn primary full" data-go="register">➕ Register New Artist</button></div><div class="card"><h2>⚡ Admin Quick Control</h2><p class="muted">Fast overview and shortcuts for the most important platform controls.</p><div class="grid3"><div class="stat"><span class="muted">Free Artists</span><b id="adminFreeArtists">0</b></div><div class="stat"><span class="muted">Pro Artists</span><b id="adminProArtists">0</b></div><div class="stat"><span class="muted">Pending Withdrawals</span><b id="adminPendingWithdrawals">0</b></div></div><div class="grid"><button class="btn primary" data-go="register">🎤 Register Artist</button><button class="btn" data-go="create">🎵 Music / Upload</button><button class="btn" data-go="promote">🚀 Promote</button><button class="btn" data-go="wallet">💰 Wallet</button></div></div><div class="card"><h2>🎵 Music Review Queue</h2><p class="muted">Every new upload waits here until Admin approves it. Preview the song, then approve or reject it.</p><div class="grid" style="margin:12px 0"><button class="btn primary" data-action="approveLatestSong" onclick="action('approveLatestSong',this); return false;">✅ Approve Music</button><button class="btn red" data-action="rejectLatestSong" onclick="action('rejectLatestSong',this); return false;">❌ Reject Music</button></div><div class="grid3"><button class="btn" data-admin-filter="all">All</button><button class="btn" data-admin-filter="pending">Pending</button><button class="btn" data-admin-filter="approved">Approved</button><button class="btn" data-admin-filter="rejected">Rejected</button></div><div id="adminMusicQueue" style="margin-top:10px"></div></div><div class="card" id="adminVideoReviewCard"><div class="row between"><div><span class="pill">🎬 VIDEO MODERATION</span><h2 style="margin-top:8px">Video Review Queue</h2></div><button class="btn" data-action="refreshAdminVideos" type="button">↻ Refresh</button></div><p class="muted">Watch the actual uploaded video and thumbnail before approving it for Video Hub.</p><div class="grid3" style="margin:12px 0"><button class="btn" data-admin-video-filter="all">All</button><button class="btn" data-admin-video-filter="pending">Pending</button><button class="btn" data-admin-video-filter="approved">Approved</button><button class="btn" data-admin-video-filter="rejected">Rejected</button></div><div id="adminVideoQueue"></div></div><div class="card"><h2>📢 Campaign Monitor</h2><div id="adminCampaignList"></div></div><div class="card" id="adminCoursePayments"><h2>🎓 Course Payments</h2><p class="muted">Review the ₦15,000 full-course bank-transfer submissions. Approving a payment unlocks all 15 lessons.</p><div id="adminCoursePaymentList"></div><div class="card" style="margin-top:10px;background:rgba(255,255,255,.03)"><h3 style="margin-top:0">🏦 Receiving Bank Details</h3><p class="tiny muted">Set the bank details students should use for the course transfer.</p><label>Bank name</label><input id="courseOwnerBank" placeholder="e.g. Access Bank"/><label>Account name</label><input id="courseOwnerAccountName" placeholder="Account name"/><label>Account number</label><input id="courseOwnerAccountNumber" inputmode="numeric" placeholder="Account number"/><button class="btn primary full" data-action="saveCourseBank">💾 Save Course Bank Details</button><div class="tiny muted" id="courseBankSaveStatus" style="margin-top:8px"></div></div></div><div class="card" id="adminCommissionEarningsCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div class="row between"><div><span class="pill">💰 MARKETPLACE COMMISSION</span><h2 style="margin-top:8px">Commission / Earnings</h2></div><span class="pill">OWNER</span></div><p class="muted">View completed beat sales and the Artist Level Up 10% marketplace commission.</p><button class="btn primary full" type="button" data-go="commissionEarningsPage">💰 Open Commission / Earnings</button></div>
+<div class="card" id="adminRevenuePanel"><h2>💰 Platform Revenue</h2><div class="listrow"><div class="grow"><b>Promotion service fees</b><div class="tiny muted">25% of campaign payments</div></div><b id="adminPromoRevenue">₦0</b></div><div class="listrow"><div class="grow"><b>Artist Pro payments</b><div class="tiny muted">Gross subscription payments in this prototype</div></div><b id="adminProRevenue">₦0</b></div><div class="listrow"><div class="grow"><b>Total platform revenue</b></div><b id="adminTotalRevenue">₦0</b></div></div><div class="card" id="adminAdvertisementManager" style="border:2px solid #7c5cff;background:linear-gradient(135deg,#151022,#15161c)"><div class="row between"><div><span class="pill">📢 ADVERTISEMENT MANAGER</span><h2 style="margin-top:8px">Manage Platform Advertisements</h2></div><span class="pill">OWNER</span></div><p class="muted">Create, approve, activate, pause and monitor paid advertisements. This first version is stored in the app for testing; payment gateway and live ad analytics will be connected later.</p><div class="grid3"><div class="stat"><span class="muted">Ads</span><b id="adminAdCount">0</b></div><div class="stat"><span class="muted">Active</span><b id="adminAdActive">0</b></div><div class="stat"><span class="muted">Ad Revenue</span><b id="adminAdRevenue">₦0</b></div></div><div class="card" style="margin-top:12px;background:rgba(255,255,255,.035)"><span class="pill">🏦 CAMPAIGN RECEIVING ACCOUNT</span><h3 style="margin-top:10px">Where advertisers pay for campaigns</h3><p class="tiny muted">Set the official Artist Level Up bank account. Advertisers will see these details before paying. Keep this separate from artist payout accounts.</p><label>Bank name</label><input id="campaignOwnerBank" placeholder="e.g. Access Bank"/><label>Account name</label><input id="campaignOwnerAccountName" placeholder="Artist Level Up / business account"/><label>Account number</label><input id="campaignOwnerAccountNumber" inputmode="numeric" maxlength="10" placeholder="10-digit account number"/><button class="btn primary full" type="button" data-action="saveCampaignReceivingBank">💾 Save Campaign Receiving Account</button><p class="tiny muted" id="campaignOwnerBankStatus" style="margin:8px 0 14px"></p><span class="pill">CREATE AD</span><h3 style="margin-top:10px">New Advertisement</h3><label>Advertiser / Business name</label><input id="adAdvertiser" placeholder="e.g. My Brand Ltd"/><label>Advertisement title</label><input id="adTitle" placeholder="e.g. New Single Out Now"/><label>Package</label><select id="adPackage"><option value="Starter" data-price="5000">Starter · ₦5,000</option><option value="Standard" data-price="10000">Standard · ₦10,000</option><option value="Featured" data-price="25000">Featured · ₦25,000</option><option value="Premium" data-price="50000">Premium · ₦50,000</option></select><label>Duration</label><select id="adDuration"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option></select><div class="card" style="margin:4px 0 10px;background:rgba(255,210,28,.06);border-color:#665b18"><div class="row between"><span class="muted">Advertisement price</span><b id="adCalculatedPrice">₦5,000</b></div><div class="tiny muted" id="adPriceNote" style="margin-top:4px">Price is determined by the selected package. Duration does not add an extra charge in this version.</div></div><label>Placement</label><select id="adPlacement"><option>Home</option><option>Discover</option><option>Video Hub</option><option>Artist Dashboard</option><option>Platform-wide</option></select><label>Target audience</label><select id="adAudience"><option>All users</option><option>Artists</option><option>Music fans</option><option>Video viewers</option></select><label>Advertisement picture or video (optional)</label><input id="adMediaFile" accept="image/*,video/*" type="file"/><div class="tiny muted" id="adMediaStatus" style="margin:4px 0 8px">You can upload a picture, upload a video, or leave it empty.</div><label>Ad image URL (optional)</label><input id="adImageUrl" placeholder="https://..."/><label>Destination URL (optional)</label><input id="adDestinationUrl" placeholder="https://..."/><button class="btn primary full" data-action="createAdvertisement" type="button">📢 Create Advertisement</button><div class="tiny muted" id="adCreateStatus" style="margin-top:8px"></div></div><h3 style="margin-top:16px">My Advertisements</h3><div id="adminAdvertisementList"></div></div><div class="card"><h2>👥 Artist Management</h2><p class="muted">Manage artists registered on this device.</p><input id="adminArtistSearch" placeholder="Search artist name or email"/><div class="grid" style="margin:12px 0"><button class="btn" data-action="suspendCurrentArtist">⏸️ Suspend Artist</button><button class="btn primary" data-action="restoreCurrentArtist">▶️ Restore Artist</button><span class="pill" id="adminArtistStatusControl">ACTIVE</span></div><div id="adminArtistList" style="margin-top:10px"></div></div>
+<div class="card" id="ownerWithdrawalsPanel" style="border-color:#665b18"><div class="row"><div class="grow"><span class="pill">OWNER CONTROL</span><h2 style="margin:8px 0 4px">💸 Owner Withdrawals</h2><p class="muted" style="margin:0">Review artist withdrawal requests before processing them.</p></div><span class="pill">ADMIN</span></div><div class="grid" style="margin:12px 0"><button class="btn primary" data-action="approveLatestWithdrawal" onclick="action('approveLatestWithdrawal',this); return false;" type="button">👑 Approve Withdrawal</button><button class="btn red" data-action="rejectLatestWithdrawal" onclick="action('rejectLatestWithdrawal',this); return false;" type="button">❌ Reject Withdrawal</button></div><div id="adminWithdrawals"><div class="listrow"><div class="grow"><b>🟢 No pending withdrawal requests</b><div class="tiny muted">When an artist submits a withdrawal, it will appear here automatically.</div></div></div></div></div>
+<div class="card" id="adminPictureModeration" style="border-color:#6b3d62;background:linear-gradient(135deg,#21101f,#15161c)">
+  <div class="row between"><div><span class="pill">🖼️ PICTURE MODERATION</span><h2 style="margin:8px 0 4px">Creator Pictures</h2><p class="muted" style="margin:0">Review pictures uploaded from Creator Room before they are published.</p></div><span class="pill">ADMIN</span></div>
+  <div id="adminPictureList" style="margin-top:12px"></div>
+</div><div class="card"><h2>🔔 Pending Actions</h2><div id="adminPendingActions"></div></div>
+<div class="card"><h2>🛡️ Admin Actions</h2><div class="grid"><button class="btn" data-action="adminRefresh">🔄 Refresh</button><button class="btn" data-action="adminExport">📋 View Summary</button><button class="btn red" data-action="adminLogout">🔒 Lock Admin</button></div><p class="tiny muted" style="margin-bottom:0">This prototype keeps admin data on this device. Real production admin access, payments and moderation must run securely on a server.</p></div></section>
+<section class="page" id="promote"><span class="pill">PROMOTION BUSINESS</span><h1 id="promoteTitle">Promote Your Music 🚀</h1><p class="muted">Promote one approved release or one approved video at a time. Music campaigns promote the selected song; Video campaigns promote the selected Video Hub video.</p><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">WHAT DO YOU WANT TO PROMOTE?</span><div class="grid" style="margin-top:10px"><button type="button" class="btn primary full" id="promoteMusicTab" data-action="setPromotionType" data-type="music">🎵 Promote Music</button><button type="button" class="btn full" id="promoteVideoTab" data-action="setPromotionType" data-type="video">🎬 Promote Video</button></div></div><div class="card"><span class="pill">CREATE CAMPAIGN</span><h2 style="margin-top:10px" id="promotionTargetHeading">Music campaign</h2><label>Campaign name</label><input id="campaignName" placeholder="e.g. Angelina Release Campaign"/><div id="campaignMusicTarget"><label>Select music</label><select id="campaignSong"><option value="">Choose a song</option></select><div id="campaignSongPreview" class="card" style="display:none;margin-top:10px;padding:12px"></div></div><div id="campaignVideoTarget" style="display:none"><label>Select video</label><select id="campaignVideo"><option value="">Choose a video</option></select><div id="campaignVideoPreview" class="card" style="display:none;margin-top:10px;padding:12px"></div><p class="tiny muted">Only your approved/published videos are shown here. Choose the video you want this campaign to promote.</p></div><label>Promotion goal</label><select id="campaignGoal"><option>More Streams</option><option>More Followers</option><option>More Awareness</option></select><label>Target audience</label><select id="campaignAudience"><option>Worldwide 🌍</option><option>Nigeria 🇳🇬</option><option>Ghana 🇬🇭</option><option>South Africa 🇿🇦</option><option>United Kingdom 🇬🇧</option><option>United States 🇺🇸</option></select><label>Campaign duration</label><select id="campaignDuration"><option data-budget="5000" value="3">3 days</option><option data-budget="20000" value="5">5 days</option><option data-budget="50000" value="7">7 days</option><option data-budget="100000" value="30">30 days</option></select><label>Price</label><select aria-label="Campaign price" disabled="" id="campaignBudget"><option value="5000">₦5,000</option><option value="20000">₦20,000</option><option value="50000">₦50,000</option><option value="100000">₦100,000</option></select><div class="card" id="campaignPaymentBankDetails" style="margin-top:12px;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">🏦 PAY ARTIST LEVEL UP</span><h3 style="margin:10px 0 6px">Campaign Payment Bank Details</h3><p class="tiny muted">This is the account the advertiser uses to pay Artist Level Up for the campaign. <b>Do not send campaign money to the artist's personal account.</b></p><div id="campaignReceivingBankText" class="tiny muted">Admin has not set the campaign receiving bank details yet.</div><div id="campaignPaymentWarning" class="tiny muted" style="margin-top:8px">Create the campaign first, then pay using these details and submit your transfer reference for Admin verification.</div></div><div class="hero" id="moneyBreakdown" style="margin-top:12px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h3 style="margin:0">💰 Money breakdown</h3><button aria-label="Close money breakdown" class="iconbtn" id="closeMoneyBreakdown" style="width:34px;height:34px" type="button">✕</button></div><div class="grid3" style="margin-top:12px"><div class="stat"><span class="muted">Ad budget (70%)</span><b id="campaignAdSpend">₦3,500</b></div><div class="stat"><span class="muted">Platform fee (25%)</span><b id="campaignPlatformFee">₦1,250</b></div><div class="stat"><span class="muted">Safety reserve (5%)</span><b id="campaignReserve">₦250</b></div></div><p class="tiny muted" style="margin-bottom:0">The 25% platform fee is Artist Level Up's gross service revenue. The 5% reserve helps cover payment/operating costs and unexpected campaign costs. Actual ad results are not guaranteed.</p></div><div class="card" style="margin-top:12px"><h3 style="margin-top:0">📊 Campaign economics</h3><div class="listrow"><div class="grow"><b>Artist pays</b></div><b id="campaignTotal">₦5,000</b></div><div class="listrow"><div class="grow"><b>We send to advertising</b></div><b id="campaignAdSpend2">₦3,500</b></div><div class="listrow"><div class="grow"><b>Artist Level Up gross fee</b></div><b id="campaignProfit">₦1,250</b></div><div class="listrow"><div class="grow"><b>Reserved for costs</b></div><b id="campaignReserve2">₦250</b></div></div><div class="hero" style="margin-top:12px"><div class="muted">Estimated reach</div><b id="campaignReach" style="font-size:24px">Based on live ad pricing</b><div class="tiny muted">Estimate only. We do not guarantee a number of listeners or streams.</div></div><button class="btn primary full" data-action="campaign">🚀 Create Campaign</button></div><div class="card"><h2>My Campaigns</h2><div id="campaigns"></div></div></section>
+<section class="page" id="wallet"><span class="pill">WALLET &amp; PAYMENTS</span><h1>Artist Wallet 💰</h1><div class="grid3"><div class="hero"><div class="muted">Available balance</div><div id="balance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Withdrawable artist earnings</div></div><div class="hero"><div class="muted">Pending balance</div><div id="pendingBalance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Earnings being cleared</div></div><div class="hero"><div class="muted">Artist Pro</div><div id="walletProStatus" style="font-size:24px;font-weight:900">FREE</div><div class="tiny muted">Subscription payments are tracked separately</div></div></div><div class="card"><h2>💳 Payments Center</h2><p class="muted">Choose what you want to pay for. The checkout in this prototype is <b>Test Mode</b>; real Paystack payments require a secure backend and server-side verification.</p><div class="listrow"><div class="grow"><b>Artist Pro — Monthly</b><div class="tiny muted">₦2,500 / month</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Monthly" data-price="2500">Pay ₦2,500</button></div><div class="listrow"><div class="grow"><b>Artist Pro — Yearly</b><div class="tiny muted">₦25,000 / year</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Yearly" data-price="25000">Pay ₦25,000</button></div><div class="listrow"><div class="grow"><b>Promotion Campaign</b><div class="tiny muted">Pay from your campaign checkout</div></div><button class="btn" data-action="goPromote">Open Promote</button></div><div class="tiny muted" id="paymentStatus" style="margin-top:10px"></div></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><h2>💳 Withdraw Your Earnings</h2><p class="muted">This is the account Artist Level Up will use for your payout request. Save your bank details first, then request a withdrawal.</p><div class="card" style="margin:10px 0;background:rgba(255,255,255,.035)"><span class="pill">🏦 YOUR PAYOUT ACCOUNT</span><div class="tiny muted" id="withdrawAccountStatus" style="margin-top:8px">No payout account saved yet.</div></div><label>Amount (₦)</label><input id="withdrawAmount" inputmode="numeric" min="1000" placeholder="Minimum ₦1,000" type="number"/><label>Payout method</label><select id="withdrawMethod"><option>Bank Transfer</option></select><button class="btn primary full" data-action="withdraw" type="button">💸 Request Withdrawal</button></div><div class="card"><h2>🏦 Payout Bank Account</h2><p class="muted tiny">Enter the bank account where you want your approved artist earnings sent. This prototype records the payout request; automatic bank transfer will be connected before public launch.</p><label>Account holder name</label><input id="payeeName" autocomplete="name" placeholder="Name on bank account"/><label>Bank name</label><input id="payeeBank" autocomplete="organization" placeholder="e.g. Access Bank"/><label>Account number</label><input id="payeeAccount" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="10-digit account number"/><button class="btn full" data-action="savePaymentMethod" type="button">💾 Save Payout Account</button><div class="tiny muted" id="paymentMethodStatus" style="margin-top:8px"></div></div><div class="card"><h2>📊 Earnings</h2><div class="listrow"><div class="grow"><b>Available artist earnings</b></div><b id="earningsAvailable">₦0</b></div><div class="listrow"><div class="grow"><b>Pending artist earnings</b></div><b id="earningsPending">₦0</b></div><div class="listrow"><div class="grow"><b>Platform campaign revenue</b><div class="tiny muted">Not artist money</div></div><b id="platformRevenue">₦0</b></div></div><div class="card"><h2>📜 Transaction History</h2><div class="grid3"><button class="btn" data-wallet-filter="all">All</button><button class="btn" data-wallet-filter="income">Income</button><button class="btn" data-wallet-filter="outgoing">Outgoing</button></div><div id="transactions" style="margin-top:10px"></div></div></section>
+<section class="page" id="register"><span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Create your Artist Level Up artist account once. After registration, this registration form disappears and your Artist Profile becomes your home.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="name" id="regName" placeholder="e.g. Solovibes"/><label>Email</label><input autocomplete="email" id="regEmail" placeholder="you@example.com" type="email"/><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is for sensitive account actions in this prototype.</p><button class="btn primary full" data-action="registerArtist">🎤 Create Artist Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button></div></section>
+
+<section class="page" id="producerDashboard">
+<span class="pill">🎛️ PRODUCER CENTER</span><h1>Producer Dashboard</h1>
+<p class="muted">Connect a local or international payout account, publish beats and manage what buyers see in the global Beat Marketplace.</p>
+<div class="producer-hero"><span class="pill">SELL YOUR BEATS</span><h2 style="margin:9px 0 5px">Your producer business starts here.</h2><p class="muted">Buyers pay once. Artist Level Up keeps the platform commission and Paystack routes the producer share to your connected subaccount.</p></div>
+<div class="card"><h2>1. Paystack payout account</h2><div class="producer-status"><i class="producer-dot" id="producerPayoutDot"></i><div class="grow"><b id="producerPayoutStatus">Checking payout connection…</b><div class="tiny muted" id="producerPayoutDetail"></div></div></div>
+<div id="producerPayoutForm"><label>Account holder name</label><input id="producerHolder" autocomplete="name" placeholder="Name on bank account"/><label>Payout Gmail / Email</label><input id="producerPayoutEmail" type="email" autocomplete="email" placeholder="yourname@gmail.com"/><div class="tiny muted">Paystack uses this email for the producer payout account.</div><label>Bank</label><select id="producerBankName"><option value="">Loading Nigerian banks…</option></select><input id="producerBankCode" type="hidden"/><label>10-digit account number</label><input id="producerAccountNumber" inputmode="numeric" maxlength="10" placeholder="0123456789"/><button class="btn primary full" data-action="producerConnectPayout">🔐 Verify & Connect Paystack</button><div id="producerPayoutMessage" class="tiny muted" style="margin-top:8px"></div></div></div><div class="card"><h2>🌍 Global producer payout</h2>
+<p class="muted">Choose the producer's country and bank from the live Flutterwave bank directory. The app fills the bank code automatically and only shows extra fields when that country requires them.</p>
+<label>Account holder name</label><input id="globalPayoutHolder" autocomplete="name" placeholder="Name on international bank account"/>
+<label>Payout Gmail / Email</label><input id="globalPayoutEmail" type="email" autocomplete="email" placeholder="producer@example.com"/>
+<label>Mobile / WhatsApp number</label><input id="globalPayoutMobile" type="tel" autocomplete="tel" placeholder="+1 555 123 4567"/><div class="tiny muted">Use the producer's real mobile number for payout verification.</div>
+<label>Payout country</label>
+<select id="globalPayoutCountry">
+<option value="">Select payout country</option>
+<option value="US">🇺🇸 United States</option><option value="GB">🇬🇧 United Kingdom</option>
+<option value="NG">🇳🇬 Nigeria</option><option value="GH">🇬🇭 Ghana</option><option value="KE">🇰🇪 Kenya</option><option value="UG">🇺🇬 Uganda</option><option value="TZ">🇹🇿 Tanzania</option><option value="RW">🇷🇼 Rwanda</option><option value="ZA">🇿🇦 South Africa</option><option value="ZM">🇿🇲 Zambia</option><option value="MW">🇲🇼 Malawi</option><option value="CM">🇨🇲 Cameroon</option><option value="CI">🇨🇮 Côte d'Ivoire</option><option value="SN">🇸🇳 Senegal</option><option value="SL">🇸🇱 Sierra Leone</option><option value="BF">🇧🇫 Burkina Faso</option><option value="ET">🇪🇹 Ethiopia</option><option value="EG">🇪🇬 Egypt</option>
+<option value="DE">🇩🇪 Germany</option><option value="FR">🇫🇷 France</option><option value="ES">🇪🇸 Spain</option><option value="IT">🇮🇹 Italy</option><option value="NL">🇳🇱 Netherlands</option><option value="BE">🇧🇪 Belgium</option><option value="AT">🇦🇹 Austria</option><option value="PT">🇵🇹 Portugal</option><option value="IE">🇮🇪 Ireland</option><option value="FI">🇫🇮 Finland</option><option value="SE">🇸🇪 Sweden</option><option value="DK">🇩🇰 Denmark</option><option value="PL">🇵🇱 Poland</option><option value="CZ">🇨🇿 Czechia</option><option value="GR">🇬🇷 Greece</option><option value="LU">🇱🇺 Luxembourg</option>
+</select>
+<div id="globalPayoutBankLoading" class="tiny muted" style="margin:2px 0 6px"></div>
+<label>Bank / financial institution</label>
+<select id="globalPayoutBankName" disabled><option value="">Select country first</option></select>
+<input id="globalPayoutBankId" type="hidden"/><input id="globalPayoutBankCode" type="hidden"/>
+<label>Account number / IBAN</label><input id="globalPayoutAccountNumber" autocomplete="off" placeholder="Enter account number or IBAN"/>
+<div id="globalPayoutRoutingWrap" class="hidden"><label>Routing number</label><input id="globalPayoutRouting" inputmode="numeric" placeholder="Routing number"/></div>
+<div id="globalPayoutSwiftWrap" class="hidden"><label>SWIFT / BIC</label><input id="globalPayoutSwift" autocomplete="off" placeholder="SWIFT / BIC"/></div>
+<div id="globalPayoutBranchWrap" class="hidden"><label>Bank branch</label><select id="globalPayoutBranch" disabled><option value="">Select bank first</option></select><input id="globalPayoutBranchCode" type="hidden"/></div>
+<div class="tiny muted" style="margin-top:4px">Bank name and bank code are selected automatically from Flutterwave's current bank directory. Extra routing, SWIFT or branch details appear only where required.</div>
+<button class="btn primary full" data-action="producerConnectGlobalPayout">🌍 Connect Flutterwave Global Payout</button>
+<div id="globalPayoutMessage" class="tiny muted" style="margin-top:8px"></div><div id="globalPayoutStatus" class="tiny muted" style="margin-top:8px">Checking global payout connection…</div>
+</div>
+<div class="card"><h2>2. Publish a marketplace beat</h2><label>Beat title</label><input id="producerBeatTitle" placeholder="e.g. Lagos Sunset"/><div class="grid"><div><label>Genre</label><input id="producerBeatGenre" placeholder="Afrobeats"/></div><div><label>Mood</label><input id="producerBeatMood" placeholder="Smooth"/></div></div><div class="grid"><div><label>BPM</label><input id="producerBeatBpm" inputmode="numeric" placeholder="105"/></div><div><label>Price (NGN)</label><input id="producerBeatPrice" inputmode="numeric" placeholder="15000"/></div></div><label>Default licence</label><select id="producerBeatLicense"><option>Premium</option><option>Basic</option><option>Exclusive</option></select><label>Beat audio preview</label><div class="file-drop"><input id="producerBeatAudio" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"/><b>🎧 Choose audio file</b><div class="tiny muted" id="producerBeatFileName">MP3, WAV, M4A, AAC or OGG</div></div><button class="btn primary full" data-action="producerPublishBeat">🚀 Publish Beat</button><div id="producerPublishMessage" class="tiny muted" style="margin-top:8px"></div></div>
+<div class="card"><div class="row"><div class="grow"><h2 style="margin:0">3. Your marketplace beats</h2><div class="tiny muted">Published beats appear automatically in Beat Marketplace.</div></div><button class="btn" data-action="producerRefresh">↻</button></div><div id="producerBeatList"><div class="tiny muted">Loading…</div></div></div>
+</section>
+<section class="page" id="marketplace">
+<span class="pill">🛒 BEAT MARKETPLACE</span>
+<h1>Beat Marketplace 🎧</h1>
+<p class="muted">Browse published beats, preview when available, choose a licence and start secure global checkout.</p>
+<div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)">
+  <div class="row"><div class="grow"><span class="pill">CREATOR MARKET</span><h2 style="margin:8px 0 4px">Find your next sound</h2><div class="tiny muted">Basic · Premium · Exclusive licences</div></div><button class="btn" data-action="marketplaceRefresh">↻ Refresh</button></div>
+</div>
+<div class="card">
+  <label>Search beats</label><input id="marketplaceSearch" class="search" placeholder="Search title, producer, genre..." autocomplete="off"/>
+  <div class="grid" style="margin-top:10px"><button class="btn primary" data-market-filter="all">All</button><button class="btn" data-market-filter="Afrobeats">Afrobeats</button><button class="btn" data-market-filter="Amapiano">Amapiano</button><button class="btn" data-market-filter="R&B">R&amp;B</button><button class="btn" data-market-filter="Hip-Hop">Hip-Hop</button></div>
+</div>
+<div id="marketplaceStatus" class="tiny muted" style="margin:10px 0"></div>
+<div id="marketplaceList"></div>
+<div class="card" style="margin-top:14px"><span class="pill">💳 CHECKOUT</span><h2 style="margin-top:8px">Customer email</h2><p class="muted">Paystack needs an email for the transaction. If your account does not have one, enter it here and it will be saved on this device for the next checkout.</p><label>Email</label><input id="marketplaceEmail" type="email" autocomplete="email" placeholder="you@example.com"/><div class="tiny muted" id="marketplaceEmailStatus" style="margin-top:8px"></div></div>
+</section>
+<section class="page" id="profile"><span class="pill">PROFILE</span><h1>My Artist Profile 👤</h1><div class="card alu-welcome-card" id="profileSavedCard" style="display:none"><div class="alu-welcome-top"><div class="alu-welcome-avatar-wrap"><img alt="Artist profile picture" class="profile-avatar alu-welcome-avatar" id="profilePublicAvatar"/></div><div class="grow"><span class="alu-welcome-badge">🎧 SOLO VIBES ARTIST</span><h2 id="savedProfileWelcome">Welcome to Solo_vibez</h2><div class="alu-welcome-handle" id="savedProfileHandle">@solovibes</div></div></div><div class="alu-welcome-message"><strong>Welcome to Solo_vibez — your music space.</strong><span>Create your sound, upload your music, promote your work and build your audience — all from here.</span></div><div class="alu-welcome-stats"><div><small>Followers</small><b id="profileFollowers">0</b></div><div><small>Country</small><b id="savedProfileCountry">Nigeria</b></div><div><small>Role</small><b>Artist</b></div></div><p class="alu-welcome-email" id="savedProfileEmail"></p><div class="alu-welcome-actions"><button class="btn alu-welcome-primary" data-go="create">🎵 Start Creating</button><button class="btn alu-welcome-secondary" data-action="editProfile">✏️ Edit Artist Profile</button></div></div><div class="card" id="profileFormCard"><label>Artist name</label><input autocomplete="name" id="profileName" name="name" placeholder="Your artist name"/><label>Email</label><input autocomplete="email" id="profileEmail" inputmode="email" name="email" placeholder="you@example.com" type="email"/><label>Artist profile picture</label><input accept="image/*" id="profileAvatar" type="file"/><div class="row"><img alt="Artist profile picture" class="profile-avatar" id="profileAvatarPreview"/><div class="grow muted tiny">Your face/photo will appear beside your artist name.</div></div><label>Country</label><select id="profileCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Spain</option><option>Canada</option><option>Australia</option><option>Brazil</option></select><label>Account PIN <span class="tiny">(4–6 digits for sensitive actions)</span></label><input id="profilePin" inputmode="numeric" maxlength="6" placeholder="Set a PIN" type="password"/><p class="muted tiny">Prototype only: this PIN is stored locally on this device. A production app will verify it securely on the server.</p><button class="btn primary full" data-action="saveProfile">Save Profile</button></div><div class="card"><h2>Artist Pro</h2><button class="btn primary full" data-go="pro">💎 Open Artist Pro</button></div><div class="card"><h2>Account</h2><button class="btn" data-action="follow">+ Follow another artist</button><button class="btn red full" data-action="deleteAccount">Delete Account</button><button class="btn red full" data-action="reset">Reset local test data</button></div></section>
+<section class="page" id="notifications"><div class="row between"><div><span class="pill">🔔 NOTIFICATIONS</span><h1 style="margin-bottom:4px">Notifications</h1><p class="muted" style="margin:0">Important updates about your music, account, promotions and Artist Level Up.</p></div><button class="btn" type="button" data-action="markAllNotificationsRead">Mark all read</button></div><div class="card" style="margin-top:14px"><div class="row between"><div><h2 style="margin:0">Notification Center</h2><p class="muted" style="margin:5px 0 0">Unread notifications will appear here.</p></div><span class="pill" id="notificationCountPill">0 unread</span></div><div id="notificationList" style="margin-top:8px"></div></div><div class="card"><h2>Push notifications</h2><p class="muted">Allow browser notifications to receive alerts while using the app. Full background push delivery will be connected when the app is hosted as a secure web app.</p><button class="btn primary full" type="button" data-action="enablePushNotifications" id="enablePushBtn">🔔 Enable Notifications</button><p class="tiny muted" id="pushStatus" style="margin-top:8px"></p></div></section><section class="page" id="settings"><span class="pill">SETTINGS</span><h1>Settings ⚙️</h1><div class="card"><button class="btn full" data-action="language">🌍 Language: English</button><button class="btn full" data-action="currency">💱 Currency: NGN</button><button class="btn full" data-action="notifications">🔔 Notifications: On</button></div><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><h2>👑 Owner Controls</h2><p class="muted">Private area for the app owner. Artists can use the app normally without access to Admin.</p><button class="btn primary full" data-action="ownerLogin">🔐 Open Admin Control Center</button><button class="btn full" data-action="changeOwnerPin">🔑 Change Owner PIN</button></div><div class="card alu-legal-hub" id="aluLegalHub">
+<h2>📚 Legal, Policies & Support</h2>
+<p class="muted">Everything you need to understand Artist Level Up, your rights, your responsibilities, licensing and how to get help.</p>
+<div class="grid">
+<button class="btn full" data-legal="privacy">🔒 Privacy Policy</button>
+<button class="btn full" data-legal="terms">📜 Terms & Conditions</button>
+<button class="btn full" data-legal="artist">🎤 Artist Agreement</button>
+<button class="btn full" data-legal="community">🤝 Community Guidelines</button>
+<button class="btn full" data-legal="copyright">©️ Copyright Policy</button>
+<button class="btn full" data-legal="payments">💳 Payments & Withdrawal</button>
+<button class="btn full" data-legal="license">🎧 Beat License Terms</button>
+<button class="btn full" data-action="aluOpenHelp">🤖 Help & Support</button>
+</div>
+</div></section>
+<section class="page commission-page" id="commissionEarningsPage">
+<div class="commission-head"><div><span class="pill">💰 COMMISSION & EARNINGS</span><h1>My Earnings</h1><p class="muted">Completed beat sales and your 10% Artist Level Up marketplace commission.</p></div></div>
+<div class="grid3 commission-stats">
+<div class="stat"><span class="muted">Total Commission</span><b id="earningsTotalCommission">₦0</b></div>
+<div class="stat"><span class="muted">Paid Sales</span><b id="earningsPaidSales">0</b></div>
+<div class="stat"><span class="muted">Commission Rate</span><b>10%</b></div>
+</div>
+<div class="card commission-sales"><div class="row between"><div><span class="pill">📊 SALES</span><h2 style="margin-top:8px">Marketplace earnings</h2></div><button class="btn" data-action="refreshCommission">↻ Refresh</button></div><div id="commissionEarningsStatus" class="tiny muted" style="margin-top:8px"></div><div id="commissionEarningsList" style="margin-top:10px"></div></div>
+</section>
+<script id="commissionEarningsV91">
+(function(){
+  const SUPABASE_URL=window.ALU_SUPABASE_URL;
+  function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function escE(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
+  async function loadCommission(){
+    const status=document.getElementById('commissionEarningsStatus'), list=document.getElementById('commissionEarningsList');
+    if(!status||!list)return;
+    status.textContent='Loading completed sales…'; list.innerHTML='';
+    try{
+      const client=window.ALU_CLOUD?.client;
+      if(!client) throw new Error('Supabase connection is not ready.');
+      const {data,error}=await client.from('marketplace_orders').select('beat_title,producer_name,amount_ngn,status,platform_fee_percent,platform_fee_ngn,producer_payout_ngn,paid_at,paystack_reference').eq('status','paid').order('paid_at',{ascending:false});
+      if(error)throw error;
+      const rows=data||[], total=rows.reduce((a,r)=>a+Number(r.platform_fee_ngn||0),0);
+      document.getElementById('earningsTotalCommission').textContent=money(total);
+      document.getElementById('earningsPaidSales').textContent=String(rows.length);
+      status.textContent=rows.length?`${rows.length} completed sale${rows.length===1?'':'s'} recorded.`:'No completed marketplace sales yet.';
+      if(!rows.length){list.innerHTML='<p class="muted">Your commission earnings will appear here after a beat sale is successfully paid.</p>';return;}
+      list.innerHTML=rows.map(r=>`<div class="listrow"><div class="grow"><b>${escE(r.beat_title||'Beat sale')}</b><div class="tiny muted">${escE(r.producer_name||'Producer')} · ${escE(r.paid_at?new Date(r.paid_at).toLocaleString('en-NG'):'Paid')}</div><div class="tiny muted">Ref: ${escE(r.paystack_reference||'—')}</div></div><div style="text-align:right"><b>${money(r.platform_fee_ngn)}</b><div class="tiny muted">10% of ${money(r.amount_ngn)}</div></div></div>`).join('');
+    }catch(e){console.error(e);status.textContent='Could not load earnings: '+(e?.message||e);document.getElementById('earningsTotalCommission').textContent='₦0';document.getElementById('earningsPaidSales').textContent='0';}
+  }
+  window.ALU_COMMISSION_EARNINGS={load:loadCommission};
+  document.addEventListener('click',e=>{
+    const el=e.target.closest?.('[data-action="refreshCommission"],[data-go="commissionEarningsPage"]');
+    if(!el)return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if(el.matches('[data-go="commissionEarningsPage"]')){
+      document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+      document.getElementById('commissionEarningsPage')?.classList.add('active');
+      setTimeout(loadCommission,50);
+    } else loadCommission();
+  },true);
+  const oldGo=window.go;
+  if(typeof oldGo==='function')window.go=function(id){if(id==='commissionEarningsPage'){if(!state?.adminAuthenticated){toast('Unlock Admin Control Center first 🔒');return;}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('commissionEarningsPage')?.classList.add('active');setTimeout(loadCommission,50);return;}const r=oldGo.apply(this,arguments);return r};
+  window.addEventListener('load',()=>setTimeout(loadCommission,300));
+})();
+</script>
+<div class="player" id="player"><div class="player-head"><button aria-label="Close player" class="player-cancel" data-action="closePlayer">✕</button></div><div class="row"><div class="cover" id="playerCover">🎵</div><div class="grow"><b id="playerTitle">Nothing playing</b><div class="muted" id="playerArtist">Artist Level Up</div></div><button class="iconbtn" data-action="prev">⏮</button><button class="iconbtn" data-action="play">▶</button><button class="iconbtn" data-action="next">⏭</button></div><div class="progress"><i id="playerProgress"></i></div></div>
+
+<div class="page" id="studio">
+  <div class="studio-shell">
+    <div class="studio-head">
+      <div>
+        <span class="pill">ARTIST LEVEL UP STUDIO</span>
+        <h1>🎛️ Studio</h1>
+        <p class="muted">A real mobile music workstation. Record, import, arrange, mix and export your song.</p>
+      </div>
+      <button class="btn" type="button" data-studio-action="close">✕</button>
+    </div>
+
+    <div class="studio-transport card">
+      <div class="studio-transport-row">
+        <button class="studio-transport-btn" type="button" data-studio-action="rewind">⏮</button>
+        <button class="studio-transport-btn" type="button" data-studio-action="stop">⏹</button>
+        <button class="studio-transport-btn studio-play" type="button" data-studio-action="play">▶</button>
+        <button class="studio-transport-btn studio-record" type="button" data-studio-action="record">⏺</button>
+        <button class="studio-transport-btn" type="button" data-studio-action="metronome">♩</button>
+        <div class="studio-time"><b id="studioClock">00:00.0</b><small id="studioStatus">Ready</small></div>
+      </div>
+      <div class="studio-transport-tools">
+        <label>BPM<input id="studioBpm" type="number" min="40" max="240" value="120"></label>
+        <label>Key<select id="studioKey"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></label>
+        <label>Master<input id="studioMaster" type="range" min="0" max="1" step=".01" value=".9"></label>
+      </div>
+    </div>
+
+    <div class="studio-action-grid">
+      <button class="btn primary" type="button" data-studio-action="record">🎙️ Record Vocal</button>
+      <button class="btn blue" type="button" data-studio-action="import">🎵 Import Audio</button>
+      <button class="btn green" type="button" data-studio-action="save">💾 Save Project</button>
+      <button class="btn" type="button" data-studio-action="load">📂 Load Project</button>
+      <button class="btn" type="button" data-studio-action="undo">↶ Undo</button>
+      <button class="btn" type="button" data-studio-action="redo">↷ Redo</button>
+      <button class="btn" type="button" data-studio-action="export">💿 Export WAV</button>
+      <input id="studioImportInput" type="file" accept="audio/*" multiple hidden>
+    </div>
+
+    <div class="studio-meter card">
+      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
+      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
+      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
+    </div>
+
+    <div class="card">
+      <div class="row between"><div><h2>🎼 Timeline</h2><p class="tiny muted">Move through your song and build multiple takes.</p></div><span class="pill" id="studioProjectBadge">Untitled</span></div>
+      <div class="studio-ruler" id="studioRuler"></div>
+      <div id="studioTracks"></div>
+      <div class="studio-empty" id="studioEmpty">No audio yet. Record a vocal or import a beat to start.</div>
+    </div>
+
+    <div class="card studio-mixer">
+      <div class="row between"><div><h2>🎚️ Mixer</h2><p class="tiny muted">Volume, pan, mute, solo and effects for every track.</p></div><span class="pill">MASTER</span></div>
+      <div id="studioMixerTracks"></div>
+      <div class="studio-master-strip"><b>MASTER</b><span>Limiter-ready master bus</span><input id="studioMaster2" type="range" min="0" max="1" step=".01" value=".9"></div>
+    </div>
+
+    <div class="card">
+      <h2>🧩 Studio Effects</h2>
+      <div class="studio-fx-grid">
+        <button class="studio-fx active" type="button" data-fx="eq">🎚️ EQ<div>3-band tone shaping</div></button>
+        <button class="studio-fx active" type="button" data-fx="compressor">🔊 Compressor<div>Control dynamics</div></button>
+        <button class="studio-fx" type="button" data-fx="reverb">🌊 Reverb<div>Room ambience</div></button>
+        <button class="studio-fx" type="button" data-fx="delay">⏱️ Delay<div>Echo / space</div></button>
+      </div>
+      <p class="tiny muted">These are live Web Audio processing modules. More advanced inserts, automation, MIDI, instruments, comping and pitch tools can be added on the same Studio engine.</p>
+    </div>
+
+    <div class="card studio-roadmap">
+      <h2>🚀 Artist Level Up Engine</h2>
+      <div class="grid3">
+        <div class="stat"><b>REC</b><small class="muted">Multi-take audio</small></div>
+        <div class="stat"><b>MIX</b><small class="muted">Track + master bus</small></div>
+        <div class="stat"><b>WAV</b><small class="muted">Offline export</small></div>
+      </div>
+      <p class="tiny muted">Studio is separate from Create. Creator Room upload tools remain under Create.</p>
+    </div>
+  </div>
+</div>
+<script id="artistLevelUpStudioV101Upgrade">
+(function(){
+'use strict';
+function boot(){
+  if(!window.ALU_STUDIO_V101){setTimeout(boot,80);return}
+  var A=window.ALU_STUDIO_V101;
+  A.loop=!!A.loop; A.countIn=!!A.countIn; A.selected=null; A.zoom=1;
+  function root(){return document.getElementById('studio')}
+  function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
+  function selected(){return A.selected&&A.find?A.find(A.selected):null}
+  function ensure(){
+    var r=root();if(!r)return;
+    var bar=document.getElementById('aluStudioEditBar');
+    if(!bar){
+      bar=document.createElement('div');bar.id='aluStudioEditBar';bar.className='card';
+      bar.style.cssText='position:relative;z-index:50;pointer-events:auto;';
+      bar.innerHTML='<h3>✂️ Timeline Editing</h3><div class="grid">'+
+      '<button type="button" class="btn" data-st-edit="split">✂️ Split</button>'+
+      '<button type="button" class="btn" data-st-edit="duplicate">📋 Duplicate</button>'+
+      '<button type="button" class="btn" data-st-edit="delete">🗑️ Delete</button>'+
+      '<button type="button" class="btn" data-st-edit="rename">✏️ Rename</button>'+
+      '<button type="button" class="btn" data-st-edit="loop">🔁 Loop: Off</button>'+
+      '<button type="button" class="btn" data-st-edit="countin">⏱️ Count-in: Off</button>'+
+      '<button type="button" class="btn" data-st-edit="zoomout">🔍 −</button>'+
+      '<button type="button" class="btn" data-st-edit="zoomin">🔎 +</button>'+
+      '</div><p class="muted" id="aluStudioStatus">Select a waveform clip first.</p>';
+      var tl=r.querySelector('#studioTracks');if(tl&&tl.parentNode)tl.parentNode.insertBefore(bar,tl);else r.appendChild(bar);
+      bar.addEventListener('click',async function(ev){
+        var b=ev.target.closest('[data-st-edit]');if(!b)return;
+        ev.preventDefault();ev.stopPropagation();
+        var act=b.getAttribute('data-st-edit');
+        try{
+          if(act==='loop'){A.loop=!A.loop;A.setLoop&&A.setLoop(A.loop);b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');return}
+          if(act==='countin'){A.countIn=!A.countIn;A.setCountIn&&A.setCountIn(A.countIn);b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');return}
+          if(act==='zoomin'||act==='zoomout'){A.zoom=Math.max(.5,Math.min(4,A.zoom+(act==='zoomin'?.5:-.5)));document.querySelectorAll('.studio-clip').forEach(function(x){x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center'});status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return}
+          var t=selected();if(!t){status('Tap a waveform clip first.');return}
+          if(act==='delete'){A.remove(t.id);A.selected=null;status('Track deleted ✓');return}
+          if(act==='duplicate'){A.duplicate(t.id);A.selected=null;status('Track duplicated ✓');return}
+          if(act==='rename'){var n=prompt('Track name:',t.name||'Track');if(n&&n.trim())A.rename(t.id,n.trim());return}
+          if(act==='split'){var at=Number(document.getElementById('aluEdStart')?.value)||t.duration/2;await A.split(t.id,at);status('Clip split ✓');return}
+        }catch(err){status('Control error: '+(err&&err.message||'try again'))}
+      });
+    }
+    var lb=bar.querySelector('[data-st-edit="loop"]'),cb=bar.querySelector('[data-st-edit="countin"]');
+    if(lb)lb.textContent='🔁 Loop: '+(A.loop?'On':'Off');
+    if(cb)cb.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');
+  }
+  var old=A.render;
+  if(typeof old==='function'&&!A.__aluControlsRenderHook){
+    A.__aluControlsRenderHook=true;
+    A.render=function(){var out=old.apply(this,arguments);ensure();return out}
+  }
+  ensure();
+  document.addEventListener('click',function(ev){
+    var clip=ev.target.closest?.('.studio-clip');if(!clip)return;
+    A.selected=clip.getAttribute('data-track')||null;
+    var t=selected(),x=document.getElementById('aluStudioStatus');
+    if(x&&t)x.textContent='Selected clip: '+(t.name||'Track')+' ✓';
+  },true);
+}
+boot();
+})();
+</script>
+<script id="artistLevelUpStudioV101Engine">
+(function(){
+'use strict';
+const S={tracks:[],name:'Untitled',bpm:120,key:'C',rec:null,chunks:[],stream:null,ctx:null,playing:false,undo:[],redo:[],fx:{eq:true,compressor:true,reverb:false,delay:false}};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const fmt=s=>{s=Math.max(0,Number(s)||0);return String(Math.floor(s/60)).padStart(2,'0')+':'+(s%60).toFixed(1).padStart(4,'0')};
+function note(m){if(window.toastMsg)toastMsg(m);else if(window.toast)toast(m)}
+function ctx(){return S.ctx||(S.ctx=new(window.AudioContext||window.webkitAudioContext)())}
+function db(){return new Promise((ok,bad)=>{let r=indexedDB.open('ALU_STUDIO_V101',1);r.onupgradeneeded=()=>r.result.createObjectStore('projects',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>bad(r.error)})}
+async function saveDB(){let d=await db(),p={id:'main',name:S.name,bpm:S.bpm,key:S.key,tracks:S.tracks.map(t=>({id:t.id,name:t.name,blob:t.blob,volume:t.volume,pan:t.pan,mute:t.mute,solo:t.solo,duration:t.duration}))};return new Promise((ok,bad)=>{let x=d.transaction('projects','readwrite');x.objectStore('projects').put(p);x.oncomplete=ok;x.onerror=()=>bad(x.error)})}
+async function loadDB(){let d=await db();return new Promise((ok,bad)=>{let r=d.transaction('projects').objectStore('projects').get('main');r.onsuccess=()=>ok(r.result);r.onerror=()=>bad(r.error)})}
+function snap(){return S.tracks.map(t=>({id:t.id,name:t.name,blob:t.blob,volume:t.volume,pan:t.pan,mute:t.mute,solo:t.solo,duration:t.duration}))}
+function undo(){let x=S.undo.pop();if(!x)return;S.redo.push(snap());S.tracks=x;render();note('Undo ✓')}
+function add(t){S.undo.push(snap());S.redo=[];S.tracks.push(t);render()}
+async function duration(blob){try{let b=await blob.arrayBuffer();return(await ctx().decodeAudioData(b)).duration}catch(e){return 0}}
+function wave(cv,blob){if(!cv)return;blob.arrayBuffer().then(x=>ctx().decodeAudioData(x)).then(b=>{let g=cv.getContext('2d'),w=cv.width=cv.clientWidth*2,h=cv.height=cv.clientHeight*2,d=b.getChannelData(0),step=Math.max(1,Math.floor(d.length/w));g.clearRect(0,0,w,h);g.beginPath();for(let i=0;i<w;i++){let mx=0;for(let j=0;j<step;j++)mx=Math.max(mx,Math.abs(d[i*step+j]||0));let y=(1-mx)*h/2;g.moveTo(i,y);g.lineTo(i,h-y)}g.strokeStyle='#79a7ff';g.stroke()}).catch(()=>{})}
+function render(){let box=$('studioTracks'),mix=$('studioMixerTracks');if(!box||!mix)return;box.innerHTML='';mix.innerHTML='';$('studioEmpty').style.display=S.tracks.length?'none':'block';$('studioTrackCount').textContent=S.tracks.length;S.tracks.forEach(t=>{let q=document.createElement('div');q.className='studio-track';q.innerHTML='<div class="studio-track-head"><b>'+esc(t.name)+'</b><small>'+fmt(t.duration)+' · Audio</small><div class="studio-track-tools"><button data-track="'+t.id+'" data-track-act="mute" class="'+(t.mute?'on':'')+'">M</button><button data-track="'+t.id+'" data-track-act="solo" class="'+(t.solo?'on':'')+'">S</button><button data-track="'+t.id+'" data-track-act="delete">✕</button></div></div><div class="studio-clip" data-track="'+t.id+'" style="width:'+Math.max(110,Math.min(700,(t.duration||1)*36))+'px"><canvas></canvas><span>'+esc(t.name)+'</span></div>';box.appendChild(q);wave(q.querySelector('canvas'),t.blob);let m=document.createElement('div');m.className='studio-mixer-track';m.innerHTML='<div><b>'+esc(t.name)+'</b><div class="tiny muted">'+fmt(t.duration)+'</div></div><input data-mix="volume" data-track="'+t.id+'" type="range" min="0" max="1.5" step=".01" value="'+(t.volume??1)+'"><input data-mix="pan" data-track="'+t.id+'" type="range" min="-1" max="1" step=".01" value="'+(t.pan??0)+'"><div class="studio-mixer-buttons"><button data-track="'+t.id+'" data-track-act="mute" class="'+(t.mute?'on':'')+'">M</button><button data-track="'+t.id+'" data-track-act="solo" class="'+(t.solo?'on':'')+'">S</button></div>';mix.appendChild(m)});$('studioProjectBadge').textContent=S.name+' · '+S.bpm+' BPM';$('studioBpm').value=S.bpm;$('studioKey').value=S.key}
+function track(id){return S.tracks.find(t=>String(t.id)===String(id))}
+function aluMakeSatCurve(amount){let n=1024,k=Math.max(1,Number(amount||1))*80,curve=new Float32Array(n);for(let i=0;i<n;i++){let x=i*2/n-1;curve[i]=((1+k)*x)/(1+k*Math.abs(x))}return curve}
+function aluMakeImpulse(c,seconds){let len=Math.max(1,Math.floor(c.sampleRate*seconds)),b=c.createBuffer(2,len,c.sampleRate);for(let ch=0;ch<2;ch++){let d=b.getChannelData(ch);for(let i=0;i<len;i++){let t=i/len;d[i]=(Math.random()*2-1)*Math.pow(1-t,3.2)}}return b}
+function node(t){if(t.audio)return t.audio;let a=new Audio(URL.createObjectURL(t.blob));a.preload='auto';let c=ctx(),src=c.createMediaElementSource(a),g=c.createGain(),p=c.createStereoPanner(),eq=c.createBiquadFilter(),cp=c.createDynamicsCompressor(),lim=c.createDynamicsCompressor(),filter=c.createBiquadFilter(),sat=c.createWaveShaper(),dl=c.createDelay(2),wet=c.createGain(),rev=c.createConvolver(),revWet=c.createGain(),chorus=c.createDelay(.2),chorusWet=c.createGain(),dry=c.createGain(),lfo=c.createOscillator(),lfoGain=c.createGain();eq.type='peaking';eq.frequency.value=2500;eq.Q.value=.7;cp.threshold.value=-18;cp.ratio.value=3;cp.attack.value=.01;cp.release.value=.15;lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.08;filter.type='lowpass';filter.frequency.value=20000;sat.curve=null;sat.oversample='2x';wet.gain.value=0;revWet.gain.value=0;chorusWet.gain.value=0;dry.gain.value=1;chorus.delayTime.value=.018;lfo.frequency.value=.8;lfoGain.gain.value=.006;lfo.connect(lfoGain).connect(chorus.delayTime);lfo.start();rev.buffer=aluMakeImpulse(c,1.4);src.connect(g).connect(p).connect(eq).connect(cp).connect(lim).connect(filter).connect(sat);sat.connect(dry).connect(c.destination);sat.connect(dl).connect(wet).connect(c.destination);sat.connect(rev).connect(revWet).connect(c.destination);sat.connect(chorus).connect(chorusWet).connect(c.destination);t.nodes={g,p,eq,cp,lim,filter,sat,dl,wet,rev,revWet,chorus,chorusWet,dry,lfo,lfoGain};t.audio=a;t.proFx=t.proFx||{};return a}
 function apply(t){let a=node(t),n=t.nodes,f=t.proFx||{},p=f.params||{},has=k=>Array.isArray(f.slots)&&f.slots.some(x=>x===k)&&(!f.active||f.active[k]!==false);a.volume=1;n.g.gain.value=Number(t.volume??1);n.p.pan.value=Number(t.pan??0);var eq=p.eq||{},fil=p.filter||{},cp=p.compressor||{},lim=p.limiter||{},rv=p.reverb||{},dl=p.delay||{},ch=p.chorus||{},sat=p.saturation||{};n.eq.gain.value=has('eq')?Number(eq.gain??2):0;n.cp.threshold.value=has('compressor')?(-6-(Number(cp.amount??50)*.34)):0;n.lim.threshold.value=has('limiter')?(-1-(Number(lim.amount??50)*.08)):-1;n.filter.type=has('filter')?'lowpass':'allpass';n.filter.frequency.value=has('filter')?Number(fil.freq??1000):22000;n.sat.curve=has('saturation')?aluMakeSatCurve(Math.max(.1,Number(sat.amount??20)/20)):null;n.dl.delayTime.value=Number(f.delayTime||.24);n.wet.gain.value=has('delay')?Number(dl.mix??25)/100:0;n.revWet.gain.value=has('reverb')?Number(rv.mix??35)/100:0;n.chorusWet.gain.value=has('chorus')?Number(ch.mix??25)/100:0}
 function stop(){S.playing=false;S.tracks.forEach(t=>{if(t.audio){t.audio.pause();try{t.audio.currentTime=0}catch(e){}}});$('studioStatus').textContent='Stopped'}
 async function play(){if(!S.tracks.length)return note('Add a beat or record a vocal first.');if(S.playing)return;let c=ctx();if(c.state==='suspended')await c.resume();let solo=S.tracks.some(t=>t.solo);if(S.countIn){$('studioStatus').textContent='Count-in…';await new Promise(r=>setTimeout(r,1000));if(!S.tracks.length)return;}S.tracks.forEach(t=>{let a=node(t);apply(t);a.muted=t.mute||(solo&&!t.solo);a.currentTime=0});S.playing=true;$('studioStatus').textContent=S.loop?'Playing mix · Loop on…':'Playing mix…';let total=Math.max(...S.tracks.map(t=>t.duration||0));let start=performance.now(),loop=()=>{if(!S.playing)return;let x=(performance.now()-start)/1000;$('studioClock').textContent=fmt(x);if(x>=total){if(S.loop){start=performance.now();S.tracks.forEach(t=>{if(!t.mute&&(!solo||t.solo)){let a=node(t);try{a.currentTime=0;a.play().catch(()=>{})}catch(e){}}});}else{stop();return}}requestAnimationFrame(loop)};S.tracks.forEach(t=>{if(!t.mute&&(!solo||t.solo))node(t).play().catch(()=>{})});loop()}
@@ -2701,7 +3602,7 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-</script></body></html><script id="ownerDashboardV101">
+</script><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escO(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
@@ -6286,3 +7187,4 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <!-- V101-PAGES-REDEPLOY-2026-10-03 -->
+</body></html>

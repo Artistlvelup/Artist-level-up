@@ -7587,4 +7587,129 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
   #studio .studio-effects-room-panel .alu-fx-row button{width:52px;min-width:52px}
 }
 </style>
-</body></html>
+
+<style id="effectsRoomButtonFinishV101">
+/* V101 Effects Room — final visual polish: compact DAW-style cards */
+#studio .studio-effects-room-panel .alu-fx-tools{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:10px 0 12px;
+}
+#studio .studio-effects-room-panel .alu-fx-tools button{
+  min-height:44px;
+  margin:0;
+  border-radius:12px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.3px;
+}
+#studio .studio-effects-room-panel .alu-fx-tools button:first-child{
+  background:linear-gradient(135deg,#a92f43,#64202d);
+  border:1px solid #ed6b7e;
+  color:#fff;
+}
+#studio .studio-effects-room-panel .alu-fx-tools button:nth-child(2){
+  background:linear-gradient(135deg,#315f9b,#1d3559);
+  border:1px solid #6fa9ff;
+  color:#fff;
+}
+#studio .studio-effects-room-panel .alu-fx-groups{
+  display:grid;
+  gap:12px;
+}
+#studio .studio-effects-room-panel .alu-fx-group{
+  margin:0;
+  padding:10px;
+  border:1px solid #292d38;
+  border-radius:14px;
+  background:linear-gradient(180deg,#151821,#101218);
+}
+#studio .studio-effects-room-panel .alu-fx-group-title{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin:0 0 8px;
+  padding:0 2px;
+  font-size:10px;
+  letter-spacing:.7px;
+  color:#c7cad4;
+}
+#studio .studio-effects-room-panel .alu-fx-group-title:before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#61a7ff;
+  box-shadow:0 0 8px rgba(97,167,255,.45);
+}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(2) .alu-fx-group-title:before{background:#ffd21c;box-shadow:0 0 8px rgba(255,210,28,.35)}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(3) .alu-fx-group-title:before{background:#ff718b;box-shadow:0 0 8px rgba(255,113,139,.35)}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(4) .alu-fx-group-title:before{background:#b795ff;box-shadow:0 0 8px rgba(183,149,255,.35)}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(5) .alu-fx-group-title:before{background:#64d2ff;box-shadow:0 0 8px rgba(100,210,255,.35)}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(6) .alu-fx-group-title:before{background:#6ee7b7;box-shadow:0 0 8px rgba(110,231,183,.35)}
+#studio .studio-effects-room-panel .alu-fx-group:nth-child(7) .alu-fx-group-title:before{background:#f69ad9;box-shadow:0 0 8px rgba(246,154,217,.35)}
+#studio .studio-effects-room-panel .alu-fx-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+#studio .studio-effects-room-panel .alu-fx-row{
+  min-height:58px;
+  grid-template-columns:29px minmax(0,1fr) 48px;
+  gap:7px;
+  padding:7px;
+  border:1px solid #30343f;
+  border-radius:11px;
+  background:#191c24;
+}
+#studio .studio-effects-room-panel .alu-fx-row:hover{
+  border-color:#505768;
+}
+#studio .studio-effects-room-panel .alu-fx-no{
+  width:29px;
+  height:29px;
+  border-radius:8px;
+  background:#292d38;
+  color:#cdd1dc;
+}
+#studio .studio-effects-room-panel .alu-fx-name{
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#studio .studio-effects-room-panel .alu-fx-state{
+  font-size:8px;
+  color:#858b9b;
+  margin-top:3px;
+}
+#studio .studio-effects-room-panel .alu-fx-row button{
+  width:48px;
+  min-width:48px;
+  height:31px;
+  border-radius:9px;
+  border:1px solid #566075;
+  background:linear-gradient(135deg,#3a4354,#242b39);
+  color:#eef3ff;
+  font-size:8px;
+  font-weight:900;
+}
+#studio .studio-effects-room-panel .alu-fx-row button.on{
+  background:linear-gradient(135deg,#35e0c4,#15998d)!important;
+  border-color:#73f7e5!important;
+  color:#061513!important;
+}
+#studio .studio-effects-room-panel .alu-fx-row.active{
+  border-color:rgba(53,224,196,.42);
+  background:linear-gradient(135deg,#192923,#171c21);
+  box-shadow:0 4px 12px rgba(0,0,0,.18);
+}
+#studio .studio-effects-room-panel .alu-fx-editor{
+  margin-top:10px;
+  border-radius:12px;
+}
+@media(max-width:430px){
+  #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
+}
+</style>\n</body></html>

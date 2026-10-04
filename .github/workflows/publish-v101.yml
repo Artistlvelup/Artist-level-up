@@ -1,0 +1,38 @@
+name: Publish V101 Website
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: v101-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout V101
+        uses: actions/checkout@v6
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload V101 website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+
+      - name: Publish V101 website
+        id: deployment
+        uses: actions/deploy-pages@v4

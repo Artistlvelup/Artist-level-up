@@ -7920,7 +7920,73 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 
 <!-- V101 STUDIO HANG FIX: stable lane/transport repair -->
-<style id="aluV101StableStudioRepairStyle">
+<style id="aluV101LaneTouchFix">
+#studio .alu-vocal-layers,
+#studio .alu-vocal-lane,
+#studio .alu-vocal-header,
+#studio .alu-vocal-mini-controls,
+#studio .alu-vocal-mini-controls button,
+#studio .alu-vocal-bottom,
+#studio .alu-vocal-fx-chip{pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important}
+#studio .alu-vocal-mini-controls button,
+#studio .alu-vocal-fx-chip{min-width:34px!important;height:34px!important;padding:0 9px!important;font-size:11px!important;border-radius:8px!important;-webkit-appearance:none!important;appearance:none!important;outline:none!important;box-shadow:none!important;transition:none!important}
+#studio .alu-vocal-mini-controls button:active,
+#studio .alu-vocal-mini-controls button:focus,
+#studio .alu-vocal-mini-controls button:focus-visible,
+#studio .alu-vocal-fx-chip:active,
+#studio .alu-vocal-fx-chip:focus,
+#studio .alu-vocal-fx-chip:focus-visible{transform:none!important;outline:none!important;box-shadow:none!important;background:#242833!important;color:#e8ebf2!important;border-color:#4a5261!important}
+#studio .alu-vocal-mini-controls button.rec{background:#4a1c22!important;color:#ffb9bf!important}
+#studio .alu-vocal-mini-controls button.on,
+#studio .alu-vocal-fx-chip.on{background:#ffd21c!important;color:#111!important;border-color:#ffd21c!important}
+#studio .alu-vocal-lane.selected .alu-vocal-no{box-shadow:none!important}
+</style>
+<script id="aluV101LaneTouchFix">
+(function(){
+'use strict';
+function boot(){
+ var box=document.querySelector('#studio .alu-vocal-layers');
+ if(!box){setTimeout(boot,100);return}
+ if(box.__v101TouchFix)return; box.__v101TouchFix=true;
+ box.addEventListener('pointerdown',function(e){
+   var b=e.target.closest&&e.target.closest('[data-vocal-control]');
+   if(!b)return;
+   e.preventDefault();
+ },{capture:true,passive:false});
+ box.addEventListener('click',function(e){
+   var b=e.target.closest&&e.target.closest('[data-vocal-control]');
+   if(!b)return;
+   e.preventDefault();
+   e.stopImmediatePropagation();
+   var n=Number(b.getAttribute('data-layer'))||1;
+   var t=(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.getTracks?window.ALU_STUDIO_V101.getTracks():[]).find(function(x){return Number(x.vocalLayer||0)===n});
+   var a=b.getAttribute('data-vocal-control');
+   if(a==='record'){
+     window.__ALU_VOCAL_LAYER_SELECTED=n;
+     if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.record)window.ALU_STUDIO_V101.record();
+     return;
+   }
+   if(!t)return;
+   if(a==='play'){
+     if(t.blob){
+       if(t.__laneAudio){try{t.__laneAudio.pause();}catch(_e){}}
+       try{t.__laneAudio=new Audio(URL.createObjectURL(t.blob));t.__laneAudio.volume=Number(t.mute?0:(t.volume??1));t.__laneAudio.muted=!!t.mute;t.__laneAudio.play().catch(function(){});}catch(_e){}
+     }
+   }else if(a==='pause'){if(t.__laneAudio)try{t.__laneAudio.pause()}catch(_e){}}
+   else if(a==='stop'){if(t.__laneAudio)try{t.__laneAudio.pause();t.__laneAudio.currentTime=0}catch(_e){}}
+   else if(a==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;}
+   else if(a==='solo'){t.solo=!t.solo;}
+   else if(a==='fxToggle'){
+     t.proFx=t.proFx||{};t.proFx.slots=Array.isArray(t.proFx.slots)?t.proFx.slots:[];t.proFx.active=t.proFx.active||{};
+     var k=b.getAttribute('data-fx');if(t.proFx.slots.indexOf(k)<0)t.proFx.slots.push(k);t.proFx.active[k]=t.proFx.active[k]!==true;
+     if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}
+   }
+   if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();
+ },{capture:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script><style id="aluV101StableStudioRepairStyle">
 #studio .alu-vocal-layers{position:relative!important;display:block!important;z-index:99999!important;pointer-events:auto!important;margin:0 0 12px!important}
 #studio .alu-vocal-lane{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
 #studio .studio-transport,#studio .studio-action-grid{position:relative!important;z-index:99990!important;pointer-events:auto!important}

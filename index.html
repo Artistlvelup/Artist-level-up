@@ -7831,4 +7831,25 @@ function boot(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
+
+<!-- V101 FINAL STUDIO REPAIR: persistent vocal lanes + transport controls -->
+<style id="aluV101FinalStudioRepairStyle">
+#studio .alu-vocal-layers{position:relative!important;display:block!important;z-index:99999!important;pointer-events:auto!important;margin:0 0 12px!important}
+#studio .alu-vocal-layer{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
+#studio .studio-transport,#studio .studio-action-grid{position:relative!important;z-index:99990!important;pointer-events:auto!important}
+#studio [data-studio-action]{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
+</style>
+<script id="aluV101FinalStudioRepair">
+(function(){'use strict';
+var layers=[['Lead / Normal Vocal','Lead / Normal Vocal'],['Chorus','Chorus'],['Ad-lib','Ad-lib'],['Backing Vocal','Backing Vocal'],['Harmony','Harmony'],['Extra Vocal','Extra Vocal']];
+function studio(){return document.getElementById('studio')}
+function render(){var s=studio();if(!s)return;var box=s.querySelector('.alu-vocal-layers');if(!box){box=document.createElement('div');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Vocal Layers</b><div><small>Choose a vocal line before recording.</small></div></div><span class="pill">6 LINES</span></div><div class="alu-vocal-layer-grid"></div>';s.insertBefore(box,s.firstChild)}else if(box!==s.firstChild)s.insertBefore(box,s.firstChild);var grid=box.querySelector('.alu-vocal-layer-grid');if(!grid)return;var tracks=window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.getTracks?window.ALU_STUDIO_V101.getTracks():[],sel=Number(window.__ALU_VOCAL_LAYER_SELECTED||1);grid.innerHTML=layers.map(function(x,i){var n=i+1,t=tracks.find(function(a){return Number(a.vocalLayer||0)===n});return '<button type="button" class="alu-vocal-layer '+(sel===n?'selected ':'')+(t?'taken':'')+'" data-vocal-layer="'+n+'"><span class="vl-top"><span class="vl-no">'+n+'</span><span class="vl-name">Vocal Layer '+n+'</span></span><span class="vl-role">'+x[1]+'</span><span class="vl-state">'+(t?'✓ TAKE SAVED'+(sel===n?' · SELECTED':''):(sel===n?'● READY TO RECORD':'○ EMPTY'))+'</span></button>'}).join('')}
+function ensure(){if(!studio())return;window.__ALU_VOCAL_LAYER_SELECTED=Number(window.__ALU_VOCAL_LAYER_SELECTED||1);render()}
+function boot(){if(!studio()){setTimeout(boot,100);return}ensure();new MutationObserver(function(){if(studio())ensure()}).observe(studio(),{childList:true,subtree:true});setInterval(ensure,500)}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.alu-vocal-layer');if(!b)return;e.preventDefault();e.stopImmediatePropagation();window.__ALU_VOCAL_LAYER_SELECTED=Math.max(1,Math.min(6,Number(b.getAttribute('data-vocal-layer'))||1));render()},true);
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-studio-action]');if(!b)return;var A=window.ALU_STUDIO_V101;if(!A)return;e.preventDefault();e.stopImmediatePropagation();var x=b.getAttribute('data-studio-action');try{if(x==='close'){if(typeof go==='function')go('home');return}if(x==='record'){A.rec?A.rec.stop():A.record();return}if(x==='stop'){A.rec?A.rec.stop():A.stop();return}if(x==='play'){A.playing?A.stop():A.play();return}if(x==='rewind'){A.stop();var c=document.getElementById('studioClock');if(c)c.textContent='00:00.0';return}if(x==='import'){document.getElementById('studioImportInput')?.click();return}if(x==='save'){A.save().catch(function(){});return}if(x==='load'){A.load&&A.load().catch(function(){});return}if(x==='undo'){A.undo();return}if(x==='redo'){A.redo();return}if(x==='export'){A.exportWav&&A.exportWav();return}}catch(err){console.error('V101 Studio control:',err)}},true);
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('[data-action="openStudioV101"]'))setTimeout(ensure,20)},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 </body></html>

@@ -838,6 +838,44 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-effects-room-panel .alu-fx-group:nth-child(9){border-color:#a3478d}.studio-effects-room-panel .alu-fx-group:nth-child(9) .alu-fx-group-title:before{background:#f58bd8}
 #studio .studio-effects-room-close{width:38px;height:36px;border-radius:11px;background:linear-gradient(135deg,#3a4559,#222a38);border-color:#66758e;color:#fff;font-size:21px}
 @media(max-width:420px){#studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}#studio .studio-effects-room-panel .alu-fx-row{min-height:66px}}
+<style id="effectsRoomFinalPolishV101">
+/* V101 Effects Room — final visual cleanup: clear category colors + obvious toggles */
+#studio .studio-effects-room-panel .alu-fx-group{overflow:hidden}
+#studio .studio-effects-room-panel .alu-fx-group-title{min-height:28px;padding:5px 8px;margin:0 0 9px;border-radius:8px;background:#171d28}
+#studio .studio-effects-room-panel .alu-fx-group-title:before{width:5px;height:18px}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-tone{border-color:#356f7b}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-tone .alu-fx-group-title{color:#7de8ef;background:rgba(67,214,197,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-tone .alu-fx-group-title:before{background:#43d6c5}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-dynamics{border-color:#80612f}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-dynamics .alu-fx-group-title{color:#ffd17a;background:rgba(255,184,74,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-dynamics .alu-fx-group-title:before{background:#ffb84a}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-color{border-color:#824255}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-color .alu-fx-group-title{color:#ff91aa;background:rgba(255,107,138,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-color .alu-fx-group-title:before{background:#ff6b8a}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-modulation{border-color:#66519b}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-modulation .alu-fx-group-title{color:#c6aeff;background:rgba(169,137,255,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-modulation .alu-fx-group-title:before{background:#a989ff}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-space{border-color:#32749a}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-space .alu-fx-group-title{color:#79d6ff;background:rgba(79,184,255,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-space .alu-fx-group-title:before{background:#4fb8ff}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-stereo{border-color:#32765f}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-stereo .alu-fx-group-title{color:#8bf1c9;background:rgba(110,231,183,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-stereo .alu-fx-group-title:before{background:#6ee7b7}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-vocal-pitch{border-color:#8f4c82}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-vocal-pitch .alu-fx-group-title{color:#fface5;background:rgba(244,114,208,.09)}
+#studio .studio-effects-room-panel .alu-fx-group.fx-group-vocal-pitch .alu-fx-group-title:before{background:#f472d0}
+#studio .studio-effects-room-panel .alu-fx-row{grid-template-columns:32px minmax(0,1fr);grid-template-rows:auto 30px;min-height:76px}
+#studio .studio-effects-room-panel .alu-fx-no{width:32px;height:32px;border-radius:10px;font-weight:900}
+#studio .studio-effects-room-panel .alu-fx-state{font-size:8px;letter-spacing:.15px}
+#studio .studio-effects-room-panel .alu-fx-row button{display:flex;align-items:center;justify-content:center;gap:6px;grid-column:2;width:100%;height:30px;border-radius:10px;background:linear-gradient(180deg,#30394a,#202735);border:1px solid #59677e;color:#dbe5f5;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);font-size:9px}
+#studio .studio-effects-room-panel .alu-fx-row button.on{background:linear-gradient(135deg,#44e3cc,#159e91);border-color:#72f4e1;color:#061513}
+#studio .studio-effects-room-panel .alu-fx-toggle-dot{width:8px;height:8px;border-radius:50%;background:#7d8798;box-shadow:0 0 0 2px rgba(125,135,152,.12)}
+#studio .studio-effects-room-panel .alu-fx-row button.on .alu-fx-toggle-dot{background:#052b25;box-shadow:0 0 0 2px rgba(255,255,255,.24)}
+@media(max-width:420px){
+  #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
+  #studio .studio-effects-room-panel .alu-fx-row{min-height:72px}
+}
+</style>
 </style>
 </head>
 <body>
@@ -3916,7 +3954,7 @@ function boot(){
  function selectedTrack(){var A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&A.find){var t=A.find(A.selected);if(t)return t}if(A.getTracks){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
  function syncFromTrack(){var t=selectedTrack(),f=t&&t.proFx||{};state=allKeys.slice();active={};params={};allKeys.forEach(function(k){active[k]=false;params[k]=Object.assign({},defaults[k]||{})});if(Array.isArray(f.slots))f.slots.forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active&&f.active[k]===false?false:true});if(f.active)Object.keys(f.active).forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active[k]!==false});if(f.params)Object.keys(f.params).forEach(function(k){if(params[k])params[k]=Object.assign(params[k],f.params[k]||{})})}
  function apply(){var t=selectedTrack(),A=window.ALU_STUDIO_V101;if(!t||!A)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
- function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group';var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ON · tap name to adjust':'OFF · ready')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'">'+(active[key]?'ON':'OFF')+'</button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
+ function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group fx-group-'+group[0].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ACTIVE · tap name to adjust':'READY · tap to enable')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'"><span class="alu-fx-toggle-dot"></span><span>'+(active[key]?'ON':'OFF')+'</span></button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
  function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')}
  syncFromTrack();render();
  window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};

@@ -1499,7 +1499,7 @@ function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){ope
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
 function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
-function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
+function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
 function renderArtists(){const el=document.getElementById('artists');if(!el)return;const names=[...new Set((state.songs||[]).map(s=>s.artist).filter(Boolean))];const fallback=[['Kenny Blaze','Afrobeats','🎤'],['Léa Martin','Pop','🎶'],['Rayo','Latin','🔥'],['Tobi Fresh','Afro-pop','🎧'],['Thabo Keys','Amapiano','🎹'],['Nova MC','Hip-Hop','🎙️']];const data=(names.length?names.map(n=>{const s=(state.songs||[]).find(x=>x.artist===n)||{};return [n,s.genre||'Music',String(n).slice(0,1).toUpperCase()]}):fallback);el.innerHTML=data.slice(0,6).map(([name,genre,avatar])=>`<div class="artist-card"><div class="artist-avatar">${avatar}</div><div class="artist-name">${name}</div><div class="artist-genre">${genre}</div><div class="artist-actions"><button class="btn" data-artist="${name.replace(/"/g,'&quot;')}" data-action="artistPreview">▶ Preview</button><button class="btn primary" data-artist="${name.replace(/"/g,'&quot;')}" data-action="followArtist">${state.artistFollows?.[name]?'✓ Following':'＋ Follow'}</button></div></div>`).join('')}
 function proExpiryDate(plan){const d=new Date();if(plan==='Yearly')d.setFullYear(d.getFullYear()+1);else d.setDate(d.getDate()+30);return d.toISOString();}function formatProDate(value){const d=value?new Date(value):null;if(!d||Number.isNaN(d.getTime()))return 'Not set';return d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});}
@@ -4568,7 +4568,7 @@ function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){ope
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
 function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
-function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
+function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
 function renderArtists(){const el=document.getElementById('artists');if(!el)return;const names=[...new Set((state.songs||[]).map(s=>s.artist).filter(Boolean))];const fallback=[['Kenny Blaze','Afrobeats','🎤'],['Léa Martin','Pop','🎶'],['Rayo','Latin','🔥'],['Tobi Fresh','Afro-pop','🎧'],['Thabo Keys','Amapiano','🎹'],['Nova MC','Hip-Hop','🎙️']];const data=(names.length?names.map(n=>{const s=(state.songs||[]).find(x=>x.artist===n)||{};return [n,s.genre||'Music',String(n).slice(0,1).toUpperCase()]}):fallback);el.innerHTML=data.slice(0,6).map(([name,genre,avatar])=>`<div class="artist-card"><div class="artist-avatar">${avatar}</div><div class="artist-name">${name}</div><div class="artist-genre">${genre}</div><div class="artist-actions"><button class="btn" data-artist="${name.replace(/"/g,'&quot;')}" data-action="artistPreview">▶ Preview</button><button class="btn primary" data-artist="${name.replace(/"/g,'&quot;')}" data-action="followArtist">${state.artistFollows?.[name]?'✓ Following':'＋ Follow'}</button></div></div>`).join('')}
 function proExpiryDate(plan){const d=new Date();if(plan==='Yearly')d.setFullYear(d.getFullYear()+1);else d.setDate(d.getDate()+30);return d.toISOString();}function formatProDate(value){const d=value?new Date(value):null;if(!d||Number.isNaN(d.getTime()))return 'Not set';return d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});}
@@ -6046,3 +6046,51 @@ function boot(){
    }
    if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();
  },{capture:true});
+<script id="aluV101UserRegistrationGate">
+(function(){
+'use strict';
+function registered(){return !!(window.state&&(window.state.userRegistered||window.state.artistRegistered||window.state.userAccount?.email||window.state.profile?.saved));}
+function openRegistration(){try{if(typeof window.action==='function'){window.action('openUserRegister');return true;}}catch(e){}return false;}
+window.ALU_REQUIRE_USER_REGISTRATION=function(){if(registered())return true;if(!openRegistration()){try{window.toast('Please register first to continue.')}catch(e){alert('Please register first to continue.')}}return false;};
+function mountEntry(){
+ const home=document.getElementById('home');if(!home||home.querySelector('#aluUserRegistrationEntry'))return;
+ const box=document.createElement('div');box.id='aluUserRegistrationEntry';box.className='user-entry-card';
+ box.innerHTML='<span class="pill">LISTENER ACCOUNT</span><h2 style="margin-top:10px">Join Artist Level Up 👤</h2><p class="muted">Create your free account before streaming music, using the library or accessing downloads.</p><div class="user-entry-grid"><button type="button" class="btn primary" id="aluRegisterUserBtn">👤 Register / Sign In</button><button type="button" class="btn" id="aluUserStatusBtn">✓ Account Status</button></div>';
+ const hero=home.querySelector('.listener-hero');if(hero&&hero.parentNode)hero.parentNode.insertBefore(box,hero.nextSibling);else home.insertBefore(box,home.firstChild);
+ box.querySelector('#aluRegisterUserBtn').onclick=function(){if(registered()){try{window.go('profile')}catch(e){}}else openRegistration()};
+ box.querySelector('#aluUserStatusBtn').onclick=function(){if(registered()){try{window.toast('Your Artist Level Up account is active ✓')}catch(e){}}else openRegistration()};
+}
+function refreshEntry(){
+ const box=document.getElementById('aluUserRegistrationEntry');if(!box)return;const reg=registered(),p=box.querySelector('p'),b=box.querySelector('#aluRegisterUserBtn'),s=box.querySelector('#aluUserStatusBtn');
+ if(reg){if(p)p.textContent='Your account is active. You can now stream music and use your listener library.';if(b)b.textContent='👤 Open My Account';if(s)s.textContent='✓ Registered'}
+ else{if(p)p.textContent='Create your account before streaming music, using the library or accessing downloads.';if(b)b.textContent='👤 Register / Sign In';if(s)s.textContent='✓ Account Status'}
+}
+const originalPlay=window.play;
+if(typeof originalPlay==='function'&&!originalPlay.__aluV101RegistrationGate){
+ const gatedPlay=function(id){if(!window.ALU_REQUIRE_USER_REGISTRATION())return;return originalPlay(id)};
+ gatedPlay.__aluV101RegistrationGate=true;window.play=gatedPlay;
+}
+let wrappedFeed=false;
+function wrapFeed(){
+ if(wrappedFeed||typeof window.openGlobalDiscoveryV77!=='function')return;
+ const originalFeed=window.openGlobalDiscoveryV77;if(originalFeed.__aluV101RegistrationGate){wrappedFeed=true;return}
+ const gatedFeed=function(){if(!window.ALU_REQUIRE_USER_REGISTRATION())return Promise.resolve(false);return originalFeed.apply(this,arguments)};
+ gatedFeed.__aluV101RegistrationGate=true;window.openGlobalDiscoveryV77=gatedFeed;wrappedFeed=true;
+}
+document.addEventListener('click',function(e){
+ const dl=e.target.closest?.('[data-action="downloadSong"],[data-download]');if(!dl)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+ if(!window.ALU_REQUIRE_USER_REGISTRATION())return;
+ const title=(window.state?.songs||[]).find(s=>String(s.id)===String(dl.dataset.songId||dl.dataset.download))?.title||'this song';
+ const body=document.getElementById('modalBody'),modal=document.getElementById('modal');
+ if(body&&modal){
+  body.innerHTML='<span class="pill">PAID DOWNLOAD</span><h2>Download '+(typeof window.esc==='function'?window.esc(title):title)+'</h2><p class="muted">Downloads are not free. Your account is registered, but a download purchase must be completed before the audio file can be saved offline.</p><div class="card"><b>🔒 Download protected</b><p class="tiny muted" style="margin-bottom:0">The download price/payment option will appear here when the song has a configured purchase price.</p></div><button class="btn primary full" data-action="closeModal">Close</button>';
+  modal.classList.add('show');
+ }
+},true);
+function boot(){mountEntry();refreshEntry();wrapFeed();setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},150);setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},700)}
+document.addEventListener('click',function(e){if(e.target.closest?.('[data-action="saveUserRegister"]'))setTimeout(refreshEntry,100)},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+setInterval(function(){refreshEntry();wrapFeed()},1500);
+})();
+</script>

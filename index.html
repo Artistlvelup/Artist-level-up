@@ -3992,10 +3992,42 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModa
 #studio .alu-fx-control input[type=range]{width:100%;accent-color:#ffd21c}
 #studio .alu-fx-note{font-size:9px;color:#858a99;margin-top:8px;line-height:1.35}
 </style>
-<!-- V101 EFFECTS RACK — duplicate legacy initializer disabled.
-     The authoritative Complete Effects Rack below owns the Studio effects UI.
-     Keeping the legacy implementation out prevents two competing racks from initializing. -->
-<script id="aluStudioEffectsRackLegacyDisabledV101">(function(){'use strict';})();</script><script id="ownerDashboardV101">
+<script id="aluStudioEffectsRackV101">
+(function(){
+'use strict';
+function boot(){
+ var studio=document.getElementById('studio');if(!studio){setTimeout(boot,100);return}
+ if(studio.__aluFxRackV101Complete)return;studio.__aluFxRackV101Complete=true;
+ var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(function(x){return x.querySelector('[data-fx]')});if(!card)return;
+ card.classList.add('studio-effects-host-v101');
+ var oldGrid=card.querySelector('.studio-fx-grid');if(oldGrid)oldGrid.style.display='none';
+ var rack=document.createElement('div');rack.className='alu-fx-rack';
+ rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Complete Effects Rack</b><small>All Studio effects are together here. Turn on only what you need.</small></div><span class="pill">V101</span></div><div class="alu-fx-tools"><button type="button" data-fx-all>ALL OFF</button><button type="button" data-fx-master>CHAIN BYPASS</button></div><div class="alu-fx-groups"></div><div class="alu-fx-editor" aria-hidden="true"></div><div class="alu-fx-note">Effects are grouped like a mobile DAW: Tone → Dynamics → Color → Modulation → Space → Stereo → Vocal/Pitch. Each effect stays in the rack once instead of being added one-by-one.</div>';
+ card.appendChild(rack);
+ var groups=rack.querySelector('.alu-fx-groups'),editor=rack.querySelector('.alu-fx-editor'),chainBypass=false;
+ var effects=[
+  ['Tone',[['EQ','eq'],['Filter','filter'],['Multi-Band EQ','multieq']]],
+  ['Dynamics',[['Gate','gate'],['De-Esser','deesser'],['Compressor','compressor'],['Limiter','limiter']]],
+  ['Color',[['Saturation','saturation'],['Distortion','distortion']]],
+  ['Modulation',[['Chorus','chorus'],['Tremolo','tremolo'],['Auto-Pan','autopan'],['Phaser','phaser'],['Flanger','flanger']]],
+  ['Space',[['Reverb','reverb'],['Delay','delay']]],
+  ['Stereo',[['Stereo Widener','widener']]],
+  ['Vocal / Pitch',[['Vocal Enhancer','vocalenhancer'],['Pitch / Transpose','pitch']]]
+ ];
+ var allKeys=effects.flatMap(g=>g[1].map(x=>x[1]));
+ var labels={};effects.forEach(g=>g[1].forEach(x=>labels[x[1]]=x[0]));
+ var defaults={eq:{gain:0},filter:{freq:1000},multieq:{low:0,mid:0,high:0},gate:{amount:35},deesser:{amount:35},compressor:{amount:50},limiter:{amount:50},saturation:{amount:20},distortion:{amount:20},chorus:{mix:25},tremolo:{amount:30},autopan:{amount:30},phaser:{amount:25},flanger:{amount:25},reverb:{mix:35},delay:{mix:25},widener:{amount:25},vocalenhancer:{amount:30},pitch:{semitones:0}};
+ var specs={eq:[['Gain','gain',-12,12,.5,'dB']],filter:[['Frequency','freq',80,12000,10,'Hz']],multieq:[['Bass','low',-12,12,.5,'dB'],['Mid','mid',-12,12,.5,'dB'],['Treble','high',-12,12,.5,'dB']],gate:[['Gate','amount',0,100,1,'%']],deesser:[['De-Esser','amount',0,100,1,'%']],compressor:[['Strength','amount',0,100,1,'%']],limiter:[['Strength','amount',0,100,1,'%']],saturation:[['Amount','amount',0,100,1,'%']],distortion:[['Drive','amount',0,100,1,'%']],chorus:[['Mix','mix',0,100,1,'%']],tremolo:[['Depth','amount',0,100,1,'%']],autopan:[['Depth','amount',0,100,1,'%']],phaser:[['Depth','amount',0,100,1,'%']],flanger:[['Depth','amount',0,100,1,'%']],reverb:[['Mix','mix',0,100,1,'%']],delay:[['Mix','mix',0,100,1,'%']],widener:[['Width','amount',0,100,1,'%']],vocalenhancer:[['Enhance','amount',0,100,1,'%']],pitch:[['Semitones','semitones',-12,12,1,'st']]};
+ var state=[],active={},params={};
+ function selectedTrack(){var A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&A.find){var t=A.find(A.selected);if(t)return t}if(A.getTracks){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
+ function syncFromTrack(){var t=selectedTrack(),f=t&&t.proFx||{};state=allKeys.slice();active={};params={};allKeys.forEach(function(k){active[k]=false;params[k]=Object.assign({},defaults[k]||{})});if(Array.isArray(f.slots))f.slots.forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active&&f.active[k]===false?false:true});if(f.active)Object.keys(f.active).forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active[k]!==false});if(f.params)Object.keys(f.params).forEach(function(k){if(params[k])params[k]=Object.assign(params[k],f.params[k]||{})})}
+ function apply(){var t=selectedTrack(),A=window.ALU_STUDIO_V101;if(!t||!A)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
+ function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group fx-group-'+group[0].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ACTIVE · tap name to adjust':'READY · tap to enable')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'"><span class="alu-fx-toggle-dot"></span><span>'+(active[key]?'ON':'OFF')+'</span></button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
+ function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')} syncFromTrack();render();
+ window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script><script id="ownerDashboardV101">
 (function(){
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escO(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
@@ -5176,148 +5208,44 @@ This will remove the video record and, when permitted, its uploaded Storage file
     if(vids.some(v=>String(v.id)===String(current)))sel.value=String(current);
     if(!sel.value && vids.length===1)sel.value=String(vids[0].id);
   }
-  window.refreshPromotionVideos=refreshPromotionVideos;
-  const oldGo=window.go;if(typeof oldGo==='function'){window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='videos'){setTimeout(()=>{renderVideos();refreshVideos()},30)}if(id==='promote'){setTimeout(async()=>{await refreshPromotionVideos();if(typeof window.applyPromotionTypeUI==='function')window.applyPromotionTypeUI()},30)}if(id==='admin'){setTimeout(()=>{renderAdminVideoQueue();refreshAdminVideos()},30)}return r}}
-  const baseAction=window.action;window.action=async function(a,el){
-    if(a==='focusArtistVideoUpload'){window.go?.('videos');setTimeout(()=>document.getElementById('aluVideoTitle')?.focus(),80);return}
-    if(a==='refreshAdminVideos'){await refreshAdminVideos();return}
-    if(a==='deleteArtistVideo'){await deleteArtistVideo(String(el?.dataset?.videoId||''));return}
-    if(a==='approveArtistVideo'||a==='publishArtistVideo'||a==='rejectArtistVideo'){
-      const id=String(el?.dataset?.videoId||'');
-      const st=getState()||{}; let v=(st.videos||[]).find(x=>String(x.id)===id);
-      /* Admin queue can render a cloud-only record as cloud_<uuid>. Recover that
-         record from Supabase before showing the misleading 'Video not found'. */
-      if(!v){
-        const remoteId=id.replace(/^cloud_/,'');
-        if(/^[0-9a-f-]{20,}$/i.test(remoteId)){
-          try{
-            let r=null;
-            if(window.ALU_CLOUD?.client){
-              const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').eq('id',remoteId).maybeSingle();
-              if(!q.error)r=q.data||null;
-            }
-            if(!r){
-              const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-              const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-              if(base&&key){
-                const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&id=eq.'+encodeURIComponent(remoteId),{headers:{apikey:key,authorization:'Bearer '+key}});
-                if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];r=Array.isArray(data)?(data[0]||null):data}catch(_) {}}
-              }
-            }
-            if(r){
-              v={id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''};
-              st.videos=Array.isArray(st.videos)?st.videos:[];st.videos.push(v);saveState(st);
-            }
-          }catch(err){console.warn('Admin video recovery failed:',err)}
-        }
-      }
-      if(!v){toastMsg('Video not found');return}
-      if(a==='rejectArtistVideo'){const reason=prompt('Reason for rejecting this video:','Please review the video and upload again.');if(reason===null)return;v.rejectionReason=reason.trim()||'Rejected by Admin';saveState(getState()||{});await setVideoStatus(id,'Rejected');toastMsg('Video rejected ✓');return}
-      const next=a==='approveArtistVideo'?'Approved':'Published';if(next==='Published'&&statusLabel(v)!=='Approved'){toastMsg('Approve the video before publishing it.');return}await setVideoStatus(id,next);toastMsg(next==='Approved'?'Video approved ✓ — ready to publish':'🎬 Video published to Video Hub ✓');return
-    }
-    return baseAction.apply(this,arguments);
-  };
-  document.addEventListener('change',function(e){if(e.target?.id==='campaignSong')renderPromotionSongPreview();if(e.target?.id==='campaignVideo')renderPromotionVideoPreview();},true);
-  document.addEventListener('click',function(e){const el=e.target.closest('[data-admin-video-filter]');if(!el)return;window.adminVideoFilter=el.dataset.adminVideoFilter||'all';renderAdminVideoQueue();},true);
-  function getPicturePosts(){try{const x=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
-  function savePicturePosts(list){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)));return true}catch(e){toastMsg('Picture could not be saved on this device.');return false}}
-
-
-
-
-  document.addEventListener('click',function(e){const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;if(a==='publishPicturePost'){e.preventDefault();publishPicturePost();return;}if(a==='uploadArtistVideo'){e.preventDefault();uploadVideo();}else if(a==='retryVideoCloud'){e.preventDefault();retryVideoCloud(el.dataset.videoId);}else if(a==='refreshArtistVideos'){e.preventDefault();refreshVideos();}else if(a==='promoteVideo'){e.preventDefault();const st=getState()||{};const v=(st.videos||[]).find(x=>String(x.id)===String(el.dataset.videoId));if(v){localStorage.setItem('aluVideoToPromote',JSON.stringify(v));state.promotionTargetType='video';saveState(st);window.go?.('promote');setTimeout(()=>window.applyPromotionTypeUI?.(),30);toastMsg('Video selected for promotion. Choose your campaign settings.')}}},true);
-  setTimeout(()=>{renderVideos();renderAdminVideoQueue()},100);
-})();</script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<script>
-function creatorRoomShowPage(){
-  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
-  var create=document.getElementById('create');
-  if(create) create.classList.add('active');
-  window.ALU_ACTIVE_PAGE='create';
-  document.querySelectorAll('.nav button').forEach(function(btn){
-    btn.classList.toggle('active',btn.dataset.go==='create');
-  });
-}
-function showCreatorChoices(e){
-  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
-  creatorRoomShowPage();
-  document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
-  var choice=document.getElementById('creatorRoomChoice');
-  if(choice) choice.style.display='grid';
-  window.scrollTo(0,0);
-  return false;
-}
-function openCreatorTool(tool,e){
-  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
-  creatorRoomShowPage();
-  var choice=document.getElementById('creatorRoomChoice');
-  if(choice) choice.style.display='none';
-  document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
-  var id=tool==='music'?'creatorMusicPanel':(tool==='video'?'creatorVideoPanel':'creatorPicturePanel');
-  var panel=document.getElementById(id);
-  if(panel) panel.style.display='block';
-  if(tool==='video'&&typeof populateVideoSongPicker==='function')setTimeout(populateVideoSongPicker,40);
-  window.scrollTo(0,0);
-  return false;
-}
-</script>
-
-
-<style id="aluStudioEffectsRackV101">
-#studio .alu-fx-rack{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,#151821,#0f1117)}
-#studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
-#studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{color:#8e93a3;font-size:10px}
-#studio .alu-fx-slots{display:grid;gap:7px}
-#studio .alu-fx-slot{display:grid;grid-template-columns:34px 1fr 42px;align-items:center;gap:7px;min-height:44px;padding:5px 7px;border:1px solid #30333d;border-radius:10px;background:#181a22;cursor:pointer}
-#studio .alu-fx-slot.add{grid-template-columns:34px 1fr 24px}
-#studio .alu-fx-slot .slot-no{width:28px;height:28px;border-radius:8px;background:#272a34;display:grid;place-items:center;font-size:10px;color:#aeb2c0;font-weight:900}
-#studio .alu-fx-slot .slot-name{font-size:12px;font-weight:900;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#studio .alu-fx-slot .slot-state{font-size:9px;color:#8e93a3;margin-top:2px}
-#studio .alu-fx-slot button{border:0;background:#292c36;color:#fff;border-radius:7px;width:38px;height:28px;font-weight:900;font-size:9px}
-#studio .alu-fx-slot button.on{background:#ffd21c;color:#111}
-#studio .alu-fx-picker{display:none;margin-top:8px;padding:9px;border:1px solid #343742;border-radius:11px;background:#111319}
-#studio .alu-fx-picker.show{display:block}
-#studio .alu-fx-cat{font-size:9px;color:#8e93a3;font-weight:900;text-transform:uppercase;margin:6px 0 4px}
-#studio .alu-fx-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-#studio .alu-fx-options button{border:1px solid #30333d;background:#1a1c24;color:#fff;border-radius:8px;padding:9px 7px;text-align:left;font-size:11px;font-weight:800}
-#studio .alu-fx-editor{display:none;margin-top:8px;padding:11px;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:#101218}
-#studio .alu-fx-editor.show{display:block}
-#studio .alu-fx-editor-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-#studio .alu-fx-editor-head b{font-size:12px}.alu-fx-editor-head small{font-size:9px;color:#8e93a3}
-#studio .alu-fx-control{margin:9px 0}.alu-fx-control label{display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:4px}
-#studio .alu-fx-control input[type=range]{width:100%;accent-color:#ffd21c}
-#studio .alu-fx-note{font-size:9px;color:#858a99;margin-top:8px;line-height:1.35}
-</style>
-<script id="aluStudioEffectsRackV101">
+  window.refreshPromotionVideos=ref<script id="aluStudioExpandedEffectsV101">
 (function(){
 'use strict';
 function boot(){
- var studio=document.getElementById('studio');if(!studio){setTimeout(boot,100);return}
- if(studio.__aluFxRackV101)return;studio.__aluFxRackV101=true;
- var card=studio.querySelector('.studio-fx-card')||Array.from(studio.querySelectorAll('.card')).find(function(x){return x.querySelector('[data-fx]')});if(!card)return;
- var oldGrid=card.querySelector('.studio-fx-grid');if(oldGrid)oldGrid.style.display='none';
- var rack=document.createElement('div');rack.className='alu-fx-rack';
- rack.innerHTML='<div class="alu-fx-rack-head"><div><b>🎛️ Effects Rack</b><small> Add effects one slot at a time</small></div><span class="pill">V101</span></div><div class="alu-fx-slots"></div><div class="alu-fx-picker" aria-hidden="true"></div><div class="alu-fx-editor" aria-hidden="true"></div><div class="alu-fx-note">Tap an effect to open its controls. Use the sliders to change the sound.</div>';
- card.appendChild(rack);
- var slots=rack.querySelector('.alu-fx-slots'),picker=rack.querySelector('.alu-fx-picker'),editor=rack.querySelector('.alu-fx-editor');
- var effects=[['Tone','EQ','eq'],['Tone','Filter','filter'],['Dynamics','Compressor','compressor'],['Dynamics','Limiter','limiter'],['Space','Reverb','reverb'],['Space','Delay','delay'],['Modulation','Chorus','chorus'],['Modulation','Tremolo','tremolo'],['Modulation','Auto-Pan','autopan'],['Modulation','Phaser','phaser'],['Modulation','Flanger','flanger'],['Color','Saturation','saturation']];
- var state=[],active={},params={};
- var defaults={eq:{gain:0},filter:{freq:1000},compressor:{amount:50},limiter:{amount:50},reverb:{mix:35},delay:{mix:25},chorus:{mix:25},saturation:{amount:20},tremolo:{amount:30},autopan:{amount:30},phaser:{amount:25},flanger:{amount:25}};
- function getTrack(){var A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
+ var A=window.ALU_STUDIO_V101;
+ if(!A||typeof A.apply!=='function'){setTimeout(boot,120);return}
+ if(A.__expandedFxV101)return; A.__expandedFxV101=true;
+ var base=A.apply;
+ A.apply=function(t){
+  try{base(t)}catch(e){}
+  try{
+   var n=t&&t.nodes,f=t&&t.proFx||{},p=f.params||{},slots=Array.isArray(f.slots)?f.slots:[];
+   if(!n)return;
+   var has=k=>slots.indexOf(k)>=0&&(!f.active||f.active[k]!==false);
+   if(n.cp&&has('gate')){var ga=p.gate||{};n.cp.threshold.value=-42+(Number(ga.amount||35)*.3);n.cp.ratio.value=20;n.cp.attack.value=.003;n.cp.release.value=.12}
+   if(n.eq&&has('deesser')){var de=p.deesser||{};n.eq.type='highshelf';n.eq.frequency.value=5200;n.eq.gain.value=-(Number(de.amount||35)*.08)}
+   if(n.eq&&has('multieq')){var me=p.multieq||{};n.eq.type='peaking';n.eq.frequency.value=1000;n.eq.gain.value=(Number(me.mid)||0)+((Number(me.low)||0)+(Number(me.high)||0))*.35}
+   if(n.sat&&has('distortion')){var ds=p.distortion||{};if(typeof aluMakeSatCurve==='function')n.sat.curve=aluMakeSatCurve(Math.max(.2,Number(ds.amount||20)/8))}
+   if(n.cp&&has('vocalenhancer')){var ve=p.vocalenhancer||{};n.cp.threshold.value=-18-(Number(ve.amount||30)*.12);n.cp.ratio.value=2.5}
+   if(n.g&&has('tremolo')){
+    var tr=p.tremolo||{},depth=Math.max(0,Math.min(.9,Number(tr.amount||30)/100));
+    if(!t.__aluTrem||t.__aluTrem.ctx!==n.g.context){if(t.__aluTrem)try{t.__aluTrem.osc.stop()}catch(e){};var o=n.g.context.createOscillator(),mg=n.g.context.createGain();o.frequency.value=5;mg.gain.value=depth*.45;o.connect(mg).connect(n.g.gain);o.start();t.__aluTrem={osc:o,mod:mg,ctx:n.g.context}}
+    t.__aluTrem.mod.gain.value=depth*.45;
+   }else if(t.__aluTrem){try{t.__aluTrem.mod.gain.value=0}catch(e){}}
+   if(n.p&&has('autopan')){
+    var ap=p.autopan||{},d2=Math.max(0,Math.min(1,Number(ap.amount||30)/100));
+    if(!t.__aluPan||t.__aluPan.ctx!==n.p.context){if(t.__aluPan)try{t.__aluPan.osc.stop()}catch(e){};var po=n.p.context.createOscillator(),pg=n.p.context.createGain();po.frequency.value=.22;pg.gain.value=d2;po.connect(pg).connect(n.p.pan);po.start();t.__aluPan={osc:po,mod:pg,ctx:n.p.context}}
+    t.__aluPan.mod.gain.value=d2;
+   }else if(t.__aluPan){try{t.__aluPan.mod.gain.value=0}catch(e){}}
+   if(n.dl&&has('flanger')){var fl=p.flanger||{};n.dl.delayTime.value=Math.max(0.001,Math.min(.012,Number(fl.amount||25)/100*.012))}
+   if(n.dl&&has('phaser')){var ph=p.phaser||{};n.dl.delayTime.value=Math.max(.01,Math.min(.18,Number(ph.amount||25)/100*.18))}
+   if(t.audio&&has('pitch')){var pi=p.pitch||{};t.audio.playbackRate=Math.pow(2,Number(pi.semitones||0)/12)}
+  }catch(e){}
+ };
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script> A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
  function apply(){var t=getTrack(),A=window.ALU_STUDIO_V101;if(!t)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
  function controlSpec(key){return {eq:[['Gain','gain',-12,12,0.5,'dB']],filter:[['Frequency','freq',80,12000,10,'Hz']],compressor:[['Strength','amount',0,100,1,'%']],limiter:[['Strength','amount',0,100,1,'%']],reverb:[['Mix','mix',0,100,1,'%']],delay:[['Mix','mix',0,100,1,'%']],chorus:[['Mix','mix',0,100,1,'%']],saturation:[['Amount','amount',0,100,1,'%']],tremolo:[['Depth','amount',0,100,1,'%']],autopan:[['Depth','amount',0,100,1,'%']],phaser:[['Depth','amount',0,100,1,'%']],flanger:[['Depth','amount',0,100,1,'%']]}[key]||[]}
  function closePicker(){picker.classList.remove('show');picker.setAttribute('aria-hidden','true');picker.innerHTML=''}

@@ -6046,10 +6046,11 @@ function boot(){
    }
    if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();
  },{capture:true});
+</script>
 <script id="aluV101UserRegistrationGate">
 (function(){
 'use strict';
-function registered(){return !!(window.state&&(window.state.userRegistered||window.state.artistRegistered||window.state.userAccount?.email||window.state.profile?.saved));}
+function registered(){return !!(window.state&&(window.state.userRegistered===true||window.state.userAccount?.email));}
 function openRegistration(){try{if(typeof window.action==='function'){window.action('openUserRegister');return true;}}catch(e){}return false;}
 window.ALU_REQUIRE_USER_REGISTRATION=function(){if(registered())return true;if(!openRegistration()){try{window.toast('Please register first to continue.')}catch(e){alert('Please register first to continue.')}}return false;};
 function mountEntry(){

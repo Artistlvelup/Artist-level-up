@@ -1873,7 +1873,7 @@ renderGrowthCenter();
 <script id="generalUserRegistration">
 (function(){
   const oldAction=window.action;
-  window.action=function(a,el){
+  window.action=async function(a,el){
     if(a==='openUserRegister'){
       const modal=document.getElementById('modal'), body=document.getElementById('modalBody');
       if(!modal||!body)return;

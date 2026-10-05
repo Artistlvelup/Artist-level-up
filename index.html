@@ -4083,6 +4083,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 <!-- V101 STUDIO BUTTON REPAIR -->
+<script id="aluV101StudioLayoutAuthorityMarker">window.__ALU_STUDIO_LAYOUT_AUTHORITY_V101=true;</script>
 <style id="aluStudioCubaseLayoutV101">
 /* V101 Studio — Cubase-inspired single Vocal Hub */
 #studio .studio-shell{max-width:1100px;margin:auto}
@@ -4124,44 +4125,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-vocal-hub .studio-meter-top .studio-tips{display:flex!important;visibility:visible!important;}
 </style>
 <script id="aluStudioCubaseLayoutV101">
-(function(){
-'use strict';
-function boot(){
-  var studio=document.getElementById('studio');
-  if(!studio){setTimeout(boot,100);return}
-  if(studio.__aluCubaseHub)return;
-  studio.__aluCubaseHub=true;
-  function arrange(){
-    var shell=studio.querySelector('.studio-shell');
-    var transport=studio.querySelector('.studio-transport');
-    var actions=studio.querySelector('.studio-action-grid');
-    var meter=studio.querySelector('.studio-meter');
-    if(!shell||!transport||!actions||!meter)return;
-    var hub=studio.querySelector('.studio-vocal-hub');
-    if(!hub){
-      hub=document.createElement('div');
-      hub.className='studio-vocal-hub';
-      hub.innerHTML='<div class="studio-vocal-hub-head"><div><span class="pill">VOCAL HUB</span><h2>🎙️ Vocal Recording & Control</h2><p class="tiny muted">Record, play, stop and control your vocal from one place.</p></div></div><div class="studio-hub-content"></div>';
-      var content=hub.querySelector('.studio-hub-content');
-      content.appendChild(meter);
-      content.appendChild(transport);
-      content.appendChild(actions);
-      var edit=document.getElementById('aluStudioEditBar');
-      var editor=document.getElementById('aluStudioEditorPanel');
-      if(edit)content.appendChild(edit);
-      if(editor)content.appendChild(editor);
-      shell.insertBefore(hub,shell.children[1]||null);
-    }else{
-      var content=hub.querySelector('.studio-hub-content');
-      [meter,transport,actions,document.getElementById('aluStudioEditBar'),document.getElementById('aluStudioEditorPanel')].forEach(function(x){if(x&&x.parentNode!==content)content.appendChild(x)});
-    }
-  }
-  arrange();
-  var mo=new MutationObserver(function(){arrange()});
-  mo.observe(studio,{childList:true,subtree:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
+(function(){'use strict';})();
 </script>
 <style id="aluStudioButtonRepairV101">
 #studio #aluStudioEditBar,
@@ -4395,35 +4359,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-vocal-stack > .studio-timeline-panel{display:none!important}
 </style>
 <script id="aluStudioVocalTimelineStackV101">
-(function(){
-'use strict';
-function boot(){
- var studio=document.getElementById('studio');
- if(!studio){setTimeout(boot,100);return}
- function arrange(){
-  var shell=studio.querySelector('.studio-shell');
-  var hub=studio.querySelector('.studio-vocal-hub');
-  var tracks=studio.querySelector('#studioTracks');
-  var mixer=studio.querySelector('.studio-mixer');
-  if(!shell||!hub||!tracks)return;
-  var timeline=tracks.closest('.card');
-  if(!timeline)return;
-  timeline.classList.add('studio-timeline-panel');
-  var stack=studio.querySelector('.studio-vocal-stack');
-  if(!stack){
-   stack=document.createElement('div');
-   stack.className='studio-vocal-stack';
-   shell.insertBefore(stack,hub);
-  }
-  if(stack.firstElementChild!==hub)stack.insertBefore(hub,stack.firstChild);
-  if(mixer&&mixer.parentElement!==stack)stack.insertBefore(mixer,timeline);
-  if(stack.lastElementChild!==timeline)stack.appendChild(timeline);
- }
- arrange();
- new MutationObserver(arrange).observe(studio,{childList:true,subtree:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
+(function(){'use strict';})();
 </script>
 
 <style id="aluStudioMixerHubV101">
@@ -4435,33 +4371,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-vocal-workspace .studio-fx-card{margin:0;border:0;border-top:1px solid rgba(255,255,255,.12);border-radius:0;background:#0d0f14}
 </style>
 <script id="aluStudioMixerHubV101">
-(function(){
-'use strict';
-function boot(){
- var studio=document.getElementById('studio');
- if(!studio){setTimeout(boot,100);return}
- function arrange(){
-  var stack=studio.querySelector('.studio-vocal-stack');
-  var hub=studio.querySelector('.studio-vocal-hub');
-  var mixer=studio.querySelector('.studio-mixer');
-  var fx=studio.querySelector('.studio-fx-grid')?.closest('.card');
-  if(!stack||!hub||!mixer)return;
-  var workspace=stack.parentNode;
-  if(!workspace.classList.contains('studio-vocal-workspace')){
-   var w=document.createElement('div');w.className='studio-vocal-workspace';
-   workspace.insertBefore(w,stack);w.appendChild(stack);workspace=w;
-  }
-  if(mixer.parentNode!==stack)stack.appendChild(mixer);
-  if(fx&&fx.classList.contains('card')&&fx.parentNode!==workspace){
-   fx.classList.add('studio-fx-card');
-   workspace.appendChild(fx);
-  }
- }
- arrange();
- new MutationObserver(arrange).observe(studio,{childList:true,subtree:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
+(function(){'use strict';})();
 </script>
 
 
@@ -5753,7 +5663,7 @@ function boot(){
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
      });
    }
-   var shell=studio.querySelector('.studio-shell'),head=shell&&shell.querySelector('.studio-head'),stack=shell&&shell.querySelector('.studio-vocal-stack'),panel=stack&&stack.querySelector('.studio-timeline-panel'),mixer=studio.querySelector('.studio-mixer');if(stack){if(box.parentNode!==stack) stack.insertBefore(box,mixer||panel||null);else if(mixer){if(box.nextElementSibling!==mixer) stack.insertBefore(box,mixer);}else if(panel&&box.nextElementSibling!==panel) stack.insertBefore(box,panel);}else if(shell&&head){if(box.parentNode!==shell) shell.insertBefore(box,head.nextSibling);else if(head.nextElementSibling!==box) shell.insertBefore(box,head.nextSibling);}else if(box.parentNode!==studio) studio.appendChild(box);render();
+   render();
  }
  function render(){
    var box=studio.querySelector('.alu-vocal-layers');if(!box)return;
@@ -5898,48 +5808,82 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="aluV101StudioFinalOrderLock">
-(function(){
+<script id="aluV101StudioFinalOrderLock">(function(){
 'use strict';
-function arrange(){
-  var studio=document.getElementById('studio');
-  if(!studio){setTimeout(arrange,120);return}
-  var shell=studio.querySelector('.studio-shell');
-  var head=shell&&shell.querySelector('.studio-head');
-  var stack=(shell&&shell.querySelector('.studio-vocal-stack'))||studio.querySelector('.studio-vocal-stack');
-  var hub=studio.querySelector('.studio-vocal-hub');
-  var box=studio.querySelector('.alu-vocal-layers');
-  var mixer=studio.querySelector('.studio-mixer');
-  var timeline=studio.querySelector('.studio-timeline-panel')||(studio.querySelector('#studioTracks')&&studio.querySelector('#studioTracks').closest('.card'));
-  if(!shell||!head||!stack||!hub||!box||!mixer||!timeline){setTimeout(arrange,150);return}
-  /* V101 Studio jitter fix: MixerHub intentionally wraps the stack in .studio-vocal-workspace.
-     Never pull the stack back out of that wrapper or the two layout observers will fight forever. */
-  var workspace=stack.parentNode&&stack.parentNode.classList&&stack.parentNode.classList.contains('studio-vocal-workspace')
-    ? stack.parentNode : null;
-  if(!workspace){
-    workspace=document.createElement('div');
-    workspace.className='studio-vocal-workspace';
-    shell.insertBefore(workspace,stack);
-    workspace.appendChild(stack);
-  }
-  if(head.nextElementSibling!==workspace) shell.insertBefore(workspace,head.nextSibling);
-  if(workspace.firstElementChild!==stack) workspace.insertBefore(stack,workspace.firstChild);
-  if(hub.parentNode!==stack) stack.insertBefore(hub,stack.firstChild);
-  else if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
-  if(box.parentNode!==stack) stack.appendChild(box);
-  if(timeline.parentNode!==stack) stack.appendChild(timeline);
-  if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
-  if(hub.nextElementSibling!==box) stack.insertBefore(box,hub.nextSibling);
-  if(box.nextElementSibling!==mixer) stack.insertBefore(mixer,box.nextSibling);
-  if(timeline.parentNode!==stack) stack.appendChild(timeline);
-  if(stack.lastElementChild!==timeline) stack.appendChild(timeline);
-}
+window.__ALU_STUDIO_LAYOUT_AUTHORITY_V101=true;
 function boot(){
-  arrange();
   var studio=document.getElementById('studio');
-  if(!studio){setTimeout(boot,200);return}
-  if(studio.__aluFinalStudioOrderLock)return;
-  studio.__aluFinalStudioOrderLock=true;
+  if(!studio){setTimeout(boot,100);return}
+  function arrange(){
+    var shell=studio.querySelector('.studio-shell');
+    if(!shell)return;
+    var head=shell.querySelector('.studio-head');
+    if(!head)return;
+
+    var hub=studio.querySelector('.studio-vocal-hub');
+    var transport=studio.querySelector('.studio-transport');
+    var actions=studio.querySelector('.studio-action-grid');
+    var meter=studio.querySelector('.studio-meter');
+    var edit=document.getElementById('aluStudioEditBar');
+    var editor=document.getElementById('aluStudioEditorPanel');
+
+    if(!hub){
+      hub=document.createElement('div');
+      hub.className='studio-vocal-hub';
+      hub.innerHTML='<div class="studio-vocal-hub-head"><div><span class="pill">VOCAL HUB</span><h2>🎙️ Vocal Recording & Control</h2><p class="tiny muted">Record, play, stop and control your vocal from one place.</p></div></div><div class="studio-hub-content"></div>';
+    }
+    var content=hub.querySelector('.studio-hub-content');
+    if(!content)return;
+
+    [meter,transport,actions,edit,editor].forEach(function(x){
+      if(x&&x.parentNode!==content)content.appendChild(x);
+    });
+
+    var workspace=studio.querySelector('.studio-vocal-workspace');
+    if(!workspace){
+      workspace=document.createElement('div');
+      workspace.className='studio-vocal-workspace';
+      shell.insertBefore(workspace,head.nextSibling);
+    }
+
+    var stack=workspace.querySelector('.studio-vocal-stack');
+    if(!stack){
+      stack=document.createElement('div');
+      stack.className='studio-vocal-stack';
+      workspace.insertBefore(stack,workspace.firstChild);
+    }
+
+    if(hub.parentNode!==stack)stack.appendChild(hub);
+
+    var box=studio.querySelector('.alu-vocal-layers');
+    if(!box)return;
+
+    var mixer=studio.querySelector('.studio-mixer');
+    var timeline=studio.querySelector('.studio-timeline-panel') ||
+      (studio.querySelector('#studioTracks')&&studio.querySelector('#studioTracks').closest('.card'));
+    if(timeline)timeline.classList.add('studio-timeline-panel');
+
+    if(box.parentNode!==stack)stack.appendChild(box);
+    if(mixer&&mixer.parentNode!==stack)stack.appendChild(mixer);
+    if(timeline&&timeline.parentNode!==stack)stack.appendChild(timeline);
+
+    if(stack.firstElementChild!==hub)stack.insertBefore(hub,stack.firstChild);
+    if(hub.nextElementSibling!==box)stack.insertBefore(box,hub.nextSibling);
+
+    if(mixer){
+      if(box.nextElementSibling!==mixer)stack.insertBefore(mixer,box.nextSibling);
+      if(timeline&&mixer.nextElementSibling!==timeline)stack.insertBefore(timeline,mixer.nextSibling);
+    }else if(timeline&&box.nextElementSibling!==timeline){
+      stack.insertBefore(timeline,box.nextSibling);
+    }
+
+    if(workspace.firstElementChild!==stack)workspace.insertBefore(stack,workspace.firstChild);
+    if(head.nextElementSibling!==workspace)shell.insertBefore(workspace,head.nextSibling);
+  }
+
+  arrange();
+  if(studio.__aluSingleStudioLayoutV101)return;
+  studio.__aluSingleStudioLayoutV101=true;
   var scheduled=false;
   new MutationObserver(function(){
     if(scheduled)return;
@@ -5948,8 +5892,7 @@ function boot(){
   }).observe(studio,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
+})();</script>
 
 <!-- V101 STUDIO HANG FIX: stable lane/transport repair -->
 <style id="aluV101LaneTouchFix">

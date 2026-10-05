@@ -4386,6 +4386,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-vocal-stack{margin:14px 0;border:1px solid rgba(255,255,255,.12);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#11141b,#0d0f14);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 #studio .studio-vocal-stack>.studio-timeline-panel{margin:0!important;border:0!important;border-radius:0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
 #studio .studio-vocal-stack>.studio-vocal-hub{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:linear-gradient(180deg,rgba(30,35,45,.98),rgba(18,21,28,.98))}
+/* V101: keep Vocal Hub and Mixer as one continuous workstation section. */
+#studio .studio-vocal-stack>.studio-mixer{margin:0!important;border:0!important;border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;box-shadow:none!important;background:linear-gradient(180deg,#11141b,#0d0f14)}
 #studio .studio-timeline-panel .studio-ruler{margin-top:8px}
 #studio .studio-vocal-stack .studio-vocal-hub-head{padding-bottom:0}
 
@@ -4402,6 +4404,7 @@ function boot(){
   var shell=studio.querySelector('.studio-shell');
   var hub=studio.querySelector('.studio-vocal-hub');
   var tracks=studio.querySelector('#studioTracks');
+  var mixer=studio.querySelector('.studio-mixer');
   if(!shell||!hub||!tracks)return;
   var timeline=tracks.closest('.card');
   if(!timeline)return;
@@ -4413,6 +4416,7 @@ function boot(){
    shell.insertBefore(stack,hub);
   }
   if(stack.firstElementChild!==hub)stack.insertBefore(hub,stack.firstChild);
+  if(mixer&&mixer.parentElement!==stack)stack.insertBefore(mixer,timeline);
   if(stack.lastElementChild!==timeline)stack.appendChild(timeline);
  }
  arrange();

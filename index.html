@@ -3349,26 +3349,28 @@ function observe77(){
  clearTimeout(scrollTimer);
  const vids=[...track.querySelectorAll('video')];
  if(!vids.length)return;
+ const settle=()=>{
+   clearTimeout(scrollTimer);
+   scrollTimer=setTimeout(()=>{
+     if(!root.classList.contains('active'))return;
+     const visible=getVisibleVideo();
+     if(!visible)return;
+     track.querySelectorAll('video').forEach(v=>{
+       if(v!==visible){
+         try{v.pause()}catch(_){}
+         markPlayState(v,false);
+       }
+     });
+     if(visible.paused)playVideo(visible).catch(()=>{});
+   },180);
+ };
  if('IntersectionObserver' in window){
-  io=new IntersectionObserver(es=>{
-   es.forEach(e=>{
-    if(!e.isIntersecting||e.intersectionRatio<.55){
-     try{e.target.pause()}catch(_){}
-     markPlayState(e.target,false);
-     if(activeVideo===e.target)activeVideo=null;
-    }
-   });
-   scheduleVisiblePlayback(160);
-  },{root:track,threshold:[.25,.55,.75,1]});
+  io=new IntersectionObserver(()=>{settle()},{root:track,threshold:[.55,.75,1]});
   vids.forEach(v=>io.observe(v));
  }
- const onScroll=()=>{
-  clearTimeout(scrollTimer);
-  pauseNonVisible();
-  scheduleVisiblePlayback(180);
- };
+ const onScroll=()=>settle();
  track.addEventListener('scroll',onScroll,{passive:true});
- if('onscrollend' in track)track.addEventListener('scrollend',()=>scheduleVisiblePlayback(20),{passive:true});
+ if('onscrollend' in track)track.addEventListener('scrollend',()=>{clearTimeout(scrollTimer);scheduleVisiblePlayback(20)},{passive:true});
  setTimeout(()=>scheduleVisiblePlayback(20),60);
 }
 async function playPromotedSong(v){
@@ -3427,7 +3429,7 @@ async function render77(){
     const liked=!!s.likes?.[keyFor(v)],followed=!!s.follows?.[artistKey(v)],isVideo=v.kind==='video';
     return '<section class="g77-item '+(isVideo?'g77-video-item':'g77-picture-item')+'" data-i="'+i+'">'+
       (isVideo
-        ?'<video playsinline webkit-playsinline muted preload="metadata" '+(v.thumbnail_url?'poster="'+esc77(v.thumbnail_url)+'" ':'')+'src="'+esc77(v.video_url)+'"></video>'
+        ?'<video playsinline webkit-playsinline muted preload="auto" '+(v.thumbnail_url?'poster="'+esc77(v.thumbnail_url)+'" ':'')+'src="'+esc77(v.video_url)+'"></video>'
         :'<div class="g77-picture-backdrop" style="background-image:url(\''+esc77(v.image_url)+'\')"></div><img class="g77-picture-media" src="'+esc77(v.image_url)+'" alt="Artist Level Up picture" loading="eager" decoding="async">')+
       '<div class="g77-gradient"></div>'+
       (isVideo?'<div class="g77-video-controls" aria-label="Video controls"><div class="g77-time" data-time>0:00 / 0:00</div><input class="g77-seek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video progress"><div class="g77-video-buttons"><button type="button" class="g77-skip" data-skip="-10" aria-label="Back 10 seconds">↶ 10s</button><button type="button" class="g77-skip" data-skip="10" aria-label="Forward 10 seconds">10s ↷</button></div></div>':'')+

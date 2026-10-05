@@ -1163,7 +1163,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
     </div>
 
     <div class="card">
-      <div class="row between"><div><h2>🎼 Timeline</h2><p class="tiny muted">One vocal track — record, edit and play your vocal here.</p></div><span class="pill" id="studioProjectBadge">Untitled</span></div>
+      <div class="row between"><div><h2>🎼 Timeline</h2><p class="tiny muted">Six vocal layers — record, edit and play your takes here.</p></div><span class="pill" id="studioProjectBadge">Untitled</span></div>
       <div class="studio-ruler" id="studioRuler"></div>
       <div id="studioTracks"></div>
       <div class="studio-empty" id="studioEmpty">No audio yet. Record a vocal or import a beat to start.</div>
@@ -5692,7 +5692,7 @@ function boot(){
  function ensure(){
    studio=document.getElementById('studio');if(!studio)return;
    var box=studio.querySelector('.alu-vocal-layers');
-   if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>One vocal lane · every control works on this vocal.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
+   if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
      box.addEventListener('click',function(e){
        var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
        e.preventDefault();e.stopPropagation();
@@ -5766,7 +5766,7 @@ function ensureMount(){
  var box=studio.querySelector('.alu-vocal-layers');
  if(!box){
   box=document.createElement('section');box.className='alu-vocal-layers';
-  box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>One vocal lane · every control works on this vocal.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
+  box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
   var editor=studio.querySelector('#aluStudioEditorPanel'),timeline=studio.querySelector('#studioTracks')?.closest('.card');
   if(editor&&editor.parentNode)editor.parentNode.insertBefore(box,editor.nextSibling);
   else if(timeline&&timeline.parentNode)timeline.parentNode.insertBefore(box,timeline);

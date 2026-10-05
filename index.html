@@ -885,7 +885,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio.page.active .alu-vocal-layers{z-index:5}
 body:has(#studio.page.active){overflow:hidden!important}
 </style>
-</head>
+<style id="listenerMusicRedesignV101">
+.listener-page{max-width:1100px!important;margin:0 auto!important;padding:12px 18px 120px!important}
+.listener-header{height:78px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:10px 18px!important;border-bottom:1px solid rgba(255,255,255,.08)!important;background:#0b0d12!important;position:sticky!important;top:0!important;z-index:500!important}
+.listener-brand{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:#fff;padding:0;cursor:pointer;text-align:left}.listener-brand-mark{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#ffd21c,#ff9f00);color:#111;font-weight:1000;font-size:26px;font-style:italic}.listener-brand span:last-child{display:flex;flex-direction:column;line-height:.9}.listener-brand b{font-size:18px}.listener-brand strong{font-size:18px;color:#ffd21c}
+.listener-header-actions{display:flex;align-items:center;gap:8px}.listener-icon-btn,.listener-profile-btn{position:relative;border:1px solid #343742;background:#171920;color:#fff;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:20px;cursor:pointer}.listener-profile-btn{border-radius:50%;overflow:hidden}.listener-profile-dot{position:absolute;inset:0;display:grid;place-items:center}.listener-profile-btn img{width:100%;height:100%;object-fit:cover;display:none;position:relative;z-index:2}
+.listener-home-search{display:flex;align-items:center;gap:10px;background:#121923;border:1px solid #27303b;color:#858b98;border-radius:16px;padding:12px 15px;margin:4px 0 12px;font-size:14px;cursor:pointer}.listener-home-search span:first-child{font-size:24px;color:#d8dde7}.listener-home-search b{margin-left:auto;color:#fff}
+.listener-hero{min-height:210px;border-radius:22px;border:1px solid rgba(255,210,28,.35);overflow:hidden;display:flex;justify-content:space-between;align-items:center;padding:22px 24px;background:radial-gradient(circle at 85% 45%,rgba(255,180,20,.34),transparent 28%),linear-gradient(120deg,#17140b,#241b05 52%,#101218)}.listener-kicker{font-size:11px;font-weight:900;color:#ffd21c;letter-spacing:1.3px}.listener-hero h1{font-size:32px;line-height:1.02;margin:8px 0}.listener-hero h1 em{color:#ffd21c;font-style:normal}.listener-hero p{color:#d2d3d8;line-height:1.35;margin:0 0 14px}.listener-hero-art{width:180px;height:180px;border-radius:50%;display:grid;place-items:center;font-size:78px;background:radial-gradient(circle at 45% 35%,#ffcc4a,#7b4510 58%,#1a1208);box-shadow:0 18px 45px rgba(0,0,0,.35)}.listener-yellow-btn{border:0;background:#ffd21c;color:#111;font-weight:900;border-radius:12px;padding:11px 17px;cursor:pointer}.listener-yellow-btn span{font-size:18px;margin-left:10px}.listener-dots{text-align:center;margin:8px 0 2px}.listener-dots i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3f4650;margin:0 4px}.listener-dots i.on{background:#ffd21c}
+.listener-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:17px 2px 9px}.listener-section-head h2,.listener-subhead h2{font-size:17px;margin:0}.listener-section-head button{border:0;background:transparent;color:#ffd21c;font-weight:800;cursor:pointer}.listener-horizontal{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}.listener-horizontal::-webkit-scrollbar{display:none}
+.listener-music-card{flex:0 0 145px;background:#171920;border:1px solid #292c35;border-radius:16px;padding:8px;min-width:0}.listener-music-art{width:100%;aspect-ratio:1;border-radius:12px;display:grid;place-items:center;font-size:38px;background:linear-gradient(145deg,#3b3e46,#6c5314);overflow:hidden}.listener-music-art img{width:100%;height:100%;object-fit:cover}.listener-music-title{font-weight:900;font-size:13px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.listener-music-meta{font-size:10px;color:#a8abb5;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.listener-card-actions{display:flex;gap:5px;margin-top:8px}.listener-card-actions button{flex:1;border:0;background:#24262f;color:#fff;border-radius:10px;padding:7px 4px;font-size:11px;font-weight:800;cursor:pointer}.listener-card-actions button:last-child{flex:0 0 34px}
+.listener-artist-strip{display:flex;gap:18px;overflow-x:auto;padding:3px 2px 10px;scrollbar-width:none}.listener-artist-strip::-webkit-scrollbar{display:none}.listener-artist{flex:0 0 78px;text-align:center}.listener-artist-avatar{width:68px;height:68px;border-radius:50%;margin:auto;display:grid;place-items:center;background:linear-gradient(145deg,#ff9b18,#7f1d5a);border:2px solid rgba(255,210,28,.7);font-size:25px;overflow:hidden}.listener-artist-avatar img{width:100%;height:100%;object-fit:cover}.listener-artist b{display:block;font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.listener-artist small{font-size:9px;color:#8e929d}
+.listener-genre-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}.listener-genre-strip::-webkit-scrollbar{display:none}.listener-genre-chip{border:0;border-radius:13px;padding:10px 14px;color:#fff;font-weight:900;white-space:nowrap;cursor:pointer;background:#392060}.listener-genre-chip:nth-child(3n){background:#075e87}.listener-genre-chip:nth-child(3n+1){background:#8a1958}.listener-genre-chip:nth-child(4n){background:#176d45}
+.listener-tools{margin-top:12px}.listener-tools-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.listener-tools-grid button{border:1px solid #30333d;background:#171920;color:#fff;border-radius:14px;padding:10px 5px;font-size:20px;cursor:pointer}.listener-tools-grid small{display:block;font-size:9px;color:#a6a9b2;margin-top:4px}
+.listener-discover-top{display:flex;align-items:center;justify-content:space-between;margin:5px 0 12px}.listener-discover-top h1{font-size:25px;margin:0}.listener-back,.listener-filter{border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}.listener-filter{font-size:21px}.listener-tabs{display:flex;gap:7px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none}.listener-tabs button{border:1px solid #3a3d46;background:#11131a;color:#c4c6cd;border-radius:18px;padding:8px 15px;white-space:nowrap;cursor:pointer}.listener-tabs button.active{background:#ffd21c;color:#111;border-color:#ffd21c;font-weight:900}.listener-search{width:100%!important;background:#11131a!important;border:1px solid #2d3039!important;border-radius:15px!important;padding:14px 15px!important;color:#fff!important;font-size:14px!important}.listener-chip-wrap{display:flex;flex-wrap:wrap;gap:8px}.listener-chip{border:1px solid #343742;background:#181a22;color:#e9e9ed;border-radius:16px;padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer}
+.listener-chart-list{background:#11131a;border-radius:16px;border:1px solid #282b34;overflow:hidden}.listener-chart-row{display:flex;align-items:center;gap:10px;padding:9px;border-bottom:1px solid #252832}.listener-chart-row:last-child{border-bottom:0}.listener-chart-rank{width:20px;font-weight:1000;color:#ffd21c;text-align:center}.listener-chart-art{width:52px;height:52px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,#444,#73530d);overflow:hidden}.listener-chart-art img{width:100%;height:100%;object-fit:cover}.listener-chart-info{flex:1;min-width:0}.listener-chart-info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.listener-chart-info small{color:#979ba6}.listener-chart-play,.listener-chart-like{border:0;background:transparent;color:#fff;font-size:19px;cursor:pointer}.listener-discover-genres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.listener-discover-genre{min-height:66px;border:0;border-radius:14px;color:#fff;font-weight:900;cursor:pointer;background:#8a1958}.listener-discover-genre:nth-child(2n){background:#1268a0}.listener-discover-genre:nth-child(3n){background:#26734f}.listener-discover-genre:nth-child(4n){background:#704e13}
+body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bottom-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:7000!important;height:76px!important;background:#0d0f15!important;border-top:1px solid #282b34!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;padding:6px 10px calc(6px + env(safe-area-inset-bottom))!important;gap:4px!important}.nav.listener-bottom-nav button{border:0!important;background:transparent!important;color:#8f939d!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;border-radius:12px!important}.nav.listener-bottom-nav button span{font-size:22px!important;line-height:1!important}.nav.listener-bottom-nav button.active{color:#ffd21c!important}@media(max-width:600px){.listener-page{padding-left:12px!important;padding-right:12px!important}.listener-header{padding:9px 12px!important}.listener-hero{min-height:190px;padding:18px}.listener-hero h1{font-size:27px}.listener-hero-art{width:132px;height:132px;font-size:58px}.listener-tools-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:390px){.listener-hero-art{width:105px;height:105px;font-size:46px}.listener-music-card{flex-basis:132px}.listener-discover-genres{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style></head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
   <button class="g77-close" type="button" aria-label="Close">×</button>
@@ -893,16 +908,36 @@ body:has(#studio.page.active){overflow:hidden!important}
   <div class="g77-track" id="g77Track"></div>
 </div>
 <span id="aluBuildVersion" style="display:none">V78</span><div class="app">
-<header><div class="brand">ARTIST <span>LEVEL UP</span></div><div class="tag">CREATE • PROMOTE • GROW — GLOBAL MUSIC PLATFORM</div><button class="header-user" id="headerUser" type="button" aria-label="Open profile"><img id="headerUserAvatar" class="header-profile-avatar" alt="Profile picture"/><span id="headerUserLabel">Welcome 👋</span></button><button class="notification-bell" id="notificationBell" type="button" data-action="openNotifications" aria-label="Notifications">🔔<span class="notification-badge" id="notificationBadge">0</span></button><div class="header-top-actions" aria-label="Main shortcuts"><button class="top-nav-btn primary" type="button" data-go="settings">⚙️ Settings</button></div></header>
-<section class="page active" id="home"><span class="pill">HOME</span><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><div class="row"><div class="grow"><span class="pill">💎 ARTIST PRO</span><h2 style="margin-bottom:4px">Unlock Artist Pro</h2><p class="muted">More tools to grow, promote and manage your music.</p></div><button class="btn primary" data-go="pro">View Pro</button></div></div><h1>Welcome to Artist Level Up 🌍</h1><p class="muted">Discover music, support artists and build your own music career.</p><div class="user-entry-card">
-<span class="pill">WELCOME</span>
-<h2 style="margin:10px 0 6px">Create your account</h2>
-<p class="muted">Join Artist Level Up to follow artists, save music, build playlists and keep your activity in one place.</p>
-<div class="user-entry-grid">
-<button class="btn primary" data-action="openUserRegister">👤 Register / Join</button>
-</div>
-</div><div class="artist-entry-card"><div class="artist-entry-icon">🎤</div><div class="grow"><span class="pill">FOR ARTISTS</span><h2>Are you an artist?</h2><p class="muted">Create your artist account once. Your Profile page is for editing your details and photo later.</p></div><button class="btn primary artist-entry-btn" data-go="register">🎤 Create Artist Account</button></div><div class="hero"><h2>Level Up your sound</h2><p class="muted">Upload, promote, connect with fans and track your growth from one place.</p><button class="btn primary" data-go="create">+ Create / Upload</button><button class="btn" data-go="discover">Explore Music</button></div><div id="globalVideoDiscovery" class="empty"><div class="gvd-head"><div><span class="pill">🌍 GLOBAL DISCOVERY</span><h2 style="margin:6px 0 2px">Watch. Discover. Repeat.</h2><div class="tiny muted">Videos from artists around the world — no searching required.</div></div><button class="btn" data-go="videos">Open Feed</button></div><div class="gvd-feed" id="globalVideoDiscoveryFeed"></div></div><div class="card" style="margin:12px 0;border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><button class="btn primary full" type="button" data-global-discovery-open="1">🌍 Open Global Feed</button><p class="tiny muted" style="margin:7px 0 0;text-align:center">Photos and published videos from artists worldwide</p></div><h2>Trending Worldwide</h2><div id="homeSongs"></div><h2>Quick actions</h2><div class="grid home-quick-actions"><button class="btn card home-quick-action" data-go="discover">🔎<br/>Discover</button><button class="btn card home-quick-action" data-go="videos">🎬<br/>Video Hub</button><button class="btn card home-quick-action" data-go="videos">➕🎬<br/>Upload Video</button><button class="btn card home-quick-action" data-go="library">📚<br/>Library</button><button class="btn card home-quick-action" data-go="dashboard">📈<br/>Dashboard</button><button class="btn card home-quick-action" data-go="marketplace">🛒<br/>Marketplace</button><button class="btn card home-quick-action" data-go="wallet">💰<br/>Wallet</button><button class="btn card home-quick-action" data-go="promote">🚀<br/>Promote</button><button class="btn card home-quick-action" data-go="course">🎓<br/>Course</button><button class="btn card home-quick-action" data-go="producerDashboard">🎛️<br/>Producer Center</button><button class="btn card home-quick-action" data-go="ownerDashboard">👑<br/>Owner Dashboard</button></div></section>
-<section class="page" id="discover"><span class="pill">DISCOVER</span><h1>Discover 🌍</h1><div class="discover-box"><input class="search" id="search" placeholder="Search songs, artists or genres..."/><div class="discover-heading"><h2>Music for you 🎵</h2><span class="tiny muted">Scroll to explore</span></div><div class="discover-song-grid" id="discoverSongs"></div><div class="discover-heading"><h2>Genres</h2><span class="tiny muted">Pick a sound</span></div><div class="grid discover-genres" id="genres"></div><div class="discover-heading"><h2>Rising Artists</h2><span class="tiny muted">Find new talent</span></div><div id="artists"></div></div></section>
+<header class="listener-header">
+  <button class="listener-brand" type="button" data-go="home" aria-label="Artist Level Up home"><span class="listener-brand-mark">A</span><span><b>ARTIST</b><strong>LEVEL UP</strong></span></button>
+  <div class="listener-header-actions">
+    <button class="listener-icon-btn" id="notificationBell" type="button" data-action="openNotifications" aria-label="Notifications">🔔<span class="notification-badge" id="notificationBadge">0</span></button>
+    <button class="listener-icon-btn" type="button" data-go="settings" aria-label="Settings">⚙️</button>
+    <button class="listener-profile-btn" id="headerUser" type="button" aria-label="Open profile" data-go="profile"><span class="listener-profile-dot">👤</span><img id="headerUserAvatar" class="header-profile-avatar" alt="Profile picture"/></button>
+    <span id="headerUserLabel" style="display:none">Welcome 👋</span>
+  </div>
+</header>
+<section class="page active listener-page" id="home">
+  <div class="listener-home-search" role="button" tabindex="0" data-go="discover"><span>⌕</span><span>Search for artists, songs, albums...</span><b>☷</b></div>
+  <div class="listener-hero"><div class="listener-hero-copy"><span class="listener-kicker">DISCOVER</span><h1>Discover<br><em>Amazing Music</em></h1><p>New artists. Fresh sounds.<br/>Real talent.</p><button class="listener-yellow-btn" type="button" data-go="discover">Explore Now <span>›</span></button></div><div class="listener-hero-art">🎤</div></div>
+  <div class="listener-dots"><i class="on"></i><i></i><i></i><i></i></div>
+  <div class="listener-section-head"><h2>🔥 Trending Now</h2><button type="button" data-go="discover">See All</button></div><div class="listener-horizontal" id="listenerTrending"></div>
+  <div class="listener-section-head"><h2>🆕 New Releases</h2><button type="button" data-go="discover">See All</button></div><div class="listener-horizontal" id="listenerNew"></div>
+  <div class="listener-section-head"><h2>⭐ Featured Artists</h2><button type="button" data-go="discover">See All</button></div><div class="listener-artist-strip" id="listenerFeaturedArtists"></div>
+  <div class="listener-section-head"><h2>🎵 Browse by Genre</h2><button type="button" data-go="discover">See All</button></div><div class="listener-genre-strip" id="listenerHomeGenres"></div>
+  <div class="listener-tools"><div class="listener-section-head"><h2>Artist Level Up Tools</h2></div><div class="listener-tools-grid"><button data-go="create">＋<small>Create</small></button><button data-go="videos">🌍<small>Global Feed</small></button><button data-action="openStudioV101">🎛️<small>Studio</small></button><button data-go="marketplace">🛒<small>Market</small></button><button data-go="promote">🚀<small>Promote</small></button><button data-go="growthCenter">📈<small>Growth</small></button></div></div>
+  <div id="homeSongs" style="display:none"></div>
+</section>
+<section class="page listener-page" id="discover">
+  <div class="listener-discover-top"><button type="button" data-go="home" class="listener-back">‹</button><h1>Discover Music</h1><button type="button" class="listener-filter">☷</button></div>
+  <div class="listener-tabs"><button class="active">All</button><button>Artists</button><button>Songs</button><button>Albums</button><button>Playlists</button></div>
+  <input class="search listener-search" id="search" placeholder="Search artists, songs, genres..." autocomplete="off"/>
+  <div class="listener-subhead"><h2>🔥 Popular Searches</h2></div><div class="listener-chip-wrap" id="listenerPopularSearches"></div>
+  <div class="listener-section-head"><h2>📊 Top Charts</h2><button type="button">See All</button></div><div class="listener-chart-list" id="listenerCharts"></div>
+  <div class="listener-section-head"><h2>✨ Recommended for You</h2><button type="button">See All</button></div><div class="listener-horizontal" id="listenerRecommended"></div>
+  <div class="listener-section-head"><h2>▦ Browse by Genre</h2><button type="button">See All</button></div><div class="listener-discover-genres" id="listenerDiscoverGenres"></div>
+  <div id="discoverSongs" style="display:none"></div><div id="genres" style="display:none"></div><div id="artists" style="display:none"></div>
+</section>
 <section class="page" id="videos"><span class="pill">🎬 ALU FEED</span><h1>Video &amp; Picture Feed 🔥</h1><p class="muted">Watch videos, see artist and user pictures, and share your own post from the feed.</p>
 <div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div></section>
 <section class="page" id="create"><span class="pill">CREATE ROOM</span><h1>Creator Room 🎨</h1>
@@ -1358,7 +1393,7 @@ function boot(){
 boot();
 })();
 </script>
-<nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
+<nav class="nav listener-bottom-nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button data-go="discover"><span>⌕</span>Discover</button><button data-go="library"><span>♫</span>Library</button><button data-go="profile"><span>♙</span>Profile</button></nav>
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script id="aluSupabaseConfig">
@@ -1997,8 +2032,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }
     const r=await client.from('profiles').upsert({id:uid,display_name:displayName,avatar_url:avatarUrl||null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
     if(r.error) throw r.error;
-    if(state.artistRegistered) await ensureArtist();
-    return avatarUrl;
+    if(state.artistRegistered) await ensureArtist();    return avatarUrl;
   }
 
   async function syncSongs(){
@@ -3997,8 +4031,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-action="ownerDashboardRefresh"]');if(b){e.preventDefault();loadOwnerDashboard();}
   });
-  const oldGo=window.go;
-  if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='ownerDashboard')setTimeout(loadOwnerDashboard,80);return r;};
+  const oldGo=window.go;  if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='ownerDashboard')setTimeout(loadOwnerDashboard,80);return r;};
   window.addEventListener('load',()=>setTimeout(()=>{if(location.hash==='#ownerDashboard')loadOwnerDashboard();},300));
 })();
 </script><script id="avatarSocialViewerV101">
@@ -5997,8 +6030,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function retryVideoCloud(id){const item=await aluVideoQueueGet(id);if(!item){toastMsg('Saved video copy was not found on this device.');return}if(item.status==='blocked_size'){toastMsg('This video is over the current 50 MB cloud limit. It remains saved on this device.');return}try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to cloud ✓')}catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual cloud retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120));}await aluVideoQueueRenderLocals();}
   window.ALU_RETRY_VIDEO_CLOUD=retryVideoCloud;
   window.addEventListener('online',()=>{retryPendingVideoUploads();});
-  setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);
-  function populateVideoSongPicker(){
+  setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);  function populateVideoSongPicker(){
     const sel=document.getElementById('aluVideoSong');if(!sel)return;
     const current=String(sel.value||'');
     const songs=(Array.isArray(state?.songs)?state.songs:[]).filter(x=>x?.remoteSongId&&x?.audioRemoteUrl&&!['Rejected','rejected','Archived','archived'].includes(String(x.status||'')));
@@ -7998,37 +8030,3 @@ function boot(){
    }
    if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();
  },{capture:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script><style id="aluV101StableStudioRepairStyle">
-#studio .alu-vocal-layers{position:relative!important;display:block!important;z-index:99999!important;pointer-events:auto!important;margin:0 0 12px!important}
-#studio .alu-vocal-lane{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
-#studio .studio-transport,#studio .studio-action-grid{position:relative!important;z-index:99990!important;pointer-events:auto!important}
-#studio [data-studio-action]{position:relative!important;z-index:100000!important;pointer-events:auto!important;touch-action:manipulation!important}
-</style>
-<script id="aluV101StableStudioRepair">
-(function(){
-'use strict';
-document.addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('[data-studio-action]'); if(!b)return;
-  var A=window.ALU_STUDIO_V101; if(!A)return;
-  e.preventDefault();e.stopImmediatePropagation();
-  var x=b.getAttribute('data-studio-action');
-  try{
-    if(x==='close'){if(typeof go==='function')go('home');return}
-    if(x==='record'){A.rec?A.rec.stop():A.record();return}
-    if(x==='stop'){A.rec?A.rec.stop():A.stop();return}
-    if(x==='play'){A.playing?A.stop():A.play();return}
-    if(x==='rewind'){A.stop();var c=document.getElementById('studioClock');if(c)c.textContent='00:00.0';return}
-    if(x==='import'){var f=document.getElementById('studioImportInput');if(f)f.click();return}
-    if(x==='save'){if(A.save)A.save().catch(function(){});return}
-    if(x==='load'){if(A.load)A.load().catch(function(){});return}
-    if(x==='undo'){if(A.undo)A.undo();return}
-    if(x==='redo'){if(A.redo)A.redo();return}
-    if(x==='export'){if(A.exportWav)A.exportWav();return}
-  }catch(err){console.error('V101 Studio control:',err)}
-},true);
-})();
-</script>
-</body></html>

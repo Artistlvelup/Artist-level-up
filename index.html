@@ -2017,7 +2017,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function ensureArtist(){
     const uid=await ensureSession(); if(!uid) return null;
     const profile=state.profile||{};
-    if(!state.artistRegistered || !profile.name) return null;
+    /* A user who has successfully reached the music uploader/moderation flow
+       must have an artist record available for the cloud song row. */
+    if(!profile.name) return null;
     let {data,error}=await client.from('artists').select('id').eq('user_id',uid).maybeSingle();
     if(error) throw error;
     if(data?.id){window.ALU_CLOUD.artistId=data.id;return data.id;}

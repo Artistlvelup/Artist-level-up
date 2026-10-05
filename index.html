@@ -84,7 +84,7 @@
 .studio-transport-tools label{display:block}.studio-transport-tools input,.studio-transport-tools select{margin:5px 0 0;height:38px;padding:8px}
 .studio-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0}
 .studio-action-grid .btn{margin:0;min-height:46px}
-.studio-meter{padding:11px}.studio-meter-track{height:9px;background:#252731;border-radius:99px;overflow:hidden;margin-top:8px}.studio-meter-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39d98a,#ffd21c,#ff5c67);transition:width .08s}
+.studio-meter{padding:11px}.studio-meter-top{margin:0 0 10px!important;border:1px solid #4a4e5b!important;background:linear-gradient(145deg,#171922,#0d0e13)!important}.studio-meter-top .studio-meter-track{height:14px;margin-top:10px}.studio-meter-top .studio-tips{font-size:10px}.studio-meter-track{height:9px;background:#252731;border-radius:99px;overflow:hidden;margin-top:8px}.studio-meter-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,#39d98a,#ffd21c,#ff5c67);transition:width .08s}
 .studio-tips{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:10px;color:#9296a4}
 .studio-ruler{height:24px;border-bottom:1px solid #2e3039;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),#292b34 calc(10% - 1px),#292b34 10%);border-radius:7px 7px 0 0;margin-top:8px}
 .studio-track{position:relative;border-bottom:1px solid #292b34;background:#111218;min-height:136px;overflow:hidden}
@@ -1067,6 +1067,12 @@ body:has(#studio.page.active){overflow:hidden!important}
 
 <div class="page" id="studio">
   <div class="studio-shell">
+    <div class="studio-meter studio-meter-top card">
+      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
+      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
+      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
+    </div>
+
     <div class="studio-head">
       <div>
         <span class="pill">ARTIST LEVEL UP STUDIO</span>
@@ -1090,12 +1096,6 @@ body:has(#studio.page.active){overflow:hidden!important}
         <label>Key<select id="studioKey"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></label>
         <label>Master<input id="studioMaster" type="range" min="0" max="1" step=".01" value=".9"></label>
       </div>
-    </div>
-
-    <div class="studio-meter card">
-      <div class="row between"><b>🎚️ Input Monitor</b><span class="tiny muted" id="studioMeterText">-∞ dB</span></div>
-      <div class="studio-meter-track"><i id="studioMeterBar"></i></div>
-      <div class="studio-tips"><span id="studioRecordHint">Tap Record Vocal and allow microphone access.</span><span>Tracks: <b id="studioTrackCount">0</b></span></div>
     </div>
 
     <div class="studio-action-grid">

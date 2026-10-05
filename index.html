@@ -907,7 +907,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <button class="g77-sound" type="button" aria-label="Sound">🔇</button>
   <div class="g77-track" id="g77Track"></div>
 </div>
-<span id="aluBuildVersion" style="display:none">V78</span><div class="app">
+<span id="aluBuildVersion" style="display:none">V101</span><div class="app">
 <header class="listener-header">
   <button class="listener-brand" type="button" data-go="home" aria-label="Artist Level Up home"><span class="listener-brand-mark">A</span><span><b>ARTIST</b><strong>LEVEL UP</strong></span></button>
   <div class="listener-header-actions">
@@ -1997,7 +1997,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       return null;
     }
   }
-
   window.ALU_CLOUD.ensureSession=ensureSession;
 
   async function ensureArtist(){
@@ -3997,8 +3996,7 @@ function boot(){
  function syncFromTrack(){var t=selectedTrack(),f=t&&t.proFx||{};state=allKeys.slice();active={};params={};allKeys.forEach(function(k){active[k]=false;params[k]=Object.assign({},defaults[k]||{})});if(Array.isArray(f.slots))f.slots.forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active&&f.active[k]===false?false:true});if(f.active)Object.keys(f.active).forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active[k]!==false});if(f.params)Object.keys(f.params).forEach(function(k){if(params[k])params[k]=Object.assign(params[k],f.params[k]||{})})}
  function apply(){var t=selectedTrack(),A=window.ALU_STUDIO_V101;if(!t||!A)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
  function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group fx-group-'+group[0].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ACTIVE · tap name to adjust':'READY · tap to enable')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'"><span class="alu-fx-toggle-dot"></span><span>'+(active[key]?'ON':'OFF')+'</span></button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
- function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')}
- syncFromTrack();render();
+ function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')} syncFromTrack();render();
  window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
@@ -5997,8 +5995,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       let recordRes;
       if(item.remoteVideoId){
         recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
-      }else{
-        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
+      }else{        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
       }
       if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}
       const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
@@ -7997,8 +7994,7 @@ function boot(){
    var b=e.target.closest&&e.target.closest('[data-vocal-control]');
    if(!b)return;
    e.preventDefault();
-   e.stopImmediatePropagation();
-   var n=Number(b.getAttribute('data-layer'))||1;
+   e.stopImmediatePropagation();   var n=Number(b.getAttribute('data-layer'))||1;
    var t=(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.getTracks?window.ALU_STUDIO_V101.getTracks():[]).find(function(x){return Number(x.vocalLayer||0)===n});
    var a=b.getAttribute('data-vocal-control');
    if(a==='record'){

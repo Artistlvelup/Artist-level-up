@@ -3497,7 +3497,7 @@ function bindGlobalFeedButtons(){
   });
 }
 bindGlobalFeedButtons();
-const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-global-discovery-open]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-global-discovery-open','1');b.textContent='🌍 Discover';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
+const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-go="videos"]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-go','videos');b.innerHTML='<span>🌍</span>Global Feed';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
 setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(render77).catch(()=>{})},500);
 })();
 </script>
@@ -4448,7 +4448,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 
 
-<nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
+<nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-go="videos"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 

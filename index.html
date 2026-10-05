@@ -2215,7 +2215,14 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function syncModerationStatus(song,status){
     try{
       const client=window.ALU_SUPABASE_CLIENT;
-      if(!client || !song || !song.remoteSongId) return;
+      if(!client || !song) return;
+      /* Repair uploads that exist only in this browser first. The old moderation
+         path skipped these because remoteSongId was missing, leaving the song
+         invisible outside this device. */
+      if(!song.remoteSongId && window.ALU_CLOUD?.syncSongs){
+        try{await window.ALU_CLOUD.syncSongs()}catch(e){console.warn('Music moderation cloud recovery skipped:',e)}
+      }
+      if(!song.remoteSongId) return;
       const remote=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'archived':'draft';
       const r=await client.from('songs').update({status:remote}).eq('id',song.remoteSongId);
       if(r.error) console.warn('Music moderation cloud sync failed:',r.error);
@@ -2224,13 +2231,13 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   }
   const baseAction=window.action;
   window.action=async function(a,el){
-    const before=Array.isArray(state.songs)?state.songs.map(s=>({id:s.id,status:s.status})):[];
     const result=await baseAction(a,el);
     if(['approveSong','publishSong','rejectSong'].includes(a)){
       const id=String(el?.dataset?.songId||'');
       const song=(state.songs||[]).find(s=>String(s.id)===id);
       if(song) await syncModerationStatus(song,song.status);
       try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+      if(a==='publishSong') setTimeout(()=>window.ALU_REFRESH_PUBLIC_MUSIC?.(true),250);
     }
     return result;
   };
@@ -5856,6 +5863,118 @@ function boot(){
  window.ALU_VOCAL_LAYERS_V101={layers:LAYERS,refresh:render};
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
+<script id="v101PublicMusicRecovery">
+(function(){
+  'use strict';
+  let busy=false,lastFetch=0;
+
+  function safeEsc(v){
+    if(typeof window.esc==='function')return window.esc(v);
+    return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[m]));
+  }
+  function publicSongs(){
+    const all=Array.isArray(state.songs)?state.songs:[];
+    const map=new Map();
+    all.filter(s=>['Published','published'].includes(String(s.status||'')) && (s.audioRemoteUrl||s.audioUrl||s.audioDataUrl||s.audioKey))
+      .forEach(s=>map.set(String(s.remoteSongId||s.id),s));
+    return [...map.values()];
+  }
+  function card(s){
+    const art=s.coverArt||s.coverUrl||s.coverImage||'';
+    const img=art?'<img src="'+safeEsc(art)+'" alt="">':'🎵';
+    return '<div class="listener-music-card">'+
+      '<div class="listener-music-art">'+img+'</div>'+
+      '<div class="listener-music-title">'+safeEsc(s.title||'Untitled')+'</div>'+
+      '<div class="listener-music-meta">'+safeEsc(s.artist||'Artist Level Up')+' · '+safeEsc(s.genre||'Music')+'</div>'+
+      '<div class="listener-card-actions"><button type="button" data-play="'+safeEsc(s.id)+'">▶ Play</button><button type="button" data-like="'+safeEsc(s.id)+'">'+(s.liked?'♥':'♡')+'</button></div>'+
+      '</div>';
+  }
+  function chartRow(s,i){
+    const art=s.coverArt||s.coverUrl||s.coverImage||'';
+    const img=art?'<img src="'+safeEsc(art)+'" alt="">':'🎵';
+    return '<div class="listener-chart-row">'+
+      '<div class="listener-chart-rank">'+(i+1)+'</div>'+
+      '<div class="listener-chart-art">'+img+'</div>'+
+      '<div class="listener-chart-info"><b>'+safeEsc(s.title||'Untitled')+'</b><small>'+safeEsc(s.artist||'Artist Level Up')+' · '+safeEsc(s.genre||'Music')+'</small></div>'+
+      '<button class="listener-chart-play" type="button" data-play="'+safeEsc(s.id)+'" aria-label="Play '+safeEsc(s.title||'song')+'">▶</button>'+
+      '<button class="listener-chart-like" type="button" data-like="'+safeEsc(s.id)+'">'+(s.liked?'♥':'♡')+'</button>'+
+      '</div>';
+  }
+  function renderPublic(){
+    const list=publicSongs();
+    const q=String(document.getElementById('search')?.value||'').trim().toLowerCase();
+    const filtered=list.filter(s=>!q||((s.title+' '+(s.artist||'')+' '+(s.genre||'')).toLowerCase().includes(q)));
+    const byStreams=[...filtered].sort((a,b)=>Number(b.streams||b.plays||0)-Number(a.streams||a.plays||0));
+    const byNewest=[...filtered].sort((a,b)=>(Number(b.createdAtTs||0)-Number(a.createdAtTs||0)));
+
+    const trend=document.getElementById('listenerTrending');
+    const newer=document.getElementById('listenerNew');
+    const charts=document.getElementById('listenerCharts');
+    const rec=document.getElementById('listenerRecommended');
+    const chips=document.getElementById('listenerPopularSearches');
+    const homeGenres=document.getElementById('listenerHomeGenres');
+    const discGenres=document.getElementById('listenerDiscoverGenres');
+
+    if(trend)trend.innerHTML=byStreams.length?byStreams.slice(0,8).map(card).join(''):'<p class="muted">No published music yet.</p>';
+    if(newer)newer.innerHTML=byNewest.length?byNewest.slice(0,8).map(card).join(''):'<p class="muted">No new releases yet.</p>';
+    if(charts)charts.innerHTML=byStreams.length?byStreams.slice(0,10).map(chartRow).join(''):'<p class="muted" style="padding:14px">No published music yet.</p>';
+    if(rec)rec.innerHTML=byNewest.length?byNewest.slice(0,8).map(card).join(''):'<p class="muted">No recommendations yet.</p>';
+
+    const genres=[...new Set(list.map(s=>String(s.genre||'Music')).filter(Boolean))].slice(0,12);
+    const popular=genres.slice(0,8);
+    if(chips)chips.innerHTML=popular.map(g=>'<button type="button" class="listener-chip" data-search-genre="'+safeEsc(g)+'">'+safeEsc(g)+'</button>').join('');
+    const genreButtons=genres.map(g=>'<button type="button" class="listener-genre-chip" data-search-genre="'+safeEsc(g)+'">'+safeEsc(g)+'</button>').join('');
+    if(homeGenres)homeGenres.innerHTML=genreButtons||'<span class="muted">Genres will appear after music is published.</span>';
+    if(discGenres)discGenres.innerHTML=genres.map(g=>'<button type="button" class="listener-discover-genre" data-search-genre="'+safeEsc(g)+'">'+safeEsc(g)+'</button>').join('')||'<p class="muted">No published genres yet.</p>';
+  }
+
+  async function refresh(force){
+    const now=Date.now();
+    if(busy)return;
+    if(!force&&now-lastFetch<10000){renderPublic();return;}
+    busy=true;
+    try{
+      const client=window.ALU_SUPABASE_CLIENT;
+      if(client){
+        let q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artists(artist_name)').eq('status','published').order('created_at',{ascending:false}).limit(60);
+        if(q.error){
+          q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artist_id').eq('status','published').order('created_at',{ascending:false}).limit(60);
+        }
+        if(!q.error && Array.isArray(q.data)){
+          q.data.forEach(r=>{
+            const id=String(r.id);
+            let s=(state.songs||[]).find(x=>String(x.remoteSongId||'')===id);
+            const artist=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||s?.artist||'Artist Level Up';
+            const mapped={id:'cloud_'+id,remoteSongId:id,title:r.title||'Untitled',genre:r.genre||'Music',artist,country:s?.country||'Global',streams:Number(s?.streams||0),plays:Number(s?.plays||0),likes:Number(s?.likes||0),liked:!!s?.liked,status:'Published',local:true,audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',createdAt:r.created_at||'',createdAtTs:new Date(r.created_at||0).getTime(),cloudSaved:true};
+            if(s)Object.assign(s,mapped);else state.songs.push(mapped);
+          });
+          try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+        }
+      }
+      lastFetch=Date.now();
+      renderPublic();
+    }catch(e){console.warn('Public music recovery failed:',e)}
+    finally{busy=false}
+  }
+
+  function hook(){
+    renderPublic();
+    refresh(true);
+    document.addEventListener('input',e=>{if(e.target?.id==='search')renderPublic()},true);
+    document.addEventListener('click',e=>{
+      const g=e.target.closest?.('[data-search-genre]');
+      if(g){
+        const search=document.getElementById('search');
+        if(search){search.value=String(g.getAttribute('data-search-genre')||'');search.dispatchEvent(new Event('input',{bubbles:true}));}
+      }
+      if(e.target.closest?.('[data-go="home"],[data-go="discover"]'))setTimeout(()=>refresh(true),120);
+    },true);
+  }
+  window.ALU_REFRESH_PUBLIC_MUSIC=refresh;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hook,{once:true});else hook();
 })();
 </script>
 

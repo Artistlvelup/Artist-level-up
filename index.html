@@ -4388,6 +4388,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .studio-vocal-stack>.studio-vocal-hub{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:linear-gradient(180deg,rgba(30,35,45,.98),rgba(18,21,28,.98))}
 #studio .studio-timeline-panel .studio-ruler{margin-top:8px}
 #studio .studio-vocal-stack .studio-vocal-hub-head{padding-bottom:0}
+
+/* V101: the standalone duplicate Timeline card is hidden; Vocal Timeline remains the single visible timeline. */
+#studio .studio-vocal-stack > .studio-timeline-panel{display:none!important}
 </style>
 <script id="aluStudioVocalTimelineStackV101">
 (function(){

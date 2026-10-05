@@ -3495,6 +3495,7 @@ async function open77(){
  track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed</b><div style="opacity:.7;margin-top:8px">Loading published videos and approved pictures…</div></div></div>';
  // Render first. Do not block the feed on picture syncing or video-state repair.
  try{await render77()}catch(e){console.warn('Global feed render skipped:',e)}
+ applyDiscoverPostDeepLink77();
  syncPictureAudioGuard();
  // Keep Global Feed isolated from local picture/video state refreshes.
  // The feed queries published cloud videos directly, so opening it does not rewrite local video state.
@@ -3527,8 +3528,30 @@ track.addEventListener('click',async e=>{
  if(a==='share'){shareItem(v);return}
  if(a==='music'){playPromotedSong(v);return}
 });
+function applyDiscoverPostDeepLink77(){
+ const raw=String(location.hash||'');
+ if(!raw.startsWith('#discover-post='))return false;
+ let target='';
+ try{target=decodeURIComponent(raw.slice('#discover-post='.length))}catch(_){target=raw.slice('#discover-post='.length)}
+ if(!target)return false;
+ const index=items.findIndex(v=>keyFor(v)===target);
+ if(index<0)return false;
+ const item=track.querySelector('.g77-item[data-i="'+index+'"]');
+ if(item){
+   item.scrollIntoView({behavior:'auto',block:'start'});
+   setTimeout(()=>scheduleVisiblePlayback(20),40);
+   return true;
+ }
+ return false;
+}
 window.openGlobalDiscoveryV77=open77;
 window.ALU_RENDER_GLOBAL_DISCOVERY=()=>{syncLocalApprovedPictures().then(render77).catch(()=>render77())};
+window.addEventListener('hashchange',()=>{
+ const h=String(location.hash||'');
+ if(h.startsWith('#discover-post=')){
+   open77().catch(err=>console.warn('Global Feed shared post open skipped:',err));
+ }
+});
 function bindGlobalFeedButtons(){
   document.querySelectorAll('[data-global-discovery-open]').forEach(b=>{
     if(b.dataset.g77Bound==='1')return;
@@ -3545,6 +3568,9 @@ function bindGlobalFeedButtons(){
   });
 }
 bindGlobalFeedButtons();
+if(String(location.hash||'').startsWith('#discover-post=')){
+ setTimeout(()=>open77().catch(err=>console.warn('Global Feed shared post startup skipped:',err)),120);
+}
 const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-global-discovery-open]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-global-discovery-open','1');b.textContent='🌍 Discover';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
 setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(render77).catch(()=>{})},500);
 })();

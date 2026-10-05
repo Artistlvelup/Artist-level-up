@@ -2119,6 +2119,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       }
       await syncProfile();
       const artistId=await ensureArtist();
+      try{
+        if(window.ALU_RETRY_MUSIC_CLOUD) await window.ALU_RETRY_MUSIC_CLOUD();
+      }catch(e){console.warn('Published music cloud retry skipped:',e)}
       if(artistId){
         const q=await client.from('songs').select('id,artist_id,title,genre,audio_url,cover_url,status').eq('artist_id',artistId).order('created_at',{ascending:false});
         if(!q.error && Array.isArray(q.data)){

@@ -5996,8 +5996,18 @@ function arrange(){
   var box=studio.querySelector('.alu-vocal-layers');
   var timeline=studio.querySelector('.studio-timeline-panel')||(studio.querySelector('#studioTracks')&&studio.querySelector('#studioTracks').closest('.card'));
   if(!shell||!head||!stack||!hub||!box||!timeline){setTimeout(arrange,150);return}
-  if(stack.parentNode!==shell) shell.appendChild(stack);
-  if(head.nextElementSibling!==stack) shell.insertBefore(stack,head.nextSibling);
+  /* V101 Studio jitter fix: MixerHub intentionally wraps the stack in .studio-vocal-workspace.
+     Never pull the stack back out of that wrapper or the two layout observers will fight forever. */
+  var workspace=stack.parentNode&&stack.parentNode.classList&&stack.parentNode.classList.contains('studio-vocal-workspace')
+    ? stack.parentNode : null;
+  if(!workspace){
+    workspace=document.createElement('div');
+    workspace.className='studio-vocal-workspace';
+    shell.insertBefore(workspace,stack);
+    workspace.appendChild(stack);
+  }
+  if(head.nextElementSibling!==workspace) shell.insertBefore(workspace,head.nextSibling);
+  if(workspace.firstElementChild!==stack) workspace.insertBefore(stack,workspace.firstChild);
   if(hub.parentNode!==stack) stack.insertBefore(hub,stack.firstChild);
   else if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
   if(timeline.parentNode!==stack) stack.appendChild(timeline);

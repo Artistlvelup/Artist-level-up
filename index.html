@@ -4409,8 +4409,8 @@ function boot(){
    stack.className='studio-vocal-stack';
    shell.insertBefore(stack,hub);
   }
-  if(timeline.parentNode!==stack)stack.insertBefore(timeline,stack.firstChild);
-  if(hub.parentNode!==stack)stack.appendChild(hub);
+  if(stack.firstElementChild!==hub)stack.insertBefore(hub,stack.firstChild);
+  if(stack.lastElementChild!==timeline)stack.appendChild(timeline);
  }
  arrange();
  new MutationObserver(arrange).observe(studio,{childList:true,subtree:true});

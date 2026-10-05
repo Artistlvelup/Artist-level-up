@@ -5208,55 +5208,109 @@ This will remove the video record and, when permitted, its uploaded Storage file
     if(vids.some(v=>String(v.id)===String(current)))sel.value=String(current);
     if(!sel.value && vids.length===1)sel.value=String(vids[0].id);
   }
-  window.refreshPromotionVideos=ref<script id="aluStudioExpandedEffectsV101">
-(function(){
-'use strict';
-function boot(){
- var A=window.ALU_STUDIO_V101;
- if(!A||typeof A.apply!=='function'){setTimeout(boot,120);return}
- if(A.__expandedFxV101)return; A.__expandedFxV101=true;
- var base=A.apply;
- A.apply=function(t){
-  try{base(t)}catch(e){}
-  try{
-   var n=t&&t.nodes,f=t&&t.proFx||{},p=f.params||{},slots=Array.isArray(f.slots)?f.slots:[];
-   if(!n)return;
-   var has=k=>slots.indexOf(k)>=0&&(!f.active||f.active[k]!==false);
-   if(n.cp&&has('gate')){var ga=p.gate||{};n.cp.threshold.value=-42+(Number(ga.amount||35)*.3);n.cp.ratio.value=20;n.cp.attack.value=.003;n.cp.release.value=.12}
-   if(n.eq&&has('deesser')){var de=p.deesser||{};n.eq.type='highshelf';n.eq.frequency.value=5200;n.eq.gain.value=-(Number(de.amount||35)*.08)}
-   if(n.eq&&has('multieq')){var me=p.multieq||{};n.eq.type='peaking';n.eq.frequency.value=1000;n.eq.gain.value=(Number(me.mid)||0)+((Number(me.low)||0)+(Number(me.high)||0))*.35}
-   if(n.sat&&has('distortion')){var ds=p.distortion||{};if(typeof aluMakeSatCurve==='function')n.sat.curve=aluMakeSatCurve(Math.max(.2,Number(ds.amount||20)/8))}
-   if(n.cp&&has('vocalenhancer')){var ve=p.vocalenhancer||{};n.cp.threshold.value=-18-(Number(ve.amount||30)*.12);n.cp.ratio.value=2.5}
-   if(n.g&&has('tremolo')){
-    var tr=p.tremolo||{},depth=Math.max(0,Math.min(.9,Number(tr.amount||30)/100));
-    if(!t.__aluTrem||t.__aluTrem.ctx!==n.g.context){if(t.__aluTrem)try{t.__aluTrem.osc.stop()}catch(e){};var o=n.g.context.createOscillator(),mg=n.g.context.createGain();o.frequency.value=5;mg.gain.value=depth*.45;o.connect(mg).connect(n.g.gain);o.start();t.__aluTrem={osc:o,mod:mg,ctx:n.g.context}}
-    t.__aluTrem.mod.gain.value=depth*.45;
-   }else if(t.__aluTrem){try{t.__aluTrem.mod.gain.value=0}catch(e){}}
-   if(n.p&&has('autopan')){
-    var ap=p.autopan||{},d2=Math.max(0,Math.min(1,Number(ap.amount||30)/100));
-    if(!t.__aluPan||t.__aluPan.ctx!==n.p.context){if(t.__aluPan)try{t.__aluPan.osc.stop()}catch(e){};var po=n.p.context.createOscillator(),pg=n.p.context.createGain();po.frequency.value=.22;pg.gain.value=d2;po.connect(pg).connect(n.p.pan);po.start();t.__aluPan={osc:po,mod:pg,ctx:n.p.context}}
-    t.__aluPan.mod.gain.value=d2;
-   }else if(t.__aluPan){try{t.__aluPan.mod.gain.value=0}catch(e){}}
-   if(n.dl&&has('flanger')){var fl=p.flanger||{};n.dl.delayTime.value=Math.max(0.001,Math.min(.012,Number(fl.amount||25)/100*.012))}
-   if(n.dl&&has('phaser')){var ph=p.phaser||{};n.dl.delayTime.value=Math.max(.01,Math.min(.18,Number(ph.amount||25)/100*.18))}
-   if(t.audio&&has('pitch')){var pi=p.pitch||{};t.audio.playbackRate=Math.pow(2,Number(pi.semitones||0)/12)}
-  }catch(e){}
- };
+  window.refreshPromotionVideos=refreshPromotionVideos;
+  const oldGo=window.go;if(typeof oldGo==='function'){window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='videos'){setTimeout(()=>{renderVideos();refreshVideos()},30)}if(id==='promote'){setTimeout(async()=>{await refreshPromotionVideos();if(typeof window.applyPromotionTypeUI==='function')window.applyPromotionTypeUI()},30)}if(id==='admin'){setTimeout(()=>{renderAdminVideoQueue();refreshAdminVideos()},30)}return r}}
+  const baseAction=window.action;window.action=async function(a,el){
+    if(a==='focusArtistVideoUpload'){window.go?.('videos');setTimeout(()=>document.getElementById('aluVideoTitle')?.focus(),80);return}
+    if(a==='refreshAdminVideos'){await refreshAdminVideos();return}
+    if(a==='deleteArtistVideo'){await deleteArtistVideo(String(el?.dataset?.videoId||''));return}
+    if(a==='approveArtistVideo'||a==='publishArtistVideo'||a==='rejectArtistVideo'){
+      const id=String(el?.dataset?.videoId||'');
+      const st=getState()||{}; let v=(st.videos||[]).find(x=>String(x.id)===id);
+      /* Admin queue can render a cloud-only record as cloud_<uuid>. Recover that
+         record from Supabase before showing the misleading 'Video not found'. */
+      if(!v){
+        const remoteId=id.replace(/^cloud_/,'');
+        if(/^[0-9a-f-]{20,}$/i.test(remoteId)){
+          try{
+            let r=null;
+            if(window.ALU_CLOUD?.client){
+              const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').eq('id',remoteId).maybeSingle();
+              if(!q.error)r=q.data||null;
+            }
+            if(!r){
+              const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
+              const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
+              if(base&&key){
+                const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&id=eq.'+encodeURIComponent(remoteId),{headers:{apikey:key,authorization:'Bearer '+key}});
+                if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];r=Array.isArray(data)?(data[0]||null):data}catch(_) {}}
+              }
+            }
+            if(r){
+              v={id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''};
+              st.videos=Array.isArray(st.videos)?st.videos:[];st.videos.push(v);saveState(st);
+            }
+          }catch(err){console.warn('Admin video recovery failed:',err)}
+        }
+      }
+      if(!v){toastMsg('Video not found');return}
+      if(a==='rejectArtistVideo'){const reason=prompt('Reason for rejecting this video:','Please review the video and upload again.');if(reason===null)return;v.rejectionReason=reason.trim()||'Rejected by Admin';saveState(getState()||{});await setVideoStatus(id,'Rejected');toastMsg('Video rejected ✓');return}
+      const next=a==='approveArtistVideo'?'Approved':'Published';if(next==='Published'&&statusLabel(v)!=='Approved'){toastMsg('Approve the video before publishing it.');return}await setVideoStatus(id,next);toastMsg(next==='Approved'?'Video approved ✓ — ready to publish':'🎬 Video published to Video Hub ✓');return
+    }
+    return baseAction.apply(this,arguments);
+  };
+  document.addEventListener('change',function(e){if(e.target?.id==='campaignSong')renderPromotionSongPreview();if(e.target?.id==='campaignVideo')renderPromotionVideoPreview();},true);
+  document.addEventListener('click',function(e){const el=e.target.closest('[data-admin-video-filter]');if(!el)return;window.adminVideoFilter=el.dataset.adminVideoFilter||'all';renderAdminVideoQueue();},true);
+  function getPicturePosts(){try{const x=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
+  function savePicturePosts(list){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)));return true}catch(e){toastMsg('Picture could not be saved on this device.');return false}}
+
+
+
+
+  document.addEventListener('click',function(e){const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;if(a==='publishPicturePost'){e.preventDefault();publishPicturePost();return;}if(a==='uploadArtistVideo'){e.preventDefault();uploadVideo();}else if(a==='retryVideoCloud'){e.preventDefault();retryVideoCloud(el.dataset.videoId);}else if(a==='refreshArtistVideos'){e.preventDefault();refreshVideos();}else if(a==='promoteVideo'){e.preventDefault();const st=getState()||{};const v=(st.videos||[]).find(x=>String(x.id)===String(el.dataset.videoId));if(v){localStorage.setItem('aluVideoToPromote',JSON.stringify(v));state.promotionTargetType='video';saveState(st);window.go?.('promote');setTimeout(()=>window.applyPromotionTypeUI?.(),30);toastMsg('Video selected for promotion. Choose your campaign settings.')}}},true);
+  setTimeout(()=>{renderVideos();renderAdminVideoQueue()},100);
+})();</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+function creatorRoomShowPage(){
+  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
+  var create=document.getElementById('create');
+  if(create) create.classList.add('active');
+  window.ALU_ACTIVE_PAGE='create';
+  document.querySelectorAll('.nav button').forEach(function(btn){
+    btn.classList.toggle('active',btn.dataset.go==='create');
+  });
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script> A=window.ALU_STUDIO_V101;if(!A)return null;if(A.selected&&typeof A.find==='function'){var t=A.find(A.selected);if(t)return t}if(typeof A.getTracks==='function'){var ts=A.getTracks();if(Array.isArray(ts)&&ts.length)return ts[0]}return null}
- function apply(){var t=getTrack(),A=window.ALU_STUDIO_V101;if(!t)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
- function controlSpec(key){return {eq:[['Gain','gain',-12,12,0.5,'dB']],filter:[['Frequency','freq',80,12000,10,'Hz']],compressor:[['Strength','amount',0,100,1,'%']],limiter:[['Strength','amount',0,100,1,'%']],reverb:[['Mix','mix',0,100,1,'%']],delay:[['Mix','mix',0,100,1,'%']],chorus:[['Mix','mix',0,100,1,'%']],saturation:[['Amount','amount',0,100,1,'%']],tremolo:[['Depth','amount',0,100,1,'%']],autopan:[['Depth','amount',0,100,1,'%']],phaser:[['Depth','amount',0,100,1,'%']],flanger:[['Depth','amount',0,100,1,'%']]}[key]||[]}
- function closePicker(){picker.classList.remove('show');picker.setAttribute('aria-hidden','true');picker.innerHTML=''}
- function openPicker(i){picker.classList.add('show');picker.setAttribute('aria-hidden','false');picker.innerHTML='<div class="alu-fx-cat">Choose effect for slot '+(i+1)+'</div><div class="alu-fx-options"></div>';var box=picker.querySelector('.alu-fx-options');effects.forEach(function(item){var b=document.createElement('button');b.type='button';b.textContent=item[1];b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();state[i]=item[2];active[item[2]]=true;params[item[2]]=Object.assign({},defaults[item[2]]);apply();renderSlots();closePicker();openEditor(i);var st=document.getElementById('aluStudioStatus');if(st)st.textContent=item[1]+' inserted in Slot '+(i+1)+' ✓'},{passive:false});box.appendChild(b)})}
- function openEditor(i){var key=state[i];if(!key){editor.classList.remove('show');return}var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key,spec=controlSpec(key);editor.innerHTML='<div class="alu-fx-editor-head"><b>'+label+' — Controls</b><small>Slot '+(i+1)+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4];var wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')}
- function renderSlots(){slots.innerHTML='';for(let i=0;i<6;i++){var key=state[i],el=document.createElement('div');el.className='alu-fx-slot'+(key?'':' add');if(!key){el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">＋ Add Effect</div><div class="slot-state">Choose an effect for this slot</div></div><span>›</span>';el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openPicker(i)},{passive:false})}else{var found=effects.find(function(x){return x[2]===key}),label=found?found[1]:key,isOn=active[key]!==false;el.innerHTML='<span class="slot-no">'+(i+1)+'</span><div><div class="slot-name">'+label+'</div><div class="slot-state">Tap to adjust · slot '+(i+1)+'</div></div><button type="button" class="'+(isOn?'on':'')+'">'+(isOn?'ON':'OFF')+'</button>';var btn=el.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!isOn;apply();renderSlots();openEditor(i)},{passive:false});el.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(i)},{passive:false})}slots.appendChild(el)}}
- renderSlots();
+function showCreatorChoices(e){
+  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  creatorRoomShowPage();
+  document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
+  var choice=document.getElementById('creatorRoomChoice');
+  if(choice) choice.style.display='grid';
+  window.scrollTo(0,0);
+  return false;
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script><script id="aluStudioExpandedEffectsV101">
+function openCreatorTool(tool,e){
+  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  creatorRoomShowPage();
+  var choice=document.getElementById('creatorRoomChoice');
+  if(choice) choice.style.display='none';
+  document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
+  var id=tool==='music'?'creatorMusicPanel':(tool==='video'?'creatorVideoPanel':'creatorPicturePanel');
+  var panel=document.getElementById(id);
+  if(panel) panel.style.display='block';
+  if(tool==='video'&&typeof populateVideoSongPicker==='function')setTimeout(populateVideoSongPicker,40);
+  window.scrollTo(0,0);
+  return false;
+}
+</script>
+
+
+<!-- V101 legacy one-by-one Effects Rack disabled. The Complete Effects Rack above is authoritative; Expanded Effects engine remains below. -->
+<script id="aluStudioExpandedEffectsV101">
 (function(){
 'use strict';
 function boot(){

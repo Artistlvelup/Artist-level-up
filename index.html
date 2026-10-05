@@ -900,6 +900,22 @@ body:has(#studio.page.active){overflow:hidden!important}
 .listener-discover-top{display:flex;align-items:center;justify-content:space-between;margin:5px 0 12px}.listener-discover-top h1{font-size:25px;margin:0}.listener-back,.listener-filter{border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}.listener-filter{font-size:21px}.listener-tabs{display:flex;gap:7px;overflow-x:auto;margin-bottom:10px;scrollbar-width:none}.listener-tabs button{border:1px solid #3a3d46;background:#11131a;color:#c4c6cd;border-radius:18px;padding:8px 15px;white-space:nowrap;cursor:pointer}.listener-tabs button.active{background:#ffd21c;color:#111;border-color:#ffd21c;font-weight:900}.listener-search{width:100%!important;background:#11131a!important;border:1px solid #2d3039!important;border-radius:15px!important;padding:14px 15px!important;color:#fff!important;font-size:14px!important}.listener-chip-wrap{display:flex;flex-wrap:wrap;gap:8px}.listener-chip{border:1px solid #343742;background:#181a22;color:#e9e9ed;border-radius:16px;padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer}
 .listener-chart-list{background:#11131a;border-radius:16px;border:1px solid #282b34;overflow:hidden}.listener-chart-row{display:flex;align-items:center;gap:10px;padding:9px;border-bottom:1px solid #252832}.listener-chart-row:last-child{border-bottom:0}.listener-chart-rank{width:20px;font-weight:1000;color:#ffd21c;text-align:center}.listener-chart-art{width:52px;height:52px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,#444,#73530d);overflow:hidden}.listener-chart-art img{width:100%;height:100%;object-fit:cover}.listener-chart-info{flex:1;min-width:0}.listener-chart-info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.listener-chart-info small{color:#979ba6}.listener-chart-play,.listener-chart-like{border:0;background:transparent;color:#fff;font-size:19px;cursor:pointer}.listener-discover-genres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.listener-discover-genre{min-height:66px;border:0;border-radius:14px;color:#fff;font-weight:900;cursor:pointer;background:#8a1958}.listener-discover-genre:nth-child(2n){background:#1268a0}.listener-discover-genre:nth-child(3n){background:#26734f}.listener-discover-genre:nth-child(4n){background:#704e13}
 body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bottom-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:7000!important;height:76px!important;background:#0d0f15!important;border-top:1px solid #282b34!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;padding:6px 10px calc(6px + env(safe-area-inset-bottom))!important;gap:4px!important}.nav.listener-bottom-nav button{border:0!important;background:transparent!important;color:#8f939d!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;border-radius:12px!important}.nav.listener-bottom-nav button span{font-size:22px!important;line-height:1!important}.nav.listener-bottom-nav button.active{color:#ffd21c!important}@media(max-width:600px){.listener-page{padding-left:12px!important;padding-right:12px!important}.listener-header{padding:9px 12px!important}.listener-hero{min-height:190px;padding:18px}.listener-hero h1{font-size:27px}.listener-hero-art{width:132px;height:132px;font-size:58px}.listener-tools-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:390px){.listener-hero-art{width:105px;height:105px;font-size:46px}.listener-music-card{flex-basis:132px}.listener-discover-genres{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style><style id="listenerVisibleSectionsV101">
+/* V101: no "See All"/selection gate — sections stay visible */
+.listener-page .listener-section-head button,
+.listener-page .listener-subhead button,
+.listener-page .listener-tabs{display:none!important}
+.listener-page .listener-section-head{justify-content:flex-start!important}
+.listener-page .listener-horizontal{overflow-x:auto!important}
+.listener-page .listener-artist-strip,.listener-page .listener-genre-strip{overflow-x:auto!important}
+.listener-page .listener-chart-list,.listener-page .listener-discover-genres{display:grid!important}
+.listener-page .listener-chart-list{grid-template-columns:1fr!important}
+@media(min-width:700px){
+ .listener-page .listener-horizontal{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important}
+ .listener-page .listener-music-card{width:auto!important;min-width:0!important}
+ .listener-page .listener-artist-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
+ .listener-page .listener-genre-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
+}
 </style></head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
@@ -1998,7 +2014,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }
   }
   window.ALU_CLOUD.ensureSession=ensureSession;
-
   async function ensureArtist(){
     const uid=await ensureSession(); if(!uid) return null;
     const profile=state.profile||{};
@@ -3997,8 +4012,7 @@ function boot(){
  function apply(){var t=selectedTrack(),A=window.ALU_STUDIO_V101;if(!t||!A)return;t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));if(A&&typeof A.apply==='function'&&t.nodes)A.apply(t)}
  function render(){syncFromTrack();groups.innerHTML='';var n=0;effects.forEach(function(group){var wrap=document.createElement('div');wrap.className='alu-fx-group fx-group-'+group[0].toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');var title=document.createElement('div');title.className='alu-fx-group-title';title.textContent=group[0];wrap.appendChild(title);var list=document.createElement('div');list.className='alu-fx-list';group[1].forEach(function(item){var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ACTIVE · tap name to adjust':'READY · tap to enable')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'"><span class="alu-fx-toggle-dot"></span><span>'+(active[key]?'ON':'OFF')+'</span></button>';var btn=row.querySelector('button');btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)},{passive:false});row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)},{passive:false});list.appendChild(row)});wrap.appendChild(list);groups.appendChild(wrap)});var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show')};var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);bypass.onclick=function(){chainBypass=!chainBypass;allKeys.forEach(function(k){active[k]=chainBypass?false:active[k]});apply();render();if(!chainBypass)syncFromTrack()};}
  function openEditor(key){var spec=specs[key]||[];editor.innerHTML='<div class="alu-fx-editor-head"><b>'+labels[key]+' — Controls</b><small>'+((active[key]?'ON':'OFF'))+'</small></div>';spec.forEach(function(x){var p=(params[key]&&params[key][x[1]]!=null)?params[key][x[1]]:x[4],wrap=document.createElement('div');wrap.className='alu-fx-control';wrap.innerHTML='<label><span>'+x[0]+'</span><span class="v">'+p+' '+x[5]+'</span></label><input type="range" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p+'">';var input=wrap.querySelector('input'),val=wrap.querySelector('.v');input.addEventListener('input',function(){params[key]=params[key]||{};params[key][x[1]]=Number(input.value);val.textContent=input.value+' '+x[5];apply()});editor.appendChild(wrap)});editor.classList.add('show');editor.setAttribute('aria-hidden','false')} syncFromTrack();render();
- window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};
-}
+ window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack};}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script><script id="ownerDashboardV101">
@@ -5997,8 +6011,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
         recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
       }else{        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
       }
-      if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}
-      const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
+      if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}      const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
       if(!item.remoteVideoId){
         item.remoteVideoId=Array.isArray(recordData)?String(recordData?.[0]?.id||''):String(recordData?.id||'');
         /* Some Supabase/PostgREST responses can be empty/non-JSON even after a successful insert. Verify by the unique video URL before treating it as a failure. */
@@ -7997,8 +8010,7 @@ function boot(){
    e.stopImmediatePropagation();   var n=Number(b.getAttribute('data-layer'))||1;
    var t=(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.getTracks?window.ALU_STUDIO_V101.getTracks():[]).find(function(x){return Number(x.vocalLayer||0)===n});
    var a=b.getAttribute('data-vocal-control');
-   if(a==='record'){
-     window.__ALU_VOCAL_LAYER_SELECTED=n;
+   if(a==='record'){     window.__ALU_VOCAL_LAYER_SELECTED=n;
      if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.record)window.ALU_STUDIO_V101.record();
      return;
    }

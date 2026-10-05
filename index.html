@@ -7862,7 +7862,7 @@ function boot(){
  function ruler(){var max=60;tracks().forEach(function(t){max=Math.max(max,Number(t.duration||0))});max=Math.max(60,Math.ceil(max/10)*10);var a=[];for(var i=0;i<=max;i+=10)a.push('<span>'+fmt(i)+'</span>');return {html:a.join(''),max:max}}
  function ensure(){
    var box=studio.querySelector('.alu-vocal-layers');
-   if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';studio.insertBefore(box,studio.firstChild);
+   if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';var meterTop=studio.querySelector(".studio-meter-top");if(meterTop&&meterTop.parentNode===studio)meterTop.after(box);else studio.insertBefore(box,studio.firstChild);
      box.addEventListener('click',function(e){
        var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
        e.preventDefault();e.stopPropagation();
@@ -7886,7 +7886,7 @@ function boot(){
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
      });
    }
-   if(box!==studio.firstChild)studio.insertBefore(box,studio.firstChild);render();
+   if(box!==studio.firstChild)var meterTop=studio.querySelector(".studio-meter-top");if(meterTop&&meterTop.parentNode===studio)meterTop.after(box);else studio.insertBefore(box,studio.firstChild);render();
  }
  function render(){
    var box=studio.querySelector('.alu-vocal-layers');if(!box)return;

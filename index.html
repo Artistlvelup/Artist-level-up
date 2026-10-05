@@ -3335,17 +3335,18 @@ function bindPictureAudioGuard(){
  setTimeout(syncPictureAudioGuard,60);
 }
 function getVisibleVideo(){
- const videos=[...track.querySelectorAll('video')];
- if(!videos.length)return null;
  const tr=track.getBoundingClientRect(),center=tr.top+tr.height/2;
- let best=null,bestDist=Infinity;
- videos.forEach(v=>{
-  const r=v.getBoundingClientRect(),visible=Math.max(0,Math.min(r.bottom,tr.bottom)-Math.max(r.top,tr.top));
+ const items=[...track.querySelectorAll('.g77-item')];
+ if(!items.length)return null;
+ let bestItem=null,bestDist=Infinity;
+ items.forEach(item=>{
+  const r=item.getBoundingClientRect(),visible=Math.max(0,Math.min(r.bottom,tr.bottom)-Math.max(r.top,tr.top));
   if(visible<=0)return;
   const dist=Math.abs((r.top+r.height/2)-center);
-  if(dist<bestDist){bestDist=dist;best=v}
+  if(dist<bestDist){bestDist=dist;bestItem=item}
  });
- return best;
+ if(!bestItem||!bestItem.classList.contains('g77-video-item'))return null;
+ return bestItem.querySelector('video');
 }
 function pauseNonVisible(){
  const visible=getVisibleVideo();
@@ -3370,7 +3371,7 @@ function scheduleVisiblePlayback(delay=140){
  scrollTimer=setTimeout(()=>{
   if(!root.classList.contains('active'))return;
   const v=getVisibleVideo();
-  if(!v)return;
+  if(!v){pauseAllVideos();return}
   pauseNonVisible();
   if(v.paused)playVideo(v).catch(()=>{});
  },delay);
@@ -3385,7 +3386,7 @@ function observe77(){
    scrollTimer=setTimeout(()=>{
      if(!root.classList.contains('active'))return;
      const visible=getVisibleVideo();
-     if(!visible)return;
+     if(!visible){pauseAllVideos();return}
      track.querySelectorAll('video').forEach(v=>{
        if(v!==visible){
          try{v.pause()}catch(_){}

@@ -5753,7 +5753,7 @@ function boot(){
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
      });
    }
-   var shell=studio.querySelector('.studio-shell'),head=shell&&shell.querySelector('.studio-head'),stack=shell&&shell.querySelector('.studio-vocal-stack'),panel=stack&&stack.querySelector('.studio-timeline-panel');if(stack){if(box.parentNode!==stack) stack.insertBefore(box,panel||null);else if(panel&&box.nextElementSibling!==panel) stack.insertBefore(box,panel);}else if(shell&&head){if(box.parentNode!==shell) shell.insertBefore(box,head.nextSibling);else if(head.nextElementSibling!==box) shell.insertBefore(box,head.nextSibling);}else if(box.parentNode!==studio) studio.appendChild(box);render();
+   var shell=studio.querySelector('.studio-shell'),head=shell&&shell.querySelector('.studio-head'),stack=shell&&shell.querySelector('.studio-vocal-stack'),panel=stack&&stack.querySelector('.studio-timeline-panel'),mixer=studio.querySelector('.studio-mixer');if(stack){if(box.parentNode!==stack) stack.insertBefore(box,mixer||panel||null);else if(mixer){if(box.nextElementSibling!==mixer) stack.insertBefore(box,mixer);}else if(panel&&box.nextElementSibling!==panel) stack.insertBefore(box,panel);}else if(shell&&head){if(box.parentNode!==shell) shell.insertBefore(box,head.nextSibling);else if(head.nextElementSibling!==box) shell.insertBefore(box,head.nextSibling);}else if(box.parentNode!==studio) studio.appendChild(box);render();
  }
  function render(){
    var box=studio.querySelector('.alu-vocal-layers');if(!box)return;

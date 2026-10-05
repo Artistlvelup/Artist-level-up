@@ -5392,47 +5392,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <!-- V101 STUDIO BUTTON REPAIR -->
 
-<script id="aluStudioCubaseLayoutV101">
-(function(){
-'use strict';
-function boot(){
-  var studio=document.getElementById('studio');
-  if(!studio){setTimeout(boot,100);return}
-  if(studio.__aluCubaseHub)return;
-  studio.__aluCubaseHub=true;
-  function arrange(){
-    var shell=studio.querySelector('.studio-shell');
-    var transport=studio.querySelector('.studio-transport');
-    var actions=studio.querySelector('.studio-action-grid');
-    var meter=studio.querySelector('.studio-meter');
-    if(!shell||!transport||!actions||!meter)return;
-    var hub=studio.querySelector('.studio-vocal-hub');
-    if(!hub){
-      hub=document.createElement('div');
-      hub.className='studio-vocal-hub';
-      hub.innerHTML='<div class="studio-vocal-hub-head"><div><span class="pill">VOCAL HUB</span><h2>🎙️ Vocal Recording & Control</h2><p class="tiny muted">Record, play, stop and control your vocal from one place.</p></div></div><div class="studio-hub-content"></div>';
-      var content=hub.querySelector('.studio-hub-content');
-      content.appendChild(transport);
-      content.appendChild(actions);
-      content.appendChild(meter);
-      var edit=document.getElementById('aluStudioEditBar');
-      var editor=document.getElementById('aluStudioEditorPanel');
-      if(edit)content.appendChild(edit);
-      if(editor)content.appendChild(editor);
-      shell.insertBefore(hub,shell.children[1]||null);
-    }else{
-      var content=hub.querySelector('.studio-hub-content');
-      [transport,actions,meter,document.getElementById('aluStudioEditBar'),document.getElementById('aluStudioEditorPanel')].forEach(function(x){if(x&&x.parentNode!==content)content.appendChild(x)});
-    }
-  }
-  arrange();
-  var mo=new MutationObserver(function(){arrange()});
-  mo.observe(studio,{childList:true,subtree:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
-
 \n
 \n
 

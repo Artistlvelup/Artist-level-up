@@ -5279,42 +5279,7 @@ function openCreatorTool(tool,e){
 
 <!-- V101 legacy one-by-one Effects Rack disabled. The Complete Effects Rack above is authoritative; Expanded Effects engine remains below. -->
 <script id="aluStudioExpandedEffectsV101">
-(function(){
-'use strict';
-function boot(){
- var A=window.ALU_STUDIO_V101;
- if(!A||typeof A.apply!=='function'){setTimeout(boot,120);return}
- if(A.__expandedFxV101)return; A.__expandedFxV101=true;
- var base=A.apply;
- A.apply=function(t){
-  try{base(t)}catch(e){}
-  try{
-   var n=t&&t.nodes,f=t&&t.proFx||{},p=f.params||{},slots=Array.isArray(f.slots)?f.slots:[];
-   if(!n)return;
-   var has=k=>slots.indexOf(k)>=0&&(!f.active||f.active[k]!==false);
-   if(n.cp&&has('gate')){var ga=p.gate||{};n.cp.threshold.value=-42+(Number(ga.amount||35)*.3);n.cp.ratio.value=20;n.cp.attack.value=.003;n.cp.release.value=.12}
-   if(n.eq&&has('deesser')){var de=p.deesser||{};n.eq.type='highshelf';n.eq.frequency.value=5200;n.eq.gain.value=-(Number(de.amount||35)*.08)}
-   if(n.eq&&has('multieq')){var me=p.multieq||{};n.eq.type='peaking';n.eq.frequency.value=1000;n.eq.gain.value=(Number(me.mid)||0)+((Number(me.low)||0)+(Number(me.high)||0))*.35}
-   if(n.sat&&has('distortion')){var ds=p.distortion||{};if(typeof aluMakeSatCurve==='function')n.sat.curve=aluMakeSatCurve(Math.max(.2,Number(ds.amount||20)/8))}
-   if(n.cp&&has('vocalenhancer')){var ve=p.vocalenhancer||{};n.cp.threshold.value=-18-(Number(ve.amount||30)*.12);n.cp.ratio.value=2.5}
-   if(n.g&&has('tremolo')){
-    var tr=p.tremolo||{},depth=Math.max(0,Math.min(.9,Number(tr.amount||30)/100));
-    if(!t.__aluTrem||t.__aluTrem.ctx!==n.g.context){if(t.__aluTrem)try{t.__aluTrem.osc.stop()}catch(e){};var o=n.g.context.createOscillator(),mg=n.g.context.createGain();o.frequency.value=5;mg.gain.value=depth*.45;o.connect(mg).connect(n.g.gain);o.start();t.__aluTrem={osc:o,mod:mg,ctx:n.g.context}}
-    t.__aluTrem.mod.gain.value=depth*.45;
-   }else if(t.__aluTrem){try{t.__aluTrem.mod.gain.value=0}catch(e){}}
-   if(n.p&&has('autopan')){
-    var ap=p.autopan||{},d2=Math.max(0,Math.min(1,Number(ap.amount||30)/100));
-    if(!t.__aluPan||t.__aluPan.ctx!==n.p.context){if(t.__aluPan)try{t.__aluPan.osc.stop()}catch(e){};var po=n.p.context.createOscillator(),pg=n.p.context.createGain();po.frequency.value=.22;pg.gain.value=d2;po.connect(pg).connect(n.p.pan);po.start();t.__aluPan={osc:po,mod:pg,ctx:n.p.context}}
-    t.__aluPan.mod.gain.value=d2;
-   }else if(t.__aluPan){try{t.__aluPan.mod.gain.value=0}catch(e){}}
-   if(n.dl&&has('flanger')){var fl=p.flanger||{};n.dl.delayTime.value=Math.max(0.001,Math.min(.012,Number(fl.amount||25)/100*.012))}
-   if(n.dl&&has('phaser')){var ph=p.phaser||{};n.dl.delayTime.value=Math.max(.01,Math.min(.18,Number(ph.amount||25)/100*.18))}
-   if(t.audio&&has('pitch')){var pi=p.pitch||{};t.audio.playbackRate=Math.pow(2,Number(pi.semitones||0)/12)}
-  }catch(e){}
- };
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
+/* V101: legacy Expanded Effects engine disabled. The unified Effects Rack and Studio audio engine are authoritative. */
 </script>
 <script id="ownerDashboardV101">
 (function(){

@@ -5638,6 +5638,7 @@ function boot(){
  }
  function ruler(){var max=60;tracks().forEach(function(t){max=Math.max(max,Number(t.duration||0))});max=Math.max(60,Math.ceil(max/10)*10);var a=[];for(var i=0;i<=max;i+=10)a.push('<span>'+fmt(i)+'</span>');return {html:a.join(''),max:max}}
  function ensure(){
+   studio=document.getElementById('studio');if(!studio)return;
    var box=studio.querySelector('.alu-vocal-layers');
    if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
      box.addEventListener('click',function(e){
@@ -5690,7 +5691,16 @@ function boot(){
  ensure();
  var last='';
  setInterval(function(){var ts=tracks(),sig=String(window.__ALU_VOCAL_LAYER_SELECTED||1)+'|'+ts.map(function(t){return [t.id,t.vocalLayer,t.duration,t.volume,t.pan,t.mute,t.solo,t.proFx&&JSON.stringify(t.proFx.active)].join(':')}).join(',');if(sig!==last){last=sig;ensure()}},500);
- window.ALU_VOCAL_LAYERS_V101={layers:LAYERS,refresh:render};
+ window.ALU_VOCAL_LAYERS_V101={layers:LAYERS,refresh:render,ensure:ensure};
+ function rehydrate(){
+   var p=document.getElementById('studio');
+   if(p&&p.classList.contains('active'))setTimeout(ensure,0);
+ }
+ document.addEventListener('click',function(e){
+   if(e.target.closest?.('[data-action="openStudioV101"]'))setTimeout(ensure,60);
+ },true);
+ window.addEventListener('hashchange',rehydrate);
+ window.addEventListener('pageshow',rehydrate);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

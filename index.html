@@ -4444,18 +4444,17 @@ function boot(){
   var stack=studio.querySelector('.studio-vocal-stack');
   var hub=studio.querySelector('.studio-vocal-hub');
   var mixer=studio.querySelector('.studio-mixer');
-  var fx=mixer&&mixer.nextElementSibling;
+  var fx=studio.querySelector('.studio-fx-grid')?.closest('.card');
   if(!stack||!hub||!mixer)return;
   var workspace=stack.parentNode;
   if(!workspace.classList.contains('studio-vocal-workspace')){
    var w=document.createElement('div');w.className='studio-vocal-workspace';
-   workspace.insertBefore(w,stack);w.appendChild(stack);workspace=w.parentNode;
+   workspace.insertBefore(w,stack);w.appendChild(stack);workspace=w;
   }
-  var w=stack.parentNode;
-  if(mixer.parentNode!==w)w.appendChild(mixer);
-  if(fx&&fx.classList.contains('card')&&fx.querySelector('[data-fx]')){
+  if(mixer.parentNode!==stack)stack.appendChild(mixer);
+  if(fx&&fx.classList.contains('card')&&fx.parentNode!==workspace){
    fx.classList.add('studio-fx-card');
-   if(fx.parentNode!==w)w.appendChild(fx);
+   workspace.appendChild(fx);
   }
  }
  arrange();
@@ -5910,8 +5909,9 @@ function arrange(){
   var stack=(shell&&shell.querySelector('.studio-vocal-stack'))||studio.querySelector('.studio-vocal-stack');
   var hub=studio.querySelector('.studio-vocal-hub');
   var box=studio.querySelector('.alu-vocal-layers');
+  var mixer=studio.querySelector('.studio-mixer');
   var timeline=studio.querySelector('.studio-timeline-panel')||(studio.querySelector('#studioTracks')&&studio.querySelector('#studioTracks').closest('.card'));
-  if(!shell||!head||!stack||!hub||!box||!timeline){setTimeout(arrange,150);return}
+  if(!shell||!head||!stack||!hub||!box||!mixer||!timeline){setTimeout(arrange,150);return}
   /* V101 Studio jitter fix: MixerHub intentionally wraps the stack in .studio-vocal-workspace.
      Never pull the stack back out of that wrapper or the two layout observers will fight forever. */
   var workspace=stack.parentNode&&stack.parentNode.classList&&stack.parentNode.classList.contains('studio-vocal-workspace')
@@ -5926,9 +5926,13 @@ function arrange(){
   if(workspace.firstElementChild!==stack) workspace.insertBefore(stack,workspace.firstChild);
   if(hub.parentNode!==stack) stack.insertBefore(hub,stack.firstChild);
   else if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
+  if(box.parentNode!==stack) stack.appendChild(box);
   if(timeline.parentNode!==stack) stack.appendChild(timeline);
-  if(box.parentNode!==stack) stack.insertBefore(box,timeline);
-  else if(box.nextElementSibling!==timeline) stack.insertBefore(box,timeline);
+  if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
+  if(hub.nextElementSibling!==box) stack.insertBefore(box,hub.nextSibling);
+  if(box.nextElementSibling!==mixer) stack.insertBefore(mixer,box.nextSibling);
+  if(timeline.parentNode!==stack) stack.appendChild(timeline);
+  if(stack.lastElementChild!==timeline) stack.appendChild(timeline);
 }
 function boot(){
   arrange();

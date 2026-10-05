@@ -4060,6 +4060,12 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   #studio .studio-vocal-hub .studio-action-grid .btn{flex:1 1 calc(50% - 8px)}
 }
 </style>
+
+<style id="aluStudioInputMonitorTopV101">
+#studio .studio-vocal-hub .studio-meter-top{display:block!important;visibility:visible!important;position:relative!important;order:-10!important;margin:0 0 12px!important;z-index:100000!important;}
+#studio .studio-vocal-hub .studio-meter-top .studio-meter-track{display:block!important;visibility:visible!important;min-height:14px!important;}
+#studio .studio-vocal-hub .studio-meter-top .studio-tips{display:flex!important;visibility:visible!important;}
+</style>
 <script id="aluStudioCubaseLayoutV101">
 (function(){
 'use strict';
@@ -4080,9 +4086,9 @@ function boot(){
       hub.className='studio-vocal-hub';
       hub.innerHTML='<div class="studio-vocal-hub-head"><div><span class="pill">VOCAL HUB</span><h2>🎙️ Vocal Recording & Control</h2><p class="tiny muted">Record, play, stop and control your vocal from one place.</p></div><span class="pill">V101</span></div><div class="studio-hub-content"></div>';
       var content=hub.querySelector('.studio-hub-content');
+      content.appendChild(meter);
       content.appendChild(transport);
       content.appendChild(actions);
-      content.appendChild(meter);
       var edit=document.getElementById('aluStudioEditBar');
       var editor=document.getElementById('aluStudioEditorPanel');
       if(edit)content.appendChild(edit);
@@ -4090,7 +4096,7 @@ function boot(){
       shell.insertBefore(hub,shell.children[1]||null);
     }else{
       var content=hub.querySelector('.studio-hub-content');
-      [transport,actions,meter,document.getElementById('aluStudioEditBar'),document.getElementById('aluStudioEditorPanel')].forEach(function(x){if(x&&x.parentNode!==content)content.appendChild(x)});
+      [meter,transport,actions,document.getElementById('aluStudioEditBar'),document.getElementById('aluStudioEditorPanel')].forEach(function(x){if(x&&x.parentNode!==content)content.appendChild(x)});
     }
   }
   arrange();

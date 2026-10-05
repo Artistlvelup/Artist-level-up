@@ -1277,7 +1277,7 @@ function undo(){let x=S.undo.pop();if(!x)return;S.redo.push(snap());S.tracks=x;r
 function add(t){S.undo.push(snap());S.redo=[];S.tracks.push(t);render()}
 async function duration(blob){try{let b=await blob.arrayBuffer();return(await ctx().decodeAudioData(b)).duration}catch(e){return 0}}
 function wave(cv,blob){if(!cv)return;blob.arrayBuffer().then(x=>ctx().decodeAudioData(x)).then(b=>{let g=cv.getContext('2d'),w=cv.width=cv.clientWidth*2,h=cv.height=cv.clientHeight*2,d=b.getChannelData(0),step=Math.max(1,Math.floor(d.length/w));g.clearRect(0,0,w,h);g.beginPath();for(let i=0;i<w;i++){let mx=0;for(let j=0;j<step;j++)mx=Math.max(mx,Math.abs(d[i*step+j]||0));let y=(1-mx)*h/2;g.moveTo(i,y);g.lineTo(i,h-y)}g.strokeStyle='#79a7ff';g.stroke()}).catch(()=>{})}
-function render(){let box=$('studioTracks'),mix=$('studioMixerTracks');if(!box||!mix)return;box.innerHTML='';mix.innerHTML='';$('studioEmpty').style.display=S.tracks.length?'none':'block';$('studioTrackCount').textContent=S.tracks.length;S.tracks.forEach(t=>{let q=document.createElement('div');q.className='studio-track';q.innerHTML='<div class="studio-track-head">'+
+function render(){let box=$('studioTracks'),mix=$('studioMixerTracks');if(!box||!mix)return;box.innerHTML='';mix.innerHTML='';$('studioEmpty').style.display=S.tracks.length?'none':'block';$('studioTrackCount').textContent=S.tracks.length;S.tracks.forEach(t=>{let q=document.createElement('div');q.className='studio-track'+(t.vocalLayer?' vocal-track':'');q.innerHTML='<div class="studio-track-head">'+
 '<div class="studio-lane-engine">'+
 '<div class="studio-lane-title"><span class="studio-lane-icon">🎙️</span><b>'+esc(t.name)+'</b><small>'+fmt(t.duration)+' · Audio</small></div>'+
 '<div class="studio-lane-transport">'+
@@ -5998,6 +5998,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .alu-vocal-lane.selected .alu-vocal-no{box-shadow:none!important}
 #studio .alu-vocal-delete{min-width:112px!important;height:34px!important;padding:0 10px!important;border:1px solid #71343a!important;border-radius:8px!important;background:#32191d!important;color:#ffb9bf!important;font-weight:700!important;outline:none!important;box-shadow:none!important;-webkit-tap-highlight-color:transparent!important}
 #studio .alu-vocal-delete:active,#studio .alu-vocal-delete:focus,#studio .alu-vocal-delete:focus-visible{outline:none!important;box-shadow:none!important;transform:none!important}
+<style id="aluV101HideDuplicateVocalTrack">#studio .studio-track.vocal-track{display:none!important}</style>
 </style>
 <script id="aluV101LaneTouchFix">
 (function(){

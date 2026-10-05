@@ -5983,6 +5983,44 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+<script id="aluV101StudioFinalOrderLock">
+(function(){
+'use strict';
+function arrange(){
+  var studio=document.getElementById('studio');
+  if(!studio){setTimeout(arrange,120);return}
+  var shell=studio.querySelector('.studio-shell');
+  var head=shell&&shell.querySelector('.studio-head');
+  var stack=(shell&&shell.querySelector('.studio-vocal-stack'))||studio.querySelector('.studio-vocal-stack');
+  var hub=studio.querySelector('.studio-vocal-hub');
+  var box=studio.querySelector('.alu-vocal-layers');
+  var timeline=studio.querySelector('.studio-timeline-panel')||(studio.querySelector('#studioTracks')&&studio.querySelector('#studioTracks').closest('.card'));
+  if(!shell||!head||!stack||!hub||!box||!timeline){setTimeout(arrange,150);return}
+  if(stack.parentNode!==shell) shell.appendChild(stack);
+  if(head.nextElementSibling!==stack) shell.insertBefore(stack,head.nextSibling);
+  if(hub.parentNode!==stack) stack.insertBefore(hub,stack.firstChild);
+  else if(stack.firstElementChild!==hub) stack.insertBefore(hub,stack.firstChild);
+  if(timeline.parentNode!==stack) stack.appendChild(timeline);
+  if(box.parentNode!==stack) stack.insertBefore(box,timeline);
+  else if(box.nextElementSibling!==timeline) stack.insertBefore(box,timeline);
+}
+function boot(){
+  arrange();
+  var studio=document.getElementById('studio');
+  if(!studio){setTimeout(boot,200);return}
+  if(studio.__aluFinalStudioOrderLock)return;
+  studio.__aluFinalStudioOrderLock=true;
+  var scheduled=false;
+  new MutationObserver(function(){
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(function(){scheduled=false;arrange()});
+  }).observe(studio,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+
 <!-- V101 STUDIO HANG FIX: stable lane/transport repair -->
 <style id="aluV101LaneTouchFix">
 #studio .alu-vocal-layers,

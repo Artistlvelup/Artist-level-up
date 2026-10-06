@@ -1739,7 +1739,7 @@ async function playOfflineDownload(key){
     await audio.play();syncFullPlayer();toast('Playing offline ✓');
   }catch(e){console.warn('Offline playback failed',e);toast('Could not play this offline song.');}
 }
-async async function renderOfflineRoom(){
+async function renderOfflineRoom(){
   const box=document.getElementById('offlineRoomContent');if(!box)return;
   if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
   try{
@@ -6234,6 +6234,9 @@ function boot(){
    }
    if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();
  },{capture:true});
+}
+boot();
+})();
 </script>
 <script id="aluV101UserRegistrationGate">
 (function(){

@@ -2088,7 +2088,7 @@ renderGrowthCenter();
       if(avatarFile) avatar=await imageToDataURL(avatarFile,500,.82);
       state.userAccount={name,email,avatar:avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:state.userAccount?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
       state.profile={...(state.profile||{}),name,email,avatar:avatar||state.profile?.avatar||'',saved:true};
-      state.userRegistered=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); return;
+      state.userRegistered=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED(); return;
     }
     return oldAction(a,el);
   };
@@ -6281,6 +6281,8 @@ boot();
 (function(){
 'use strict';
 var pendingDownload=null;
+var handoffRunning=false;
+
 function registered(){
   try{
     const saved=JSON.parse(localStorage.getItem('artistLevelUpState')||'null');
@@ -6294,6 +6296,7 @@ function registered(){
   }catch(e){}
   return !!(window.state&&window.state.userRegistered===true);
 }
+
 function openRegistration(){
   try{
     if(typeof window.action==='function'){
@@ -6303,28 +6306,54 @@ function openRegistration(){
   }catch(e){}
   return false;
 }
+
 function continueDownload(){
+  if(handoffRunning)return;
+  handoffRunning=true;
   var p=pendingDownload;
   pendingDownload=null;
-  if(!p)return;
+  if(!p){handoffRunning=false;return;}
   var song=p.song;
   if(!song){
     try{song=(window.state?.songs||[]).find(function(s){return String(s.id)===String(p.songId);})||null;}catch(e){}
   }
-  if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function'){
-    window.ALU_WATCH_AD_TO_DOWNLOAD(p.songId,p.title,song);
-  }else if(typeof window.toast==='function'){
-    window.toast('Rewarded download service is loading. Please try again.');
+  if(!registered()){
+    handoffRunning=false;
+    try{window.toast('Registration was not completed. Please register before downloading.');}catch(e){}
+    return;
   }
+  if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function'){
+    try{
+      window.ALU_WATCH_AD_TO_DOWNLOAD(p.songId,p.title,song);
+    }catch(e){
+      try{window.toast('Rewarded download service is loading. Please try again.');}catch(_e){}
+    }
+  }else{
+    try{window.toast('Rewarded download service is loading. Please try again.');}catch(e){}
+  }
+  handoffRunning=false;
 }
+
+window.ALU_ON_USER_REGISTERED=function(){
+  /* Called by saveUserRegister only after the account has been validated,
+     persisted, and the registration modal has been closed. No timer/race. */
+  if(!pendingDownload)return;
+  if(!registered())return;
+  continueDownload();
+};
+
 window.ALU_REQUIRE_USER_REGISTRATION=function(songId,title,song){
   if(registered())return true;
   pendingDownload={songId:String(songId||''),title:String(title||'this song'),song:song||null};
   if(!openRegistration()){
+    pendingDownload=null;
     try{window.toast('Please register first to download music.')}catch(e){alert('Please register first to download music.')}
   }
   return false;
 };
+
+/* One download gate only. It runs in capture phase before the normal action dispatcher,
+   so no rewarded ad can start before listener registration is complete. */
 document.addEventListener('click',function(e){
   const dl=e.target.closest?.('[data-action="downloadSong"],[data-download]');
   if(!dl)return;
@@ -6340,13 +6369,6 @@ document.addEventListener('click',function(e){
   }else if(typeof window.toast==='function'){
     window.toast('Rewarded download service is loading. Please try again.');
   }
-},true);
-document.addEventListener('click',function(e){
-  const saveBtn=e.target.closest?.('[data-action="saveUserRegister"]');
-  if(!saveBtn||!pendingDownload)return;
-  setTimeout(function(){
-    if(registered())continueDownload();
-  },180);
 },true);
 })();
 </script>
@@ -6477,28 +6499,6 @@ async function directDownload(song,title){
   }catch(e){
     console.warn('Offline download save failed:',e);
     var detail=String(e?.message||e||'Unknown save error');
-    if(/register your listener account/i.test(detail)){
-      setStatus('Reward confirmed ✓ Please complete your listener registration to finish saving this song.');
-      showUnlocked();
-      var b=document.getElementById('aluRewardedDownloadNow');
-      if(b){b.textContent='👤 Register & Save';b.onclick=function(){
-        try{if(typeof window.action==='function')window.action('openUserRegister');}catch(_e){}
-      };}
-      var once=function(){
-        try{document.removeEventListener('click',once,true);}catch(_e){}
-        setTimeout(function(){
-          try{
-            var modal=document.getElementById('modal');
-            if(modal)modal.classList.remove('show');
-            directDownload(song,title);
-          }catch(_e){}
-        },120);
-      };
-      document.addEventListener('click',function(ev){
-        if(ev.target.closest?.('[data-action="saveUserRegister"]'))once(ev);
-      },true);
-      return false;
-    }
     setStatus('Reward confirmed ✓ Save failed: '+detail.slice(0,180));
     showUnlocked();
     var b2=document.getElementById('aluRewardedDownloadNow');if(b2)b2.textContent='📥 Save Offline Now';

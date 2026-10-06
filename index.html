@@ -6260,15 +6260,15 @@ window.ALU_REQUIRE_USER_REGISTRATION=function(){if(registered())return true;if(!
 function mountEntry(){
  const home=document.getElementById('home');if(!home||home.querySelector('#aluUserRegistrationEntry'))return;
  const box=document.createElement('div');box.id='aluUserRegistrationEntry';box.className='user-entry-card';
- box.innerHTML='<span class="pill">LISTENER ACCOUNT</span><h2 style="margin-top:10px">Join Artist Level Up 👤</h2><p class="muted">Create your free account before streaming music, using the library or accessing downloads.</p><div class="user-entry-grid"><button type="button" class="btn primary" id="aluRegisterUserBtn">👤 Register / Sign In</button><button type="button" class="btn" id="aluUserStatusBtn">✓ Account Status</button></div>';
+ box.innerHTML='<span class="pill">LISTENER ACCOUNT</span><h2 style="margin-top:10px">Join Artist Level Up 👤</h2><p class="muted">Create your free account before streaming music, using the library or accessing downloads.</p><div class="user-entry-grid"><button type="button" class="btn primary" id="aluRegisterUserBtn">👤 Listener Registration</button><button type="button" class="btn" id="aluUserStatusBtn">✓ Account Status</button></div>';
  const hero=home.querySelector('.listener-hero');if(hero&&hero.parentNode)hero.parentNode.insertBefore(box,hero.nextSibling);else home.insertBefore(box,home.firstChild);
- box.querySelector('#aluRegisterUserBtn').onclick=function(){if(registered()){try{window.go('profile')}catch(e){}}else openRegistration()};
+ box.querySelector('#aluRegisterUserBtn').onclick=function(){openRegistration()};
  box.querySelector('#aluUserStatusBtn').onclick=function(){if(registered()){try{window.toast('Your Artist Level Up account is active ✓')}catch(e){}}else openRegistration()};
 }
 function refreshEntry(){
  const box=document.getElementById('aluUserRegistrationEntry');if(!box)return;const reg=registered(),p=box.querySelector('p'),b=box.querySelector('#aluRegisterUserBtn'),s=box.querySelector('#aluUserStatusBtn');
- if(reg){if(p)p.textContent='Your account is active. You can now stream music and use your listener library.';if(b)b.textContent='👤 Open My Account';if(s)s.textContent='✓ Registered'}
- else{if(p)p.textContent='Create your account before streaming music, using the library or accessing downloads.';if(b)b.textContent='👤 Register / Sign In';if(s)s.textContent='✓ Account Status'}
+ if(reg){if(p)p.textContent='Your account is active. You can still open the Listener Registration / Account form below.';if(b)b.textContent='👤 Listener Registration';if(s)s.textContent='✓ Registered'}
+ else{if(p)p.textContent='Create your account before streaming music, using the library or accessing downloads.';if(b)b.textContent='👤 Listener Registration';if(s)s.textContent='✓ Account Status'}
 }
 const originalPlay=window.play;
 if(typeof originalPlay==='function'&&!originalPlay.__aluV101RegistrationGate){

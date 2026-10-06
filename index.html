@@ -6159,15 +6159,29 @@ function requestRewardedAd(){
        setWatchState(true,'The ad is ready. Watch it to unlock your free download.');
        var b=document.getElementById('aluRewardedWatchBtn');if(b)b.onclick=function(){try{if(evt.makeRewardedVisible()){b.disabled=true;b.textContent='Ad playing…';}}catch(e){setWatchState(false,'Unable to start the ad. Please try again.')}};
      });
+     googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
+       if(evt.slot!==rewardedSlot)return;
+       var s=document.getElementById('aluRewardedAdStatus');
+       if(s)s.textContent='Ad finished. Waiting for Google to confirm your reward…';
+     });
      googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
        if(evt.slot!==rewardedSlot)return;
        granted=true;var p=pending;
+       var s=document.getElementById('aluRewardedAdStatus');
+       if(s)s.textContent='Reward received ✓ Starting your download…';
        if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);closeModal();if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
      });
      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
        if(evt.slot!==rewardedSlot)return;
-       var wasGranted=granted;cleanupSlot();
-       if(!wasGranted){var s=document.getElementById('aluRewardedAdStatus');if(s)s.textContent='Ad closed before the reward was granted. Download remains locked.';setTimeout(function(){closeModal()},900)}
+       var wasGranted=granted;
+       var retry=pending;
+       cleanupSlot();
+       if(!wasGranted){
+         var s=document.getElementById('aluRewardedAdStatus');
+         if(s)s.textContent='The ad was closed before Google confirmed the reward. Let the ad finish, then the download will unlock.';
+         var b=document.getElementById('aluRewardedWatchBtn');
+         if(b){b.disabled=false;b.textContent='▶ Watch Ad Again';b.onclick=function(){pending=retry;requestRewardedAd();};}
+       }
      });
      googletag.pubads().addEventListener('slotRenderEnded',function(evt){if(evt.slot===rewardedSlot&&evt.isEmpty)setWatchState(false,'No rewarded ad is available right now. Please try again later.')});
      googletag.enableServices();

@@ -6167,7 +6167,15 @@ function requestRewardedAd(){
      googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
        if(evt.slot!==rewardedSlot)return;
        var s=document.getElementById('aluRewardedAdStatus');
-       if(s)s.textContent='Ad finished. Waiting for Google to confirm your reward…';showRewardClose();
+       if(s)s.textContent='Ad finished. Confirming your reward…';
+       showRewardClose();
+       setTimeout(function(){
+         if(!rewardedSlot||granted)return;
+         var ss=document.getElementById('aluRewardedAdStatus');
+         var b=document.getElementById('aluRewardedWatchBtn');
+         if(ss)ss.textContent='Reward confirmation is taking too long. You can watch the ad again.';
+         if(b){b.disabled=false;b.textContent='▶ Watch Ad Again';b.onclick=function(){pending=pending||null;requestRewardedAd();};}
+       },5000);
      });
      googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
        if(evt.slot!==rewardedSlot)return;

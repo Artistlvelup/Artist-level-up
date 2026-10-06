@@ -1661,16 +1661,46 @@ async function aluSaveOfflineSong(song,title){
   const key=aluOfflineKey(song.id);
   const existing=await aluGetOfflineDownload(key);
   if(existing)return existing;
+
   let blob=null;
-  if(song.audioKey)blob=await aluGetAudio(song.audioKey);
-  if(!blob){
-    const url=song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||song.audioDataUrl;
-    if(!url)throw new Error('This song has no downloadable audio file.');
-    const response=await fetch(String(url),{mode:'cors',credentials:'omit'});
-    if(!response.ok)throw new Error('The song could not be downloaded for offline use.');
-    blob=await response.blob();
+  /* First use the app's durable local audio copy. */
+  if(song.audioKey){
+    try{blob=await aluGetAudio(song.audioKey)}catch(e){console.warn('Offline audio store read failed:',e)}
   }
-  if(!(blob instanceof Blob)||!blob.size)throw new Error('The downloaded audio file is empty.');
+
+  /* Then use an inline data URL if one exists. */
+  if(!blob && /^data:audio\\//i.test(String(song.audioDataUrl||''))){
+    try{
+      const response=await fetch(String(song.audioDataUrl));
+      if(response.ok)blob=await response.blob();
+    }catch(e){console.warn('Inline audio read failed:',e)}
+  }
+
+  /* Then use the existing cloud/storage resolver used by the player. */
+  if(!blob && typeof window.ALU_DURABLE_AUDIO_SOURCE==='function'){
+    try{
+      const resolved=await window.ALU_DURABLE_AUDIO_SOURCE(song);
+      if(resolved){
+        const response=await fetch(String(resolved),{mode:'cors',credentials:'omit'});
+        if(response.ok)blob=await response.blob();
+      }
+    }catch(e){console.warn('Durable audio resolver failed:',e)}
+  }
+
+  /* Direct remote URL fallback. */
+  if(!blob){
+    let url=song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||'';
+    if(!/^https?:\\/\\//i.test(String(url)) && typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){
+      try{url=await window.ALU_RESOLVE_CLOUD_AUDIO_URL(song)}catch(e){console.warn('Cloud audio URL recovery failed:',e)}
+    }
+    if(url){
+      const response=await fetch(String(url),{mode:'cors',credentials:'omit'});
+      if(!response.ok)throw new Error('The song could not be downloaded for offline use.');
+      blob=await response.blob();
+    }
+  }
+
+  if(!(blob instanceof Blob)||!blob.size)throw new Error('The downloaded audio file is empty or unavailable.');
   const record={key,userKey,songId:String(song.id),title:String(title||song.title||'Untitled Song'),artist:String(song.artist||'Artist Level Up'),genre:String(song.genre||'Music'),coverArt:String(song.coverArt||song.coverUrl||song.coverImage||''),mime:String(blob.type||'audio/mpeg'),size:Number(blob.size||0),addedAt:Date.now(),blob};
   return aluPutOfflineDownload(record);
 }

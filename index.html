@@ -6131,7 +6131,12 @@ window.__ALU_REWARDED_DOWNLOAD_V101=true;
 
 var TEST_AD_UNIT='/22639388115/rewarded_web_example';
 var AD_UNIT=String(window.ALU_AD_MANAGER_REWARDED_AD_UNIT||TEST_AD_UNIT);
-var rewardedSlot=null,pending=null,granted=false,ready=false,loading=false,prewarming=false;
+var rewardedSlot=null;
+var pending=null;
+var granted=false;
+var waiting=false;
+var servicesStarted=false;
+var requestTimer=null;
 
 function esc(v){
   return typeof window.esc==='function'?window.esc(String(v)):String(v).replace(/[&<>"']/g,function(m){
@@ -6156,26 +6161,32 @@ function closeModal(){
   var modal=document.getElementById('modal');
   if(modal)modal.classList.remove('show');
 }
-function showRewardClose(){
+function showClose(){
   var b=document.getElementById('aluRewardedCloseBtn');
   if(b){b.style.display='block';b.disabled=false;b.textContent='Close';}
 }
-function setWatchState(readyState,text){
-  var b=document.getElementById('aluRewardedWatchBtn');
+function setStatus(text){
   var s=document.getElementById('aluRewardedAdStatus');
-  if(b){
-    b.disabled=!readyState;
-    b.textContent=readyState?'▶ Watch Ad & Unlock':'⏳ Preparing Ad…';
-  }
   if(s)s.textContent=text||'';
 }
-function cleanupSlot(){
+function setWatch(ready,text){
+  var b=document.getElementById('aluRewardedWatchBtn');
+  if(b){
+    b.disabled=!ready;
+    b.textContent=ready?'▶ Watch Ad & Unlock':'⏳ Preparing Ad…';
+  }
+  if(text!==undefined)setStatus(text);
+}
+function stopRequestTimer(){
+  if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
+}
+function destroySlot(){
+  stopRequestTimer();
   try{
     if(rewardedSlot&&window.googletag&&googletag.destroySlots)googletag.destroySlots([rewardedSlot]);
   }catch(e){}
   rewardedSlot=null;
-  ready=false;
-  loading=false;
+  waiting=false;
   granted=false;
 }
 function downloadUrl(url,name,ext){
@@ -6197,9 +6208,9 @@ function directDownload(song,title){
   }
   var name=(title||song.title||'Artist Level Up Song').replace(/[^a-z0-9._ -]/gi,'').trim()||'Artist-Level-Up-Song';
   var ext=(String(url).match(/\.(mp3|m4a|wav|ogg|aac)(?:[?#]|$)/i)||[])[1]||'mp3';
-  var finalUrl=downloadUrl(url,name,ext);
+  var href=downloadUrl(url,name,ext);
   var a=document.createElement('a');
-  a.href=finalUrl;
+  a.href=href;
   a.download=name+'.'+ext;
   a.target='_blank';
   a.rel='noopener';
@@ -6209,160 +6220,153 @@ function directDownload(song,title){
   a.remove();
   if(typeof window.toast==='function')window.toast('Download started ✓');
 }
-function setReadyButton(){
+function retryButton(){
   var b=document.getElementById('aluRewardedWatchBtn');
-  var s=document.getElementById('aluRewardedAdStatus');
   if(!b)return;
-  if(ready){
-    b.disabled=false;
-    b.textContent='▶ Watch Ad & Unlock';
-    b.onclick=function(){
-      try{
-        if(!rewardedSlot||!ready)return;
-        b.disabled=true;
-        b.textContent='Ad playing…';
-        ready=false;
-        var shown=googletag._rewardedVisibleFallback;
-        if(typeof shown==='undefined'){}
-        var ok=rewardedSlot.__aluReadyEvent&&rewardedSlot.__aluReadyEvent.makeRewardedVisible?
-          rewardedSlot.__aluReadyEvent.makeRewardedVisible():false;
-        if(!ok){
-          b.disabled=false;
-          b.textContent='▶ Watch Ad & Unlock';
-          ready=true;
-          if(s)s.textContent='The ad could not start. Please tap again.';
-        }else if(s){
-          s.textContent='Ad playing… Watch it to the end to unlock your download.';
-        }
-      }catch(e){
-        b.disabled=false;
-        b.textContent='▶ Watch Ad & Unlock';
-        ready=true;
-        if(s)s.textContent='The ad could not start. Please tap again.';
-      }
-    };
-  }else{
-    b.disabled=true;
-    b.textContent='⏳ Preparing Ad…';
-  }
+  b.disabled=false;
+  b.textContent='↻ Try Ad Again';
+  b.onclick=function(){
+    var p=pending;
+    if(p)requestRewardedAd(p.id,p.title);
+  };
 }
-function prepareRewardedSlot(){
-  if(prewarming||rewardedSlot)return;
-  if(!window.googletag||!googletag.cmd){
-    setTimeout(prepareRewardedSlot,250);
-    return;
-  }
-  prewarming=true;
-  googletag.cmd.push(function(){
-    try{
-      rewardedSlot=googletag.defineOutOfPageSlot(AD_UNIT,googletag.enums.OutOfPageFormat.REWARDED);
-      if(!rewardedSlot){
-        prewarming=false;
-        return;
-      }
-      rewardedSlot.addService(googletag.pubads());
-
-      googletag.pubads().addEventListener('rewardedSlotReady',function(evt){
-        if(evt.slot!==rewardedSlot)return;
-        rewardedSlot.__aluReadyEvent=evt;
-        ready=true;
-        loading=false;
-        prewarming=false;
-        var s=document.getElementById('aluRewardedAdStatus');
-        if(s)s.textContent='The ad is ready. Watch it to unlock your free download.';
-        setReadyButton();
-      });
-
-      googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
-        if(evt.slot!==rewardedSlot)return;
-        granted=true;
-        var p=pending;
-        var s=document.getElementById('aluRewardedAdStatus');
-        if(s)s.textContent='Reward received ✓ Starting your download…';
-        if(p){
-          var song=getSong(p.id);
-          if(song)directDownload(song,p.title);
-        }
-        showRewardClose();
-        setTimeout(function(){
-          closeModal();
-          cleanupSlot();
-          setTimeout(prepareRewardedSlot,200);
-        },450);
-      });
-
-      googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
-        if(evt.slot!==rewardedSlot)return;
-        var s=document.getElementById('aluRewardedAdStatus');
-        if(s)s.textContent='Ad finished. Confirming your reward…';
-        showRewardClose();
-      });
-
-      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
-        if(evt.slot!==rewardedSlot)return;
-        if(granted)return;
-        var s=document.getElementById('aluRewardedAdStatus');
-        if(s)s.textContent='Ad closed before the download reward was confirmed.';
-        showRewardClose();
-        cleanupSlot();
-        setTimeout(prepareRewardedSlot,200);
-        var b=document.getElementById('aluRewardedWatchBtn');
-        if(b){
-          b.disabled=true;
-          b.textContent='⏳ Preparing Ad…';
-        }
-      });
-
-      googletag.pubads().addEventListener('slotRenderEnded',function(evt){
-        if(evt.slot===rewardedSlot&&evt.isEmpty){
-          prewarming=false;
-          loading=false;
-          ready=false;
-          var s=document.getElementById('aluRewardedAdStatus');
-          if(s)s.textContent='No rewarded ad is available right now. Please try again later.';
-          setWatchState(false,'No rewarded ad is available right now. Please try again later.');
-        }
-      });
-
-      googletag.enableServices();
-      loading=true;
-      googletag.display(rewardedSlot);
-    }catch(err){
-      console.warn('Rewarded download ad error:',err);
-      rewardedSlot=null;
-      ready=false;
-      loading=false;
-      prewarming=false;
-      setWatchState(false,'The ad could not be prepared. Please try again later.');
-      setTimeout(prepareRewardedSlot,1500);
-    }
-  });
-}
-window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
+function requestRewardedAd(songId,title){
   pending={id:String(songId),title:String(title||'this song')};
+  destroySlot();
   var ok=openModal(
     String(title||'Download'),
     '<span class="pill">FREE DOWNLOAD</span>'+
     '<h2>Download '+esc(title)+'</h2>'+
     '<p class="muted">Watch a short advertisement and this song will be unlocked for free.</p>'+
     '<div class="card"><b>🎁 Free download</b>'+
-    '<p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">'+
-    (ready?'The ad is ready. Watch it to unlock your free download.':'Preparing the ad in the background…')+
-    '</p></div>'+
-    '<button id="aluRewardedWatchBtn" class="btn primary full" type="button" '+(ready?'':'disabled')+'>'+
-    (ready?'▶ Watch Ad & Unlock':'⏳ Preparing Ad…')+
-    '</button>'+
+    '<p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Getting the ad ready…</p></div>'+
+    '<button id="aluRewardedWatchBtn" class="btn primary full" type="button" disabled>⏳ Preparing Ad…</button>'+
     '<button id="aluRewardedCloseBtn" class="btn full" type="button" data-action="closeModal" style="display:none">Close</button>'
   );
-  if(ok)setReadyButton();
-  if(!rewardedSlot&&!prewarming)prepareRewardedSlot();
+  if(!ok)return;
+
+  if(!window.googletag||!googletag.cmd){
+    setStatus('Google ad service is still loading. Please try again.');
+    retryButton();
+    showClose();
+    return;
+  }
+
+  waiting=true;
+  setStatus('Getting the ad ready…');
+
+  googletag.cmd.push(function(){
+    try{
+      rewardedSlot=googletag.defineOutOfPageSlot(
+        AD_UNIT,
+        googletag.enums.OutOfPageFormat.REWARDED
+      );
+
+      if(!rewardedSlot){
+        waiting=false;
+        setStatus('Rewarded ads are not supported on this device/browser.');
+        retryButton();
+        showClose();
+        return;
+      }
+
+      rewardedSlot.addService(googletag.pubads());
+
+      googletag.pubads().addEventListener('rewardedSlotReady',function(evt){
+        if(evt.slot!==rewardedSlot||!waiting)return;
+        stopRequestTimer();
+        setWatch(true,'The ad is ready. Watch it to unlock your free download.');
+        var b=document.getElementById('aluRewardedWatchBtn');
+        if(b){
+          b.onclick=function(){
+            try{
+              b.disabled=true;
+              b.textContent='Ad playing…';
+              evt.makeRewardedVisible();
+            }catch(e){
+              b.disabled=false;
+              b.textContent='▶ Watch Ad & Unlock';
+              setStatus('The ad could not start. Tap again.');
+            }
+          };
+        }
+      });
+
+      googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
+        if(evt.slot!==rewardedSlot)return;
+        setStatus('Ad finished. Confirming your reward…');
+        showClose();
+      });
+
+      googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
+        if(evt.slot!==rewardedSlot)return;
+        granted=true;
+        waiting=false;
+        stopRequestTimer();
+        setStatus('Reward received ✓ Starting your download…');
+        var p=pending;
+        if(p){
+          var song=getSong(p.id);
+          if(song)directDownload(song,p.title);
+          else if(typeof window.toast==='function')window.toast('Song could not be found for download.');
+        }
+        showClose();
+        setTimeout(function(){
+          closeModal();
+          destroySlot();
+        },500);
+      });
+
+      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
+        if(evt.slot!==rewardedSlot)return;
+        if(granted)return;
+        waiting=false;
+        stopRequestTimer();
+        setStatus('Ad closed before the free-download reward was confirmed.');
+        retryButton();
+        showClose();
+        destroySlot();
+      });
+
+      googletag.pubads().addEventListener('slotRenderEnded',function(evt){
+        if(evt.slot!==rewardedSlot)return;
+        if(evt.isEmpty){
+          waiting=false;
+          stopRequestTimer();
+          setStatus('No rewarded ad is available right now.');
+          retryButton();
+          showClose();
+          destroySlot();
+        }
+      });
+
+      if(!servicesStarted){
+        googletag.enableServices();
+        servicesStarted=true;
+      }
+      googletag.display(rewardedSlot);
+
+      requestTimer=setTimeout(function(){
+        if(!waiting||!rewardedSlot)return;
+        waiting=false;
+        setStatus('The ad is taking too long to load. Try again.');
+        retryButton();
+        showClose();
+      },7000);
+    }catch(err){
+      console.warn('Rewarded download ad error:',err);
+      waiting=false;
+      stopRequestTimer();
+      setStatus('The ad could not be loaded. Try again.');
+      retryButton();
+      showClose();
+    }
+  });
+}
+
+window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
+  requestRewardedAd(songId,title);
 };
 window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};
-
-function boot(){
-  prepareRewardedSlot();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
-else boot();
 })();
 </script>

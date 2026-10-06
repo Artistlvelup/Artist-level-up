@@ -1739,7 +1739,7 @@ async function playOfflineDownload(key){
     await audio.play();syncFullPlayer();toast('Playing offline ✓');
   }catch(e){console.warn('Offline playback failed',e);toast('Could not play this offline song.');}
 }
-async function renderOfflineRoom(){
+async async function renderOfflineRoom(){
   const box=document.getElementById('offlineRoomContent');if(!box)return;
   if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
   try{
@@ -6317,7 +6317,13 @@ document.addEventListener('click',function(e){
   e.preventDefault();e.stopImmediatePropagation();openOfflineRoom();
 },true);
 window.ALU_OPEN_OFFLINE_ROOM=openOfflineRoom;
-document.addEventListener('click',function(e){var b=e.target.closest?.('#offlineRoomBack');if(!b)return;e.preventDefault();e.stopPropagation();var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');if(room)room.style.display='none';if(home)home.style.display='';});
+document.addEventListener('click',function(e){
+  var b=e.target.closest?.('#offlineRoomBack');if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');
+  if(room)room.style.display='none';
+  if(home)home.style.display='';
+});
 })();
 </script>
 <script id="aluV101RewardedDownloadAds">

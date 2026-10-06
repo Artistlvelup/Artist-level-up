@@ -918,7 +918,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
  .listener-page .listener-artist-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
  .listener-page .listener-genre-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
 }
-</style></head>
+</style><script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>\n</head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
   <button class="g77-close" type="button" aria-label="Close">×</button>
@@ -6110,12 +6110,11 @@ document.addEventListener('click',function(e){
  const dl=e.target.closest?.('[data-action="downloadSong"],[data-download]');if(!dl)return;
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
  if(!window.ALU_REQUIRE_USER_REGISTRATION())return;
- const title=(window.state?.songs||[]).find(s=>String(s.id)===String(dl.dataset.songId||dl.dataset.download))?.title||'this song';
- const body=document.getElementById('modalBody'),modal=document.getElementById('modal');
- if(body&&modal){
-  body.innerHTML='<span class="pill">PAID DOWNLOAD</span><h2>Download '+(typeof window.esc==='function'?window.esc(title):title)+'</h2><p class="muted">Downloads are not free. Your account is registered, but a download purchase must be completed before the audio file can be saved offline.</p><div class="card"><b>🔒 Download protected</b><p class="tiny muted" style="margin-bottom:0">The download price/payment option will appear here when the song has a configured purchase price.</p></div><button class="btn primary full" data-action="closeModal">Close</button>';
-  modal.classList.add('show');
- }
+ const songId=String(dl.dataset.songId||dl.dataset.download||'');
+ const song=(window.state?.songs||[]).find(s=>String(s.id)===songId)||{};
+ const title=song.title||'this song';
+ if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function')window.ALU_WATCH_AD_TO_DOWNLOAD(songId,title);
+ else if(typeof window.toast==='function')window.toast('Rewarded download service is loading. Please try again.');
 },true);
 function boot(){mountEntry();refreshEntry();wrapFeed();setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},150);setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},700)}
 document.addEventListener('click',function(e){if(e.target.closest?.('[data-action="saveUserRegister"]'))setTimeout(refreshEntry,100)},true);

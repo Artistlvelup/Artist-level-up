@@ -6226,6 +6226,8 @@ var pending=null;
 var granted=false;
 var requestBusy=false;
 var requestTimer=null;
+var handoffTimer=null;
+var handoffBusy=false;
 var gptListenersBound=false;
 
 function esc(v){
@@ -6283,16 +6285,53 @@ async function directDownload(song,title){
     setStatus('Reward received ✓ Saving this song inside Artist Level Up…');
     var rec=await aluSaveOfflineSong(song,title);
     showUnlocked();
-    setStatus('Download confirmed ✓ Saved inside your Offline Room. Nothing was sent to the phone Downloads folder.');
+    setStatus('Download confirmed ✓ Saved inside your Offline Room. Returning to Home…');
     try{await renderOfflineRoom();}catch(e){}
     return !!rec;
   }catch(e){
     console.warn('Offline download save failed:',e);
     showUnlocked();
-    setStatus('Reward confirmed ✓ Tap Save Offline Now to try saving the song again.');
+    setStatus('Reward confirmed ✓ The song could not be saved yet. Tap Save Offline Now.');
     var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
     return false;
   }
+}
+function finishRewardedHandoff(){
+  if(handoffBusy)return;
+  handoffBusy=true;
+  if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
+  var p=pending,song=p?getSong(p.id):null;
+  if(!granted||!song){
+    setStatus('The ad finished, but the reward was not confirmed. Please try again.');
+    cleanupSlot();
+    handoffBusy=false;
+    return;
+  }
+  directDownload(song,p.title).then(function(saved){
+    if(saved){
+      setStatus('Download confirmed ✓ Saved in Offline Room.');
+      setTimeout(function(){
+        cleanupSlot();
+        var modal=document.getElementById('modal');if(modal)modal.classList.remove('show');
+        try{window.go('home');}catch(e){}
+        pending=null;
+        handoffBusy=false;
+      },350);
+    }else{
+      cleanupSlot();
+      handoffBusy=false;
+    }
+  }).catch(function(){
+    cleanupSlot();
+    handoffBusy=false;
+  });
+}
+function scheduleRewardedHandoff(delay){
+  if(handoffTimer)clearTimeout(handoffTimer);
+  handoffTimer=setTimeout(function(){
+    handoffTimer=null;
+    finishRewardedHandoff();
+  },Math.max(0,Number(delay)||0));
 }
 function cleanupSlot(){
   if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
@@ -6321,17 +6360,24 @@ function bindGptListeners(){
     if(evt.slot!==rewardedSlot)return;
     granted=true;
     if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
-    setStatus('Reward received ✓ Your free download is unlocked.');
+    setStatus('Reward received ✓ Saving your offline download…');
     showUnlocked();
+    scheduleRewardedHandoff(250);
   });
   googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
     if(evt.slot!==rewardedSlot)return;
-    setStatus(granted?'Reward confirmed ✓ Your free download is unlocked.':'Ad finished. Confirming your free-download reward…');
+    setStatus('6 seconds complete ✓ Confirming reward…');
     showClose();
+    scheduleRewardedHandoff(1800);
   });
   googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
     if(evt.slot!==rewardedSlot)return;
-    if(granted){setStatus('Reward confirmed ✓ Your free download is unlocked. Tap Download Now.');showUnlocked();return;}
+    if(granted){
+      setStatus('Reward confirmed ✓ Closing the ad and saving your song…');
+      scheduleRewardedHandoff(100);
+      return;
+    }
+    if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
     setStatus('The ad closed before the reward was confirmed.');showClose();resetRetry();
   });
   googletag.pubads().addEventListener('slotRenderEnded',function(evt){

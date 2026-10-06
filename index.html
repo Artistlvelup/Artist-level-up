@@ -6118,103 +6118,7 @@ function boot(){
 boot();
 })();
 </script>
-<script id="aluV101UserRegistrationGate">
-(function(){
-'use strict';
-var pendingDownload=null;
-var handoffRunning=false;
 
-function registered(){
-  if(window.state&&window.state.userRegistered===true)return true;
-  try{
-    const raw=localStorage.getItem('alu_full_v1')||localStorage.getItem('artistLevelUpState')||'';
-    const saved=raw?JSON.parse(raw):null;
-    if(saved?.userRegistered===true){
-      if(window.state){
-        window.state.userRegistered=true;
-        window.state.userAccount=saved.userAccount||window.state.userAccount||{};
-      }
-      return true;
-    }
-  }catch(e){}
-  return false;
-}
-
-function openRegistration(){
-  try{
-    if(typeof window.action==='function'){
-      window.action('openUserRegister');
-      return true;
-    }
-  }catch(e){}
-  return false;
-}
-
-function continueDownload(){
-  if(handoffRunning)return;
-  handoffRunning=true;
-  var p=pendingDownload;
-  pendingDownload=null;
-  if(!p){handoffRunning=false;return;}
-  var song=p.song;
-  if(!song){
-    try{song=(window.state?.songs||[]).find(function(s){return String(s.id)===String(p.songId);})||null;}catch(e){}
-  }
-  if(!registered()){
-    handoffRunning=false;
-    try{window.toast('Registration was not completed. Please register before downloading.');}catch(e){}
-    return;
-  }
-  if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function'){
-    try{
-      window.ALU_WATCH_AD_TO_DOWNLOAD(p.songId,p.title,song);
-    }catch(e){
-      try{window.toast('Rewarded download service is loading. Please try again.');}catch(_e){}
-    }
-  }else{
-    try{window.toast('Rewarded download service is loading. Please try again.');}catch(e){}
-  }
-  handoffRunning=false;
-}
-
-window.ALU_ON_USER_REGISTERED=function(){
-  /* Called by saveUserRegister only after the account has been validated,
-     persisted, and the registration modal has been closed. No timer/race. */
-  if(!pendingDownload)return;
-  if(!registered())return;
-  continueDownload();
-};
-
-window.ALU_REQUIRE_USER_REGISTRATION=function(songId,title,song){
-  if(registered())return true;
-  pendingDownload={songId:String(songId||''),title:String(title||'this song'),song:song||null};
-  if(!openRegistration()){
-    pendingDownload=null;
-    try{window.toast('Please register first to download music.')}catch(e){alert('Please register first to download music.')}
-  }
-  return false;
-};
-
-/* One download gate only. It runs in capture phase before the normal action dispatcher,
-   so no rewarded ad can start before listener registration is complete. */
-document.addEventListener('click',function(e){
-  const dl=e.target.closest?.('[data-action="downloadSong"],[data-download]');
-  if(!dl)return;
-  e.preventDefault();
-  e.stopPropagation();
-  e.stopImmediatePropagation();
-  const songId=String(dl.dataset.songId||dl.dataset.download||'');
-  const song=(typeof state!=='undefined'?(state.songs||[]):[]).find(function(s){return String(s.id)===songId})||null;
-  const title=song?.title||'this song';
-  if(!window.ALU_REQUIRE_USER_REGISTRATION(songId,title,song))return;
-  if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function'){
-    window.ALU_WATCH_AD_TO_DOWNLOAD(songId,title,song);
-  }else if(typeof window.toast==='function'){
-    window.toast('Rewarded download service is loading. Please try again.');
-  }
-},true);
-})();
-</script>
 
 <style id="aluV101DownloadsSurface">
 #offlineRoom{margin-top:14px}
@@ -6277,6 +6181,49 @@ var requestTimer=null;
 var handoffTimer=null;
 var handoffBusy=false;
 var gptListenersBound=false;
+
+/* V101 SINGLE DOWNLOAD REGISTRATION GATE
+   This is the only gate for rewarded downloads. It lives inside the rewarded
+   download service so every caller is protected, without a competing capture listener. */
+var pendingRegistrationDownload=null;
+function listenerRegistered(){
+  if(window.state&&window.state.userRegistered===true)return true;
+  try{
+    var raw=localStorage.getItem('alu_full_v1')||localStorage.getItem('artistLevelUpState')||'';
+    var saved=raw?JSON.parse(raw):null;
+    if(saved&&saved.userRegistered===true){
+      if(window.state){
+        window.state.userRegistered=true;
+        window.state.userAccount=saved.userAccount||window.state.userAccount||{};
+        window.state.profile=window.state.profile||{};
+        if(saved.profile)window.state.profile=saved.profile;
+      }
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+function requestListenerRegistration(songId,title,song){
+  pendingRegistrationDownload={id:String(songId||''),title:String(title||song?.title||'this song'),song:song||null};
+  try{
+    if(typeof window.action==='function'){
+      Promise.resolve(window.action('openUserRegister')).catch(function(e){
+        pendingRegistrationDownload=null;
+        try{window.toast('Please register first to download music.')}catch(_e){}
+      });
+      return;
+    }
+  }catch(e){}
+  pendingRegistrationDownload=null;
+  try{window.toast('Please register first to download music.')}catch(e){}
+}
+window.ALU_ON_USER_REGISTERED=function(){
+  var p=pendingRegistrationDownload;
+  if(!p||!listenerRegistered())return;
+  pendingRegistrationDownload=null;
+  window.ALU_WATCH_AD_TO_DOWNLOAD(p.id,p.title,p.song);
+};
+
 
 function esc(v){
   return typeof window.esc==='function' ? window.esc(String(v)) : String(v).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]});
@@ -6479,6 +6426,10 @@ function beginRewardedRequest(){
   });
 }
 window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
+  if(!listenerRegistered()){
+    requestListenerRegistration(songId,title,selectedSong||getSong(songId));
+    return;
+  }
   var attachedSong=selectedSong||getSong(songId);
   pending={id:String(songId),title:String(title||attachedSong?.title||'this song'),song:attachedSong};granted=false;rewardedVideoCompleted=false;rewardedSlotClosed=false;
   var ok=openModal(String(title||'Download'),

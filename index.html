@@ -957,7 +957,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div id="discoverSongs" style="display:none"></div><div id="genres" style="display:none"></div><div id="artists" style="display:none"></div>
 </section>
 <section class="page" id="videos"><span class="pill">🎬 ALU FEED</span><h1>Video &amp; Picture Feed 🔥</h1><p class="muted">Watch videos, see artist and user pictures, and share your own post from the feed.</p>
-<div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="offline">📥 Downloads</button><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div><div class="card" id="offlineRoom" style="border:1px solid var(--line);background:#101116"><div class="row between"><div><span class="pill">📥 DOWNLOADS</span><h2 style="margin:8px 0 4px">Downloads</h2></div><span class="tiny ok">Available offline</span></div><p class="muted" id="offlineRoomMeta">0 songs · 0 MB downloaded</p><div id="offlineRoomContent"></div></div></section>
+<div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><div id="libraryHomeView"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="offline">📥 Downloads</button><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div></div><div class="card" id="offlineRoom" style="display:none;border:1px solid var(--line);background:#101116"><div class="row between"><button class="btn" type="button" id="offlineRoomBack">‹ Back</button><span class="tiny ok">Available offline</span></div><div style="margin-top:12px"><span class="pill">📥 DOWNLOADS</span><h2 style="margin:8px 0 4px">Downloads</h2><p class="muted" id="offlineRoomMeta">0 songs · 0 MB downloaded</p></div><div id="offlineRoomContent"></div></div></section>
 <section class="page" id="create"><span class="pill">CREATE ROOM</span><h1>Creator Room 🎨</h1>
 <div class="creator-room-choice" id="creatorRoomChoice">
   <button class="creator-room-box creator-room-music" type="button" onclick="return openCreatorTool('music',event)">
@@ -1536,7 +1536,18 @@ function play(id){const s=state.songs.find(x=>x.id==id);if(!s)return;current=s;p
 function toggleLike(id){const s=state.songs.find(x=>x.id==id);if(!s)return;s.liked=!s.liked;save();toast(s.liked?'Added to Library ❤️':'Removed from Library')}
 function genre(g){const list=state.songs.filter(s=>s.genre.toLowerCase()===g.toLowerCase());document.getElementById('modalBody').innerHTML=`<h2>${esc(g)} 🎵</h2><p class="muted">${list.length} tracks found</p>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
 function artist(a){const list=state.songs.filter(s=>s.artist===a);document.getElementById('modalBody').innerHTML=`<h2>${esc(a)} 👤</h2><p class="muted">Artist profile</p><button class="btn primary" data-action="follow">+ Follow</button>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
-function showLibrary(type){if(type==='offline'){if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;renderOfflineRoom();document.getElementById('offlineRoom')?.scrollIntoView({behavior:'smooth',block:'start'});return}if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}}
+function showLibrary(type){
+if(type==='offline'){
+ if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
+ var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');
+ if(home)home.style.display='none'; if(room)room.style.display='block';
+ renderOfflineRoom(); return;
+}
+if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}
+if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}
+if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}
+if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}
+}
 function openPlaylist(i){const name=state.playlists[i]||'Playlist';document.getElementById('modalBody').innerHTML=`<h2>🎵 ${esc(name)}</h2><p class="muted">Your playlist is ready.</p><p class="muted">Add songs by liking them from Discover. Your liked songs can be saved here as you build the playlist.</p>${state.songs.filter(s=>s.liked).map(songCard).join('')||'<p class="muted">No songs in this playlist yet.</p>'}`;document.getElementById('modal').classList.add('show')}
 function adminTargetSong(){return (state.songs||[]).find(s=>s.status==='Pending Review'||s.status==='Pending')||null;}
 function adminTargetWithdrawal(){return (state.transactions||[]).find(t=>t.type==='Withdrawal request'&&t.status==='Pending')||null;}
@@ -6307,6 +6318,7 @@ document.addEventListener('click',function(e){
   e.preventDefault();e.stopImmediatePropagation();openOfflineRoom();
 },true);
 window.ALU_OPEN_OFFLINE_ROOM=openOfflineRoom;
+document.addEventListener('click',function(e){var b=e.target.closest?.('#offlineRoomBack');if(!b)return;e.preventDefault();e.stopPropagation();var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');if(room)room.style.display='none';if(home)home.style.display='';});
 })();
 </script>
 <script id="aluV101RewardedDownloadAds">
@@ -6321,6 +6333,8 @@ var rewardedSlot=null;
 var rewardedReadyEvent=null;
 var pending=null;
 var granted=false;
+var rewardedVideoCompleted=false;
+var rewardedSlotClosed=false;
 var requestBusy=false;
 var requestTimer=null;
 var handoffTimer=null;
@@ -6383,7 +6397,7 @@ async function directDownload(song,title){
     var rec=await aluSaveOfflineSong(song,title);
     if(rec){
       showUnlocked();
-      setStatus('Download confirmed ✓ Saved inside your Offline Room. Returning to Home…');
+      setStatus('Download confirmed ✓ Saved in Downloads. Returning to Home…');
       try{await renderOfflineRoom();}catch(e){}
       return true;
     }
@@ -6405,9 +6419,10 @@ function finishRewardedHandoff(){
   if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
   var p=pending,song=p?.song||getSong(p?.id);
   if(!granted){
-    setStatus('The ad finished, but the reward was not confirmed. Please try again.');
+    setStatus('The ad finished, but the reward was not confirmed. Tap Watch Ad Again.');
     cleanupSlot();
     var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
+    resetRetry();
     handoffBusy=false;
     return;
   }
@@ -6421,7 +6436,7 @@ function finishRewardedHandoff(){
   }
   directDownload(song,p.title).then(function(saved){
     if(saved){
-      setStatus('Download confirmed ✓ Saved in Offline Room.');
+      setStatus('Download confirmed ✓ Saved in Downloads.');
       setTimeout(function(){
         cleanupSlot();
         var modal=document.getElementById('modal');if(modal)modal.classList.remove('show');
@@ -6465,8 +6480,9 @@ function bindGptListeners(){
   googletag.pubads().addEventListener('rewardedSlotReady',function(evt){
     if(evt.slot!==rewardedSlot)return;
     rewardedReadyEvent=evt;requestBusy=false;
-    setWatchButton('▶ Watch Ad & Unlock',false,function(){try{setWatchButton('Ad playing…',true,null);setStatus('Ad playing… Watch it to the end to unlock the free download.');evt.makeRewardedVisible();}catch(e){setStatus('The ad could not start. Tap Try Again.');resetRetry();}});
-    setStatus('The ad is ready. Tap Watch Ad & Unlock.');
+    setWatchButton('Ad loading…',true,null);
+    setStatus('The ad is ready. Starting it now…');
+    try{setTimeout(function(){if(evt.slot!==rewardedSlot||granted)return;setStatus('Ad playing… Watch it to the end to unlock the free download.');evt.makeRewardedVisible();},60);}catch(e){setStatus('The ad could not start. Tap Try Again.');resetRetry();}
   });
   googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
     if(evt.slot!==rewardedSlot)return;
@@ -6478,19 +6494,26 @@ function bindGptListeners(){
   });
   googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
     if(evt.slot!==rewardedSlot)return;
-    setStatus('6 seconds complete ✓ Confirming reward…');
+    rewardedVideoCompleted=true;
+    setStatus('Ad complete ✓ Confirming your reward…');
     showClose();
-    scheduleRewardedHandoff(1800);
+    scheduleRewardedHandoff(5000);
   });
   googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
     if(evt.slot!==rewardedSlot)return;
+    rewardedSlotClosed=true;
     if(granted){
-      setStatus('Reward confirmed ✓ Closing the ad and saving your song…');
+      setStatus('Reward confirmed ✓ Saving your song…');
       scheduleRewardedHandoff(100);
       return;
     }
+    if(rewardedVideoCompleted){
+      setStatus('Ad complete ✓ Waiting for reward confirmation…');
+      scheduleRewardedHandoff(5000);
+      return;
+    }
     if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
-    setStatus('The ad closed before the reward was confirmed.');showClose();resetRetry();
+    setStatus('The ad closed before it was completed.');showClose();resetRetry();
   });
   googletag.pubads().addEventListener('slotRenderEnded',function(evt){
     if(evt.slot!==rewardedSlot||!evt.isEmpty)return;
@@ -6519,7 +6542,7 @@ function beginRewardedRequest(){
 }
 window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
   var attachedSong=selectedSong||getSong(songId);
-  pending={id:String(songId),title:String(title||attachedSong?.title||'this song'),song:attachedSong};granted=false;
+  pending={id:String(songId),title:String(title||attachedSong?.title||'this song'),song:attachedSong};granted=false;rewardedVideoCompleted=false;rewardedSlotClosed=false;
   var ok=openModal(String(title||'Download'),
     '<span class="pill">FREE DOWNLOAD</span>'+'<h2>Download '+esc(title)+'</h2>'+'<p class="muted">Watch a short advertisement and this song will be unlocked for free.</p>'+'<div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Ready. Tap Watch Ad & Unlock to continue.</p></div>'+'<button id="aluRewardedWatchBtn" class="btn primary full" type="button">▶ Watch Ad & Unlock</button>'+'<div id="aluRewardedUnlockedCard" class="card" style="display:none;border-color:#39d98a;background:linear-gradient(135deg,#0c2d1d,#123d28)"><b style="color:#bff6d9">✅ Reward confirmed</b><p class="tiny muted" style="margin:7px 0 0">The advertisement is complete and your reward is confirmed. Save the song inside your Offline Room.</p><button id="aluRewardedDownloadNow" class="btn green full" type="button" style="margin-top:10px">⬇ Save Offline Now</button></div>'+'<button id="aluRewardedCloseBtn" class="btn full" type="button" style="display:none">Close</button>'
   );

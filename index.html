@@ -6242,6 +6242,28 @@ setInterval(function(){refreshEntry();wrapFeed()},1500);
 })();
 </script>
 
+<script id="aluV101OfflineRoomButtonFix">
+(function(){
+'use strict';
+function openOfflineRoom(){
+  try{
+    if(typeof window.ALU_REQUIRE_USER_REGISTRATION==='function' && !window.ALU_REQUIRE_USER_REGISTRATION()) return;
+    if(typeof window.go==='function') window.go('library');
+    setTimeout(function(){
+      if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();
+      var room=document.getElementById('offlineRoom');
+      if(room) room.scrollIntoView({behavior:'smooth',block:'start'});
+    },80);
+  }catch(e){console.warn('Offline Room button failed:',e);}
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest?.('[data-library="offline"]');
+  if(!b)return;
+  e.preventDefault();e.stopImmediatePropagation();openOfflineRoom();
+},true);
+window.ALU_OPEN_OFFLINE_ROOM=openOfflineRoom;
+})();
+</script>
 <script id="aluV101RewardedDownloadAds">
 (function(){
 'use strict';

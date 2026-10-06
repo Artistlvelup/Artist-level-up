@@ -1686,48 +1686,47 @@ async function aluSaveOfflineSong(song,title){
   const key=aluOfflineKey(song.id);
   const existing=await aluGetOfflineDownload(key);
   if(existing)return existing;
-
-  let blob=null;
-  /* First use the app's durable local audio copy. */
-  if(song.audioKey){
-    try{blob=await aluGetAudio(song.audioKey)}catch(e){console.warn('Offline audio store read failed:',e)}
+  let blob=null,sourceError=null;
+  if(song.audioKey){try{blob=await aluGetAudio(song.audioKey)}catch(e){sourceError=e;console.warn('Offline audio store read failed:',e)}}
+  if(!blob && /^data:audio\//i.test(String(song.audioDataUrl||''))){
+    try{const response=await fetch(String(song.audioDataUrl));if(response.ok)blob=await response.blob();else sourceError=new Error('Inline audio request returned '+response.status)}
+    catch(e){sourceError=e;console.warn('Inline audio read failed:',e)}
   }
-
-  /* Then use an inline data URL if one exists. */
-  if(!blob && /^data:audio\\//i.test(String(song.audioDataUrl||''))){
-    try{
-      const response=await fetch(String(song.audioDataUrl));
-      if(response.ok)blob=await response.blob();
-    }catch(e){console.warn('Inline audio read failed:',e)}
-  }
-
-  /* Then use the existing cloud/storage resolver used by the player. */
   if(!blob && typeof window.ALU_DURABLE_AUDIO_SOURCE==='function'){
     try{
       const resolved=await window.ALU_DURABLE_AUDIO_SOURCE(song);
-      if(resolved){
-        const response=await fetch(String(resolved),{mode:'cors',credentials:'omit'});
-        if(response.ok)blob=await response.blob();
-      }
-    }catch(e){console.warn('Durable audio resolver failed:',e)}
+      if(resolved){const response=await fetch(String(resolved),{mode:'cors',credentials:'omit',cache:'no-store'});if(response.ok)blob=await response.blob();else sourceError=new Error('Durable audio request returned '+response.status)}
+    }catch(e){sourceError=e;console.warn('Durable audio resolver failed:',e)}
   }
-
-  /* Direct remote URL fallback. */
   if(!blob){
-    let url=song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||'';
-    if(!/^https?:\\/\\//i.test(String(url)) && typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){
-      try{url=await window.ALU_RESOLVE_CLOUD_AUDIO_URL(song)}catch(e){console.warn('Cloud audio URL recovery failed:',e)}
+    let url=String(song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||'').trim();
+    if(!/^https?:\/\//i.test(url)&&typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){try{url=String(await window.ALU_RESOLVE_CLOUD_AUDIO_URL(song)||'').trim()}catch(e){sourceError=e}}
+    if(url&&window.ALU_SUPABASE_CLIENT?.storage){
+      try{
+        const u=new URL(url,window.location.href),marker='/storage/v1/object/public/',pos=u.pathname.indexOf(marker);
+        if(pos>=0){
+          const rest=u.pathname.slice(pos+marker.length),slash=rest.indexOf('/');
+          if(slash>0){
+            const bucket=decodeURIComponent(rest.slice(0,slash));
+            const objectPath=rest.slice(slash+1).split('/').map(part=>decodeURIComponent(part)).join('/');
+            const dl=await window.ALU_SUPABASE_CLIENT.storage.from(bucket).download(objectPath);
+            if(!dl.error&&dl.data instanceof Blob&&dl.data.size)blob=dl.data;
+            else if(dl.error)sourceError=new Error('Supabase Storage download: '+(dl.error.message||'download failed'));
+          }
+        }
+      }catch(e){sourceError=e;console.warn('Supabase Storage fallback failed:',e)}
     }
-    if(url){
-      const response=await fetch(String(url),{mode:'cors',credentials:'omit'});
-      if(!response.ok)throw new Error('The song could not be downloaded for offline use.');
-      blob=await response.blob();
+    if(!blob&&url){
+      try{const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'no-store'});if(!response.ok)throw new Error('Audio download returned HTTP '+response.status);blob=await response.blob()}
+      catch(e){sourceError=e;console.warn('Direct audio download failed:',e)}
     }
   }
-
-  if(!(blob instanceof Blob)||!blob.size)throw new Error('The downloaded audio file is empty or unavailable.');
+  if(!(blob instanceof Blob)||!blob.size)throw sourceError||new Error('The downloaded audio file is empty or unavailable.');
   const record={key,userKey,songId:String(song.id),title:String(title||song.title||'Untitled Song'),artist:String(song.artist||'Artist Level Up'),genre:String(song.genre||'Music'),coverArt:String(song.coverArt||song.coverUrl||song.coverImage||''),mime:String(blob.type||'audio/mpeg'),size:Number(blob.size||0),addedAt:Date.now(),blob};
-  const saved=await aluPutOfflineDownload(record);\n  aluSaveBlobToDevice(blob,title,song);\n  return saved;
+  const saved=await aluPutOfflineDownload(record);
+  if(!saved)throw new Error('Offline storage did not confirm the save.');
+  aluSaveBlobToDevice(blob,title,song);
+  return saved;
 }
 async function playOfflineDownload(key){
   try{
@@ -6397,17 +6396,15 @@ async function directDownload(song,title){
     var rec=await aluSaveOfflineSong(song,title);
     if(rec){
       showUnlocked();
-      setStatus('Download confirmed ✓ Saved in Downloads. Returning to Home…');
+      setStatus('Download confirmed ✓ Saved in Offline Room.');
       try{await renderOfflineRoom();}catch(e){}
       return true;
     }
-    setStatus('Reward confirmed ✓ The song could not be saved yet. Tap Save Offline Now.');
-    showUnlocked();
-    var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
-    return false;
+    throw new Error('Offline storage did not return a saved record.');
   }catch(e){
     console.warn('Offline download save failed:',e);
-    setStatus('Reward confirmed ✓ The song could not be saved yet. Tap Save Offline Now.');
+    var detail=String(e?.message||e||'Unknown save error').slice(0,180);
+    setStatus('Reward confirmed ✓ Save failed: '+detail);
     showUnlocked();
     var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
     return false;

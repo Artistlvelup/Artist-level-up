@@ -6272,7 +6272,7 @@ document.addEventListener('click',function(e){
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
  if(!window.ALU_REQUIRE_USER_REGISTRATION())return;
  const songId=String(dl.dataset.songId||dl.dataset.download||'');
- const song=(window.state?.songs||[]).find(s=>String(s.id)===songId)||null;
+ const song=(typeof state!=='undefined'?(state.songs||[]):[]).find(s=>String(s.id)===songId)||null;
  const title=song?.title||'this song';
  if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function')window.ALU_WATCH_AD_TO_DOWNLOAD(songId,title,song);
  else if(typeof window.toast==='function')window.toast('Rewarded download service is loading. Please try again.');

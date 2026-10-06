@@ -6173,15 +6173,17 @@ function requestRewardedAd(){
      });
      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
        if(evt.slot!==rewardedSlot)return;
-       var wasGranted=granted;
        var retry=pending;
-       cleanupSlot();
-       if(!wasGranted){
-         var s=document.getElementById('aluRewardedAdStatus');
-         if(s)s.textContent='The ad was closed before Google confirmed the reward. Let the ad finish, then the download will unlock.';
+       var s=document.getElementById('aluRewardedAdStatus');
+       if(granted){ cleanupSlot(); return; }
+       if(s)s.textContent='Ad closed. Waiting briefly for Google to confirm the reward…';
+       setTimeout(function(){
+         if(granted||!rewardedSlot)return;
          var b=document.getElementById('aluRewardedWatchBtn');
          if(b){b.disabled=false;b.textContent='▶ Watch Ad Again';b.onclick=function(){pending=retry;requestRewardedAd();};}
-       }
+         if(s)s.textContent='No reward was received. Watch the ad to the end before closing it.';
+         cleanupSlot();
+       },3000);
      });
      googletag.pubads().addEventListener('slotRenderEnded',function(evt){if(evt.slot===rewardedSlot&&evt.isEmpty)setWatchState(false,'No rewarded ad is available right now. Please try again later.')});
      googletag.enableServices();

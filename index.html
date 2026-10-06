@@ -957,7 +957,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div id="discoverSongs" style="display:none"></div><div id="genres" style="display:none"></div><div id="artists" style="display:none"></div>
 </section>
 <section class="page" id="videos"><span class="pill">🎬 ALU FEED</span><h1>Video &amp; Picture Feed 🔥</h1><p class="muted">Watch videos, see artist and user pictures, and share your own post from the feed.</p>
-<div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div></section>
+<div class="hero" style="border:2px solid var(--gold);background:linear-gradient(135deg,#241e05,#15161c)"><span class="pill">CREATE CENTER</span><h2 style="margin-top:10px">➕ Upload from Create</h2><p class="muted">Music, videos and pictures are now managed from one Create room.</p><button class="btn primary full" data-go="create" type="button">🎨 Open Create & Upload</button></div><div class="card" style="background:linear-gradient(135deg,#17180f,#15161c);border-color:#5b5016"><div class="row between"><div><span class="pill">🌍 WORLDWIDE</span><h2 style="margin-top:8px">Global Video Feed</h2></div><button class="btn" data-action="refreshArtistVideos" type="button">↻ Refresh</button></div><p class="muted">Published videos appear here for everyone. Scroll through the feed and discover artists without searching.</p><div id="globalVideoFullFeed"></div></div><div class="card"><div class="row between"><div><span class="pill">MY VIDEOS</span><h2 style="margin-top:8px">My Uploads</h2></div></div><div id="aluVideoFeed"></div></div></section><section class="page" id="library"><span class="pill">LIBRARY</span><h1>Your Library 📚</h1><div class="grid3"><button class="btn card" data-library="liked">❤️<br/>Liked</button><button class="btn card" data-library="playlist">🎵<br/>Playlists</button><button class="btn card" data-library="recent">🕘<br/>Recent</button></div><button class="btn primary full" data-library="offline">📥 Offline Room</button><button class="btn primary full" data-library="addPlaylist">＋ Add Playlist</button><div id="libraryContent"></div><div class="card" id="offlineRoom" style="border:2px solid #39d98a;background:linear-gradient(135deg,#0c2d1d,#15161c)"><div class="row between"><div><span class="pill">📥 OFFLINE</span><h2 style="margin:8px 0 4px">My Offline Room</h2></div><span class="tiny ok">Inside this app</span></div><p class="muted" id="offlineRoomMeta">0 songs · 0 MB stored inside this app</p><div id="offlineRoomContent"></div></div></section>
 <section class="page" id="create"><span class="pill">CREATE ROOM</span><h1>Creator Room 🎨</h1>
 <div class="creator-room-choice" id="creatorRoomChoice">
   <button class="creator-room-box creator-room-music" type="button" onclick="return openCreatorTool('music',event)">
@@ -1536,7 +1536,7 @@ function play(id){const s=state.songs.find(x=>x.id==id);if(!s)return;current=s;p
 function toggleLike(id){const s=state.songs.find(x=>x.id==id);if(!s)return;s.liked=!s.liked;save();toast(s.liked?'Added to Library ❤️':'Removed from Library')}
 function genre(g){const list=state.songs.filter(s=>s.genre.toLowerCase()===g.toLowerCase());document.getElementById('modalBody').innerHTML=`<h2>${esc(g)} 🎵</h2><p class="muted">${list.length} tracks found</p>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
 function artist(a){const list=state.songs.filter(s=>s.artist===a);document.getElementById('modalBody').innerHTML=`<h2>${esc(a)} 👤</h2><p class="muted">Artist profile</p><button class="btn primary" data-action="follow">+ Follow</button>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
-function showLibrary(type){if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}}
+function showLibrary(type){if(type==='offline'){if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;renderOfflineRoom();document.getElementById('offlineRoom')?.scrollIntoView({behavior:'smooth',block:'start'});return}if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}}
 function openPlaylist(i){const name=state.playlists[i]||'Playlist';document.getElementById('modalBody').innerHTML=`<h2>🎵 ${esc(name)}</h2><p class="muted">Your playlist is ready.</p><p class="muted">Add songs by liking them from Discover. Your liked songs can be saved here as you build the playlist.</p>${state.songs.filter(s=>s.liked).map(songCard).join('')||'<p class="muted">No songs in this playlist yet.</p>'}`;document.getElementById('modal').classList.add('show')}
 function adminTargetSong(){return (state.songs||[]).find(s=>s.status==='Pending Review'||s.status==='Pending')||null;}
 function adminTargetWithdrawal(){return (state.transactions||[]).find(t=>t.type==='Withdrawal request'&&t.status==='Pending')||null;}
@@ -1588,7 +1588,7 @@ body>button[onclick="openUpload()"]{display:none!important}
 .pf-art{width:min(90vw,460px)!important;aspect-ratio:1/1!important;height:auto!important;max-height:none!important;margin:24px auto 22px!important;background:#111!important;overflow:hidden!important;border-radius:18px!important;box-shadow:none!important;border:1px solid rgba(255,210,28,.22)!important;display:flex!important;align-items:center!important;justify-content:center!important}.pf-art img{object-fit:contain!important;width:100%!important;height:100%!important;display:block!important;border-radius:18px!important;background:transparent!important}</style><div aria-hidden="true" class="player-full" id="fullPlayer"><div class="pf-top"><button class="pf-small" data-full-action="minimize">⌄</button><span class="pill">NOW PLAYING</span><button class="pf-small" data-full-action="close">✕</button></div><div class="pf-art" id="fullCover">🎵</div><div class="pf-title" id="fullTitle">Nothing playing</div><div class="muted pf-artist" id="fullArtist">Artist Level Up</div><div style="margin-top:22px"><input id="fullSeek" max="100" min="0" type="range" value="0"/><div class="pf-time"><span id="fullCurrent">0:00</span><span id="fullDuration">--:--</span></div></div><div class="pf-controls"><button class="pf-small" data-full-action="prev">⏮</button><button class="pf-main" data-full-action="toggle" id="fullPlay">▶</button><button class="pf-small" data-full-action="next">⏭</button></div><div class="pf-bottom"><button class="pf-like" data-full-action="like" id="fullLike">♡</button><div class="pf-eq" id="fullEq"><i></i><i></i><i></i><i></i></div><div class="pf-volume">🔊 <input id="fullVolume" max="1" min="0" step="0.01" type="range" value="1"/></div></div><div class="pf-label">Artist Level Up • Full-screen music experience</div></div><audio id="audioEngine" preload="metadata"></audio><script>try{const __a=document.getElementById("audioEngine");if(__a){__a.pause();__a.currentTime=0;__a.removeAttribute("src");__a.load()}}catch(e){}</script><button onclick="openUpload()" style="position:fixed;right:18px;bottom:86px;z-index:55;border:2px solid #d4af37;border-radius:999px;padding:13px 18px;background:#111;color:#f4c542;font-weight:900;box-shadow:0 8px 28px rgba(0,0,0,.35)">＋ Upload Music</button><div id="uploadModal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.92);padding:20px;overflow:auto"><div style="max-width:520px;margin:30px auto;background:#111;border:1px solid #d4af37;border-radius:22px;padding:22px;color:#fff"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;color:#f4c542">Upload Music</h2><button onclick="closeUpload()" style="background:none;border:0;color:#fff;font-size:24px">✕</button></div><p class="muted">Add your song and publish it to your Artist Level Up library.</p><input id="upTitle" placeholder="Song title" style="width:100%;box-sizing:border-box;padding:14px;margin:8px 0;border-radius:10px"/><input id="upGenre" placeholder="Genre (Afrobeats, Gospel, Hip-Hop...)" style="width:100%;box-sizing:border-box;padding:14px;margin:8px 0;border-radius:10px"/><div style="margin:12px 0 6px;padding:12px 14px;border:1px dashed rgba(244,197,66,.55);border-radius:12px;background:#171717"><div style="font-weight:900;color:#f4c542">🎨 Cover artwork</div><div style="font-size:12px;line-height:1.45;color:#bbb;margin-top:5px">Upload a final square cover artwork in exactly 1:1 format. Recommended: 3000 × 3000 px. Only square artwork is accepted. Please resize/canvas your artwork to 3000 × 3000 before uploading so the complete artwork—including the artist's head—is preserved.</div></div><input accept="image/*" id="upCover" style="width:100%;margin:10px 0" type="file"/><div class="cover-art-size-note">Exact format required: 1:1 square. Recommended 3000 × 3000 px.</div><input accept="audio/*" id="upAudio" style="width:100%;margin:10px 0" type="file"/><button onclick="publishUploadedSong()" style="width:100%;padding:15px;border:0;border-radius:12px;background:#f4c542;color:#111;font-weight:900;font-size:16px">📤 PUBLISH SONG</button></div></div><script>function openUpload(){document.getElementById('uploadModal').style.display='block'}function closeUpload(){document.getElementById('uploadModal').style.display='none'}function publishUploadedSong(){const t=document.getElementById('upTitle').value.trim(),g=document.getElementById('upGenre').value.trim()||'Music',a=document.getElementById('upAudio').files[0],c=document.getElementById('upCover').files[0];if(!t||!a){alert('Add a song title and audio file first.');return}const id='song_'+Date.now();let cover='';if(c)cover=URL.createObjectURL(c);const audioUrl=URL.createObjectURL(a);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,audioUrl,coverUrl:cover,plays:0,likes:0});save();closeUpload();if(typeof render==='function')render();alert('🎵 '+t+' has been published!');}</script><script>
 window.ALU_ACTIVE_PAGE=window.ALU_ACTIVE_PAGE||((location.hash||'#home').slice(1)||'home');
 const ALU_DB='artist_level_up_audio_v1';
-function aluOpenDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function aluOpenDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_DB,2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('audio'))db.createObjectStore('audio');if(!db.objectStoreNames.contains('offlineDownloads'))db.createObjectStore('offlineDownloads');};r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>db.close();resolve(db)};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(new Error('Offline storage is busy. Please close and reopen the app.'))})}
 async function aluPutAudio(key,file){
   if(window.ALU_SUPABASE_CLIENT){
     if(window.ALU_CLOUD?.ensureSession){
@@ -1612,6 +1612,95 @@ async function aluPutAudio(key,file){
   return new Promise((res,rej)=>{let done=false;try{const tx=db.transaction('audio','readwrite');const store=tx.objectStore('audio');const blob=(file instanceof Blob)?file:new Blob([file],{type:file?.type||'audio/mpeg'});const req=store.put(blob,key);req.onerror=()=>{if(!done){done=true;rej(req.error||new Error('Audio storage failed'))}};tx.oncomplete=()=>{if(!done){done=true;res({remote:false})}};tx.onerror=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction failed'))}};tx.onabort=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction aborted'))}}}catch(e){if(!done){done=true;rej(e)}}});
 }
 async function aluGetAudio(key){const db=await aluOpenDB();return new Promise((res,rej)=>{const tx=db.transaction('audio');const r=tx.objectStore('audio').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function aluOfflineUserKey(){
+  const email=String(window.state?.userAccount?.email||window.state?.profile?.email||'').trim().toLowerCase();
+  return email?'user:'+email:'device:unregistered';
+}
+function aluOfflineKey(songId){return aluOfflineUserKey()+'::'+String(songId)}
+async function aluPutOfflineDownload(record){
+  const db=await aluOpenDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('offlineDownloads','readwrite');
+    tx.objectStore('offlineDownloads').put(record,record.key);
+    tx.oncomplete=()=>{db.close();res(record)};
+    tx.onerror=()=>{db.close();rej(tx.error||new Error('Offline download storage failed'))};
+    tx.onabort=()=>{db.close();rej(tx.error||new Error('Offline download storage was interrupted'))};
+  });
+}
+async function aluGetOfflineDownload(key){
+  const db=await aluOpenDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('offlineDownloads','readonly');
+    const q=tx.objectStore('offlineDownloads').get(key);
+    q.onsuccess=()=>{const v=q.result||null;db.close();res(v)};
+    q.onerror=()=>{db.close();rej(q.error)};
+  });
+}
+async function aluListOfflineDownloads(){
+  const userKey=aluOfflineUserKey(),db=await aluOpenDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('offlineDownloads','readonly');
+    const q=tx.objectStore('offlineDownloads').getAll();
+    q.onsuccess=()=>{const rows=(q.result||[]).filter(x=>x&&x.userKey===userKey).sort((a,b)=>Number(b.addedAt||0)-Number(a.addedAt||0));db.close();res(rows)};
+    q.onerror=()=>{db.close();rej(q.error)};
+  });
+}
+async function aluDeleteOfflineDownload(key){
+  const db=await aluOpenDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction('offlineDownloads','readwrite');
+    tx.objectStore('offlineDownloads').delete(key);
+    tx.oncomplete=()=>{db.close();res(true)};
+    tx.onerror=()=>{db.close();rej(tx.error||new Error('Could not remove offline song'))};
+  });
+}
+async function aluSaveOfflineSong(song,title){
+  if(!song)throw new Error('Song not found.');
+  const userKey=aluOfflineUserKey();
+  if(userKey==='device:unregistered')throw new Error('Please register your listener account first.');
+  const key=aluOfflineKey(song.id);
+  const existing=await aluGetOfflineDownload(key);
+  if(existing)return existing;
+  let blob=null;
+  if(song.audioKey)blob=await aluGetAudio(song.audioKey);
+  if(!blob){
+    const url=song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||song.audioDataUrl;
+    if(!url)throw new Error('This song has no downloadable audio file.');
+    const response=await fetch(String(url),{mode:'cors',credentials:'omit'});
+    if(!response.ok)throw new Error('The song could not be downloaded for offline use.');
+    blob=await response.blob();
+  }
+  if(!(blob instanceof Blob)||!blob.size)throw new Error('The downloaded audio file is empty.');
+  const record={key,userKey,songId:String(song.id),title:String(title||song.title||'Untitled Song'),artist:String(song.artist||'Artist Level Up'),genre:String(song.genre||'Music'),coverArt:String(song.coverArt||song.coverUrl||song.coverImage||''),mime:String(blob.type||'audio/mpeg'),size:Number(blob.size||0),addedAt:Date.now(),blob};
+  return aluPutOfflineDownload(record);
+}
+async function playOfflineDownload(key){
+  try{
+    const rec=await aluGetOfflineDownload(key);if(!rec){toast('Offline song not found.');return;}
+    const audio=document.getElementById('audioEngine');if(!audio)return;
+    const url=URL.createObjectURL(rec.blob);
+    current={id:'offline_'+rec.songId,title:rec.title,artist:rec.artist,genre:rec.genre,coverArt:rec.coverArt||'',liked:false,offlineOnly:true,offlineObjectUrl:url};
+    playerClosed=false;playing=true;showFullPlayer();
+    audio.pause();audio.src=url;audio.load();audio.currentTime=0;audio.muted=false;audio.volume=Number(document.getElementById('fullVolume')?.value||1);
+    await audio.play();syncFullPlayer();toast('Playing offline ✓');
+  }catch(e){console.warn('Offline playback failed',e);toast('Could not play this offline song.');}
+}
+async function renderOfflineRoom(){
+  const box=document.getElementById('offlineRoomContent');if(!box)return;
+  if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
+  try{
+    const rows=await aluListOfflineDownloads();
+    const total=rows.reduce((n,x)=>n+Number(x.size||0),0);
+    const mb=(total/1048576).toFixed(total>=1048576?1:2);
+    const head=document.getElementById('offlineRoomMeta');if(head)head.textContent=rows.length+' song'+(rows.length===1?'':'s')+' · '+mb+' MB stored inside this app';
+    box.innerHTML=rows.length?rows.map(r=>'<div class="listrow"><div class="cover">'+(r.coverArt?'<img src="'+esc(r.coverArt)+'" style="width:100%;height:100%;object-fit:cover;border-radius:11px" alt="">':'🎵')+'</div><div class="grow"><b>'+esc(r.title)+'</b><div class="tiny muted">'+esc(r.artist)+' · '+esc(r.genre)+'</div><div class="tiny ok">✓ Available offline</div></div><button class="btn green" type="button" data-offline-play="'+esc(r.key)+'">▶</button><button class="iconbtn" type="button" data-offline-delete="'+esc(r.key)+'">✕</button></div>').join(''):'<div class="card" style="margin:0;text-align:center"><div style="font-size:32px">📥</div><b>No offline songs yet</b><p class="muted">When you complete a rewarded ad and save a song, it will appear here and stay inside Artist Level Up for offline playback.</p></div>';
+  }catch(e){box.innerHTML='<p class="danger">Offline storage could not be opened on this device.</p>';console.warn(e);}
+}
+document.addEventListener('click',function(e){
+  const p=e.target.closest?.('[data-offline-play]');if(p){e.preventDefault();e.stopPropagation();playOfflineDownload(p.dataset.offlinePlay);return;}
+  const d=e.target.closest?.('[data-offline-delete]');if(d){e.preventDefault();e.stopPropagation();aluDeleteOfflineDownload(d.dataset.offlineDelete).then(()=>{renderOfflineRoom();toast('Removed from Offline Room ✓')}).catch(()=>toast('Could not remove the offline song.'));return;}
+});
+
 const aluAudioUrlCache=new Map();
 async function aluWarmAudioCache(){try{for(const s of (state.songs||[])){if(!s.audioKey||aluAudioUrlCache.has(String(s.audioKey)))continue;const blob=await aluGetAudio(s.audioKey);if(blob)aluAudioUrlCache.set(String(s.audioKey),URL.createObjectURL(blob));}}catch(e){console.warn('Audio cache warm failed',e)}}
 aluWarmAudioCache();
@@ -6188,21 +6277,22 @@ function makeDownloadUrl(url,name,ext){
     return u.toString();
   }catch(e){return String(url||'');}
 }
-function directDownload(song,title){
-  var url=song&&(song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||song.audioDataUrl);
-  if(!url){setStatus('Reward unlocked ✓ but this song has no downloadable audio file yet.');return false;}
-  var file=filenameFor(title,song,url);
-  var finalUrl=makeDownloadUrl(url,file.name,file.ext);
+async function directDownload(song,title){
+  if(!song){setStatus('Song not found.');return false;}
   try{
-    var a=document.createElement('a');
-    a.href=finalUrl;
-    a.download=file.name+'.'+file.ext;
-    a.target='_blank';
-    a.rel='noopener';
-    a.style.position='fixed';a.style.left='-9999px';a.style.width='1px';a.style.height='1px';
-    document.body.appendChild(a);a.click();a.remove();
-    return true;
-  }catch(e){return false;}
+    setStatus('Reward received ✓ Saving this song inside Artist Level Up…');
+    var rec=await aluSaveOfflineSong(song,title);
+    showUnlocked();
+    setStatus('Download confirmed ✓ Saved inside your Offline Room. Nothing was sent to the phone Downloads folder.');
+    try{await renderOfflineRoom();}catch(e){}
+    return !!rec;
+  }catch(e){
+    console.warn('Offline download save failed:',e);
+    showUnlocked();
+    setStatus('Reward confirmed ✓ Tap Save Offline Now to try saving the song again.');
+    var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
+    return false;
+  }
 }
 function cleanupSlot(){
   if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
@@ -6276,7 +6366,10 @@ window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
   );
   if(!ok)return;
   var wb=document.getElementById('aluRewardedWatchBtn');if(wb)wb.onclick=function(){beginRewardedRequest();};
-  var db=document.getElementById('aluRewardedDownloadNow');if(db)db.onclick=function(){var p=pending,song=p?getSong(p.id):null;if(song){var started=directDownload(song,p.title);setStatus(started?'Download started ✓':'Download unlocked ✓ Tap again if the browser did not start the file.');}};
+  var db=document.getElementById('aluRewardedDownloadNow');if(db)db.onclick=function(){
+    var p=pending,song=p?getSong(p.id):null;
+    if(song){directDownload(song,p.title);}
+  };
   var cb=document.getElementById('aluRewardedCloseBtn');if(cb)cb.onclick=closeRewardedModal;
 };
 window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};

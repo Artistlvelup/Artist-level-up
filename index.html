@@ -1654,7 +1654,7 @@ async function aluDeleteOfflineDownload(key){
     tx.onerror=()=>{db.close();rej(tx.error||new Error('Could not remove offline song'))};
   });
 }
-async function aluSaveOfflineSong(song,title){
+async async function aluSaveOfflineSong(song,title){
   if(!song)throw new Error('Song not found.');
   const userKey=aluOfflineUserKey();
   if(userKey==='device:unregistered')throw new Error('Please register your listener account first.');

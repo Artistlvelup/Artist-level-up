@@ -1538,10 +1538,9 @@ function genre(g){const list=state.songs.filter(s=>s.genre.toLowerCase()===g.toL
 function artist(a){const list=state.songs.filter(s=>s.artist===a);document.getElementById('modalBody').innerHTML=`<h2>${esc(a)} 👤</h2><p class="muted">Artist profile</p><button class="btn primary" data-action="follow">+ Follow</button>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
 function showLibrary(type){
 if(type==='offline'){
- if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
  var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');
  if(home)home.style.display='none'; if(room)room.style.display='block';
- renderOfflineRoom(); return;
+ if(typeof renderOfflineRoom==='function')renderOfflineRoom(); return;
 }
 if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}
 if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}
@@ -1741,7 +1740,14 @@ async function playOfflineDownload(key){
 }
 async function renderOfflineRoom(){
   const box=document.getElementById('offlineRoomContent');if(!box)return;
-  if(!window.ALU_REQUIRE_USER_REGISTRATION?.())return;
+  const registered=!!(window.state&&(window.state.userRegistered===true||window.state.userAccount?.email));
+  if(!registered){
+    const head=document.getElementById('offlineRoomMeta');
+    if(head)head.textContent='Register a listener account to save and manage offline downloads';
+    box.innerHTML='<div class="card" style="margin:0;text-align:center;background:#171820"><div style="font-size:34px">👤</div><b>Listener account required</b><p class="muted">You can open Downloads anytime. Create your free listener account before saving songs offline.</p><button class="btn primary full" type="button" id="offlineRoomRegisterBtn">👤 Register / Sign In</button></div>';
+    document.getElementById('offlineRoomRegisterBtn')?.addEventListener('click',function(){try{if(typeof window.action==='function')window.action('openUserRegister');}catch(e){}});
+    return;
+  }
   try{
     const rows=await aluListOfflineDownloads();
     const total=rows.reduce((n,x)=>n+Number(x.size||0),0);
@@ -4792,7 +4798,7 @@ function play(id){const s=state.songs.find(x=>x.id==id);if(!s)return;current=s;p
 function toggleLike(id){const s=state.songs.find(x=>x.id==id);if(!s)return;s.liked=!s.liked;save();toast(s.liked?'Added to Library ❤️':'Removed from Library')}
 function genre(g){const list=state.songs.filter(s=>s.genre.toLowerCase()===g.toLowerCase());document.getElementById('modalBody').innerHTML=`<h2>${esc(g)} 🎵</h2><p class="muted">${list.length} tracks found</p>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
 function artist(a){const list=state.songs.filter(s=>s.artist===a);document.getElementById('modalBody').innerHTML=`<h2>${esc(a)} 👤</h2><p class="muted">Artist profile</p><button class="btn primary" data-action="follow">+ Follow</button>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
-function showLibrary(type){if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}}
+function showLibrary(type){if(type==='offline'){var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');if(home)home.style.display='none';if(room)room.style.display='block';if(typeof renderOfflineRoom==='function')renderOfflineRoom();return}if(type==='liked'){document.getElementById('likedPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Liked Music ❤️');return}if(type==='recent'){document.getElementById('recentPanel')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Recently Played 🕘');return}if(type==='playlist'){document.getElementById('libraryContent')?.scrollIntoView({behavior:'smooth',block:'start'});toast('Playlists 🎵');return}if(type==='addPlaylist'){const name=prompt('Playlist name');if(name&&name.trim()){state.playlists.push(name.trim());save();toast('Playlist added ✓')}}}
 function openPlaylist(i){const name=state.playlists[i]||'Playlist';document.getElementById('modalBody').innerHTML=`<h2>🎵 ${esc(name)}</h2><p class="muted">Your playlist is ready.</p><p class="muted">Add songs by liking them from Discover. Your liked songs can be saved here as you build the playlist.</p>${state.songs.filter(s=>s.liked).map(songCard).join('')||'<p class="muted">No songs in this playlist yet.</p>'}`;document.getElementById('modal').classList.add('show')}
 function adminTargetSong(){return (state.songs||[]).find(s=>s.status==='Pending Review'||s.status==='Pending')||null;}
 function adminTargetWithdrawal(){return (state.transactions||[]).find(t=>t.type==='Withdrawal request'&&t.status==='Pending')||null;}
@@ -6305,7 +6311,6 @@ setInterval(function(){refreshEntry();wrapFeed()},1500);
 'use strict';
 function openOfflineRoom(){
   try{
-    if(typeof window.ALU_REQUIRE_USER_REGISTRATION==='function' && !window.ALU_REQUIRE_USER_REGISTRATION()) return;
     if(typeof window.go==='function') window.go('library');
     setTimeout(function(){
       if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();
@@ -6446,8 +6451,11 @@ function finishRewardedHandoff(){
       setTimeout(function(){
         cleanupSlot();
         var modal=document.getElementById('modal');if(modal)modal.classList.remove('show');
-        try{window.go('home');}catch(e){}
         pending=null;
+        try{
+          if(typeof window.ALU_OPEN_OFFLINE_ROOM==='function')window.ALU_OPEN_OFFLINE_ROOM();
+          else if(typeof window.go==='function')window.go('library');
+        }catch(e){}
         handoffBusy=false;
       },350);
     }else{
@@ -6556,7 +6564,17 @@ window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
   var wb=document.getElementById('aluRewardedWatchBtn');if(wb)wb.onclick=function(){beginRewardedRequest();};
   var db=document.getElementById('aluRewardedDownloadNow');if(db)db.onclick=function(){
     var p=pending,song=p?.song||getSong(p?.id);
-    if(song){directDownload(song,p.title);}
+    if(song){
+      directDownload(song,p.title).then(function(saved){
+        if(!saved)return;
+        try{var modal=document.getElementById('modal');if(modal)modal.classList.remove('show');}catch(e){}
+        try{pending=null;}catch(e){}
+        try{
+          if(typeof window.ALU_OPEN_OFFLINE_ROOM==='function')window.ALU_OPEN_OFFLINE_ROOM();
+          else if(typeof window.go==='function')window.go('library');
+        }catch(e){}
+      });
+    }
   };
   var cb=document.getElementById('aluRewardedCloseBtn');if(cb)cb.onclick=closeRewardedModal;
 };

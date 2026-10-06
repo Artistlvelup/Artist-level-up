@@ -6135,6 +6135,7 @@ function esc(v){return typeof window.esc==='function'?window.esc(String(v)):Stri
 function getSong(id){return (window.state?.songs||[]).find(function(s){return String(s.id)===String(id)||String(s.remoteSongId||'')===String(id)||String(s.id)==='cloud_'+String(id).replace(/^cloud_/,'');})||null}
 function openModal(title,bodyHtml){var body=document.getElementById('modalBody'),modal=document.getElementById('modal');if(!body||!modal)return false;body.innerHTML=bodyHtml;modal.classList.add('show');return true}
 function closeModal(){var modal=document.getElementById('modal');if(modal)modal.classList.remove('show')}
+function showRewardClose(){var b=document.getElementById('aluRewardedCloseBtn');if(b){b.style.display='block';b.disabled=false;b.textContent='Close';}}
 function setWatchState(ready,text){var b=document.getElementById('aluRewardedWatchBtn'),s=document.getElementById('aluRewardedAdStatus');if(b){b.disabled=!ready;b.textContent=ready?'▶ Watch Ad & Unlock':'⏳ Preparing Ad…'}if(s)s.textContent=text||''}
 function cleanupSlot(){try{if(rewardedSlot&&window.googletag&&googletag.destroySlots)googletag.destroySlots([rewardedSlot])}catch(e){}rewardedSlot=null;preparing=false;pending=null;granted=false}
 function directDownload(song,title){
@@ -6162,14 +6163,14 @@ function requestRewardedAd(){
      googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
        if(evt.slot!==rewardedSlot)return;
        var s=document.getElementById('aluRewardedAdStatus');
-       if(s)s.textContent='Ad finished. Waiting for Google to confirm your reward…';
+       if(s)s.textContent='Ad finished. Waiting for Google to confirm your reward…';showRewardClose();
      });
      googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
        if(evt.slot!==rewardedSlot)return;
        granted=true;var p=pending;
        var s=document.getElementById('aluRewardedAdStatus');
        if(s)s.textContent='Reward received ✓ Starting your download…';
-       if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);closeModal();if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
+       if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);showRewardClose();if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
      });
      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
        if(evt.slot!==rewardedSlot)return;
@@ -6181,6 +6182,7 @@ function requestRewardedAd(){
          if(granted||!rewardedSlot)return;
          var b=document.getElementById('aluRewardedWatchBtn');
          if(b){b.disabled=false;b.textContent='▶ Watch Ad Again';b.onclick=function(){pending=retry;requestRewardedAd();};}
+         showRewardClose();
          if(s)s.textContent='No reward was received. Watch the ad to the end before closing it.';
          cleanupSlot();
        },3000);
@@ -6193,7 +6195,7 @@ function requestRewardedAd(){
 }
 window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
  pending={id:String(songId),title:String(title||'this song')};
- var ok=openModal(String(title||'Download'),'<span class="pill">FREE DOWNLOAD</span><h2>Download '+esc(title)+'</h2><p class="muted">Watch a short advertisement and this song will be unlocked for free.</p><div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Preparing a rewarded ad…</p></div><button id="aluRewardedWatchBtn" class="btn primary full" type="button" disabled>⏳ Preparing Ad…</button><button class="btn full" type="button" data-action="closeModal">Cancel</button>');
+ var ok=openModal(String(title||'Download'),'<span class="pill">FREE DOWNLOAD</span><h2>Download '+esc(title)+'</h2><p class="muted">Watch a short advertisement and this song will be unlocked for free.</p><div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Preparing a rewarded ad…</p></div><button id="aluRewardedWatchBtn" class="btn primary full" type="button" disabled>⏳ Preparing Ad…</button><button id="aluRewardedCloseBtn" class="btn full" type="button" data-action="closeModal" style="display:none">Close</button>');
  if(ok)requestRewardedAd();
 };
 window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};

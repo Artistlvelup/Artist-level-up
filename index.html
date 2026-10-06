@@ -6280,18 +6280,24 @@ function makeDownloadUrl(url,name,ext){
   }catch(e){return String(url||'');}
 }
 async function directDownload(song,title){
-  if(!song){setStatus('Song not found.');return false;}
+  if(!song){setStatus('Reward confirmed, but the song is unavailable right now. Please try again.');return false;}
   try{
     setStatus('Reward received ✓ Saving this song inside Artist Level Up…');
     var rec=await aluSaveOfflineSong(song,title);
+    if(rec){
+      showUnlocked();
+      setStatus('Download confirmed ✓ Saved inside your Offline Room. Returning to Home…');
+      try{await renderOfflineRoom();}catch(e){}
+      return true;
+    }
+    setStatus('Reward confirmed ✓ The song could not be saved yet. Tap Save Offline Now.');
     showUnlocked();
-    setStatus('Download confirmed ✓ Saved inside your Offline Room. Returning to Home…');
-    try{await renderOfflineRoom();}catch(e){}
-    return !!rec;
+    var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
+    return false;
   }catch(e){
     console.warn('Offline download save failed:',e);
-    showUnlocked();
     setStatus('Reward confirmed ✓ The song could not be saved yet. Tap Save Offline Now.');
+    showUnlocked();
     var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
     return false;
   }
@@ -6300,10 +6306,19 @@ function finishRewardedHandoff(){
   if(handoffBusy)return;
   handoffBusy=true;
   if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
-  var p=pending,song=p?getSong(p.id):null;
-  if(!granted||!song){
+  var p=pending,song=p?.song||getSong(p?.id);
+  if(!granted){
     setStatus('The ad finished, but the reward was not confirmed. Please try again.');
     cleanupSlot();
+    var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
+    handoffBusy=false;
+    return;
+  }
+  if(!song){
+    setStatus('Reward received, but the song could not be loaded. Please try the download again.');
+    cleanupSlot();
+    var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
+    resetRetry();
     handoffBusy=false;
     return;
   }
@@ -6361,7 +6376,7 @@ function bindGptListeners(){
     granted=true;
     if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
     setStatus('Reward received ✓ Saving your offline download…');
-    showUnlocked();
+    var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
     scheduleRewardedHandoff(250);
   });
   googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
@@ -6406,9 +6421,10 @@ function beginRewardedRequest(){
   });
 }
 window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
-  pending={id:String(songId),title:String(title||'this song')};granted=false;
+  var attachedSong=getSong(songId);
+  pending={id:String(songId),title:String(title||'this song'),song:attachedSong};granted=false;
   var ok=openModal(String(title||'Download'),
-    '<span class="pill">FREE DOWNLOAD</span>'+'<h2>Download '+esc(title)+'</h2>'+'<p class="muted">Watch a short advertisement and this song will be unlocked for free.</p>'+'<div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Ready. Tap Watch Ad & Unlock to continue.</p></div>'+'<button id="aluRewardedWatchBtn" class="btn primary full" type="button">▶ Watch Ad & Unlock</button>'+'<div id="aluRewardedUnlockedCard" class="card" style="display:none;border-color:#39d98a;background:linear-gradient(135deg,#0c2d1d,#123d28)"><b style="color:#bff6d9">✅ Download confirmed</b><p class="tiny muted" style="margin:7px 0 0">The advertisement is complete and your free download has been unlocked.</p><button id="aluRewardedDownloadNow" class="btn green full" type="button" style="margin-top:10px">⬇ Download Now</button></div>'+'<button id="aluRewardedCloseBtn" class="btn full" type="button" style="display:none">Close</button>'
+    '<span class="pill">FREE DOWNLOAD</span>'+'<h2>Download '+esc(title)+'</h2>'+'<p class="muted">Watch a short advertisement and this song will be unlocked for free.</p>'+'<div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Ready. Tap Watch Ad & Unlock to continue.</p></div>'+'<button id="aluRewardedWatchBtn" class="btn primary full" type="button">▶ Watch Ad & Unlock</button>'+'<div id="aluRewardedUnlockedCard" class="card" style="display:none;border-color:#39d98a;background:linear-gradient(135deg,#0c2d1d,#123d28)"><b style="color:#bff6d9">✅ Reward confirmed</b><p class="tiny muted" style="margin:7px 0 0">The advertisement is complete and your reward is confirmed. Save the song inside your Offline Room.</p><button id="aluRewardedDownloadNow" class="btn green full" type="button" style="margin-top:10px">⬇ Save Offline Now</button></div>'+'<button id="aluRewardedCloseBtn" class="btn full" type="button" style="display:none">Close</button>'
   );
   if(!ok)return;
   var wb=document.getElementById('aluRewardedWatchBtn');if(wb)wb.onclick=function(){beginRewardedRequest();};

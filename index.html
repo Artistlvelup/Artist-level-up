@@ -6143,8 +6143,12 @@ function directDownload(song,title){
  if(!url){if(typeof window.toast==='function')window.toast('This song does not have a downloadable audio file yet.');return}
  var name=(title||song.title||'Artist Level Up Song').replace(/[^a-z0-9._ -]/gi,'').trim()||'Artist-Level-Up-Song';
  var ext=(String(url).match(/\.(mp3|m4a|wav|ogg|aac)(?:[?#]|$)/i)||[])[1]||'mp3';
+ function fallback(){var a=document.createElement('a');a.href=url;a.download=name+'.'+ext;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();if(typeof window.toast==='function')window.toast('Download opened. Save the audio file to your device.')}
  if(/^data:|^blob:/i.test(String(url))){var a=document.createElement('a');a.href=url;a.download=name+'.'+ext;document.body.appendChild(a);a.click();a.remove();if(typeof window.toast==='function')window.toast('Download started ✓');return}
- fetch(url,{mode:'cors',credentials:'omit'}).then(function(res){if(!res.ok)throw new Error('download failed');return res.blob()}).then(function(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1500);if(typeof window.toast==='function')window.toast('Download started ✓')}).catch(function(){var a=document.createElement('a');a.href=url;a.download=name+'.'+ext;a.target='_blank';document.body.appendChild(a);a.click();a.remove();if(typeof window.toast==='function')window.toast('Download opened. Save the audio file to your device.')});
+ var timer=setTimeout(function(){timer=null;fallback()},8000);
+ var controller=window.AbortController?new AbortController():null;
+ if(controller)setTimeout(function(){try{controller.abort()}catch(e){}},8000);
+ fetch(url,{mode:'cors',credentials:'omit',signal:controller?controller.signal:undefined}).then(function(res){if(timer){clearTimeout(timer);timer=null}if(!res.ok)throw new Error('download failed');return res.blob()}).then(function(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1500);if(typeof window.toast==='function')window.toast('Download started ✓')}).catch(function(){if(timer){clearTimeout(timer);timer=null}fallback()});
 }
 function requestRewardedAd(){
  if(!pending||preparing)return;
@@ -6170,7 +6174,7 @@ function requestRewardedAd(){
        granted=true;var p=pending;
        var s=document.getElementById('aluRewardedAdStatus');
        if(s)s.textContent='Reward received ✓ Starting your download…';
-       if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);showRewardClose();if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
+       if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);showRewardClose();setTimeout(function(){closeModal();cleanupSlot();},350);if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
      });
      googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
        if(evt.slot!==rewardedSlot)return;

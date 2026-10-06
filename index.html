@@ -6122,3 +6122,64 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 setInterval(function(){refreshEntry();wrapFeed()},1500);
 })();
 </script>
+
+<script id="aluV101RewardedDownloadAds">
+(function(){
+'use strict';
+if(window.__ALU_REWARDED_DOWNLOAD_V101)return;
+window.__ALU_REWARDED_DOWNLOAD_V101=true;
+var TEST_AD_UNIT='/22639388115/rewarded_web_example';
+var AD_UNIT=String(window.ALU_AD_MANAGER_REWARDED_AD_UNIT||TEST_AD_UNIT);
+var rewardedSlot=null,pending=null,granted=false,preparing=false;
+function esc(v){return typeof window.esc==='function'?window.esc(String(v)):String(v).replace(/[&<>"']/g,function(m){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]})}
+function getSong(id){return (window.state?.songs||[]).find(function(s){return String(s.id)===String(id)||String(s.remoteSongId||'')===String(id)||String(s.id)==='cloud_'+String(id).replace(/^cloud_/,'');})||null}
+function openModal(title,bodyHtml){var body=document.getElementById('modalBody'),modal=document.getElementById('modal');if(!body||!modal)return false;body.innerHTML=bodyHtml;modal.classList.add('show');return true}
+function closeModal(){var modal=document.getElementById('modal');if(modal)modal.classList.remove('show')}
+function setWatchState(ready,text){var b=document.getElementById('aluRewardedWatchBtn'),s=document.getElementById('aluRewardedAdStatus');if(b){b.disabled=!ready;b.textContent=ready?'▶ Watch Ad & Unlock':'⏳ Preparing Ad…'}if(s)s.textContent=text||''}
+function cleanupSlot(){try{if(rewardedSlot&&window.googletag&&googletag.destroySlots)googletag.destroySlots([rewardedSlot])}catch(e){}rewardedSlot=null;preparing=false;pending=null;granted=false}
+function directDownload(song,title){
+ var url=song&&(song.audioRemoteUrl||song.audioUrl||song.audio_url||song.audioDataUrl||song.audioData||song.fileUrl||song.url||song.src);
+ if(!url){if(typeof window.toast==='function')window.toast('This song does not have a downloadable audio file yet.');return}
+ var name=(title||song.title||'Artist Level Up Song').replace(/[^a-z0-9._ -]/gi,'').trim()||'Artist-Level-Up-Song';
+ var ext=(String(url).match(/\.(mp3|m4a|wav|ogg|aac)(?:[?#]|$)/i)||[])[1]||'mp3';
+ if(/^data:|^blob:/i.test(String(url))){var a=document.createElement('a');a.href=url;a.download=name+'.'+ext;document.body.appendChild(a);a.click();a.remove();if(typeof window.toast==='function')window.toast('Download started ✓');return}
+ fetch(url,{mode:'cors',credentials:'omit'}).then(function(res){if(!res.ok)throw new Error('download failed');return res.blob()}).then(function(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1500);if(typeof window.toast==='function')window.toast('Download started ✓')}).catch(function(){var a=document.createElement('a');a.href=url;a.download=name+'.'+ext;a.target='_blank';document.body.appendChild(a);a.click();a.remove();if(typeof window.toast==='function')window.toast('Download opened. Save the audio file to your device.')});
+}
+function requestRewardedAd(){
+ if(!pending||preparing)return;
+ if(!window.googletag||!googletag.cmd){if(typeof window.toast==='function')window.toast('Ad service is still loading. Please try again.');return}
+ preparing=true;setWatchState(false,'Preparing a free download ad…');
+ googletag.cmd.push(function(){
+   try{
+     rewardedSlot=googletag.defineOutOfPageSlot(AD_UNIT,googletag.enums.OutOfPageFormat.REWARDED);
+     if(!rewardedSlot){preparing=false;setWatchState(false,'Rewarded ads are not supported on this page.');return}
+     rewardedSlot.addService(googletag.pubads());
+     googletag.pubads().addEventListener('rewardedSlotReady',function(evt){
+       if(evt.slot!==rewardedSlot)return;
+       setWatchState(true,'The ad is ready. Watch it to unlock your free download.');
+       var b=document.getElementById('aluRewardedWatchBtn');if(b)b.onclick=function(){try{if(evt.makeRewardedVisible()){b.disabled=true;b.textContent='Ad playing…';}}catch(e){setWatchState(false,'Unable to start the ad. Please try again.')}};
+     });
+     googletag.pubads().addEventListener('rewardedSlotGranted',function(evt){
+       if(evt.slot!==rewardedSlot)return;
+       granted=true;var p=pending;
+       if(p){var song=getSong(p.id);if(song){directDownload(song,p.title);closeModal();if(typeof window.toast==='function')window.toast('Ad reward granted ✓ Download unlocked.');}}
+     });
+     googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
+       if(evt.slot!==rewardedSlot)return;
+       var wasGranted=granted;cleanupSlot();
+       if(!wasGranted){var s=document.getElementById('aluRewardedAdStatus');if(s)s.textContent='Ad closed before the reward was granted. Download remains locked.';setTimeout(function(){closeModal()},900)}
+     });
+     googletag.pubads().addEventListener('slotRenderEnded',function(evt){if(evt.slot===rewardedSlot&&evt.isEmpty)setWatchState(false,'No rewarded ad is available right now. Please try again later.')});
+     googletag.enableServices();
+     googletag.display(rewardedSlot);
+   }catch(err){console.warn('Rewarded download ad error:',err);preparing=false;setWatchState(false,'The ad could not be loaded. Please try again later.');}
+ });
+}
+window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
+ pending={id:String(songId),title:String(title||'this song')};
+ var ok=openModal(String(title||'Download'),'<span class="pill">FREE DOWNLOAD</span><h2>Download '+esc(title)+'</h2><p class="muted">Watch a short advertisement and this song will be unlocked for free.</p><div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Preparing a rewarded ad…</p></div><button id="aluRewardedWatchBtn" class="btn primary full" type="button" disabled>⏳ Preparing Ad…</button><button class="btn full" type="button" data-action="closeModal">Cancel</button>');
+ if(ok)requestRewardedAd();
+};
+window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};
+})();
+</script>

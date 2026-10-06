@@ -6200,9 +6200,9 @@ document.addEventListener('click',function(e){
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
  if(!window.ALU_REQUIRE_USER_REGISTRATION())return;
  const songId=String(dl.dataset.songId||dl.dataset.download||'');
- const song=(window.state?.songs||[]).find(s=>String(s.id)===songId)||{};
- const title=song.title||'this song';
- if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function')window.ALU_WATCH_AD_TO_DOWNLOAD(songId,title);
+ const song=(window.state?.songs||[]).find(s=>String(s.id)===songId)||null;
+ const title=song?.title||'this song';
+ if(typeof window.ALU_WATCH_AD_TO_DOWNLOAD==='function')window.ALU_WATCH_AD_TO_DOWNLOAD(songId,title,song);
  else if(typeof window.toast==='function')window.toast('Rewarded download service is loading. Please try again.');
 },true);
 function boot(){mountEntry();refreshEntry();wrapFeed();setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},150);setTimeout(function(){mountEntry();refreshEntry();wrapFeed()},700)}
@@ -6315,7 +6315,7 @@ function finishRewardedHandoff(){
     return;
   }
   if(!song){
-    setStatus('Reward received, but the song could not be loaded. Please try the download again.');
+    setStatus('Reward received, but the selected song is unavailable. Please close this window and tap Download again.');
     cleanupSlot();
     var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
     resetRetry();
@@ -6420,16 +6420,16 @@ function beginRewardedRequest(){
     }catch(err){console.warn('Rewarded download ad error:',err);requestBusy=false;setStatus('The ad could not be started. Tap Try Again.');resetRetry();}
   });
 }
-window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title){
-  var attachedSong=getSong(songId);
-  pending={id:String(songId),title:String(title||'this song'),song:attachedSong};granted=false;
+window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
+  var attachedSong=selectedSong||getSong(songId);
+  pending={id:String(songId),title:String(title||attachedSong?.title||'this song'),song:attachedSong};granted=false;
   var ok=openModal(String(title||'Download'),
     '<span class="pill">FREE DOWNLOAD</span>'+'<h2>Download '+esc(title)+'</h2>'+'<p class="muted">Watch a short advertisement and this song will be unlocked for free.</p>'+'<div class="card"><b>🎁 Free download</b><p id="aluRewardedAdStatus" class="tiny muted" style="margin:7px 0 0">Ready. Tap Watch Ad & Unlock to continue.</p></div>'+'<button id="aluRewardedWatchBtn" class="btn primary full" type="button">▶ Watch Ad & Unlock</button>'+'<div id="aluRewardedUnlockedCard" class="card" style="display:none;border-color:#39d98a;background:linear-gradient(135deg,#0c2d1d,#123d28)"><b style="color:#bff6d9">✅ Reward confirmed</b><p class="tiny muted" style="margin:7px 0 0">The advertisement is complete and your reward is confirmed. Save the song inside your Offline Room.</p><button id="aluRewardedDownloadNow" class="btn green full" type="button" style="margin-top:10px">⬇ Save Offline Now</button></div>'+'<button id="aluRewardedCloseBtn" class="btn full" type="button" style="display:none">Close</button>'
   );
   if(!ok)return;
   var wb=document.getElementById('aluRewardedWatchBtn');if(wb)wb.onclick=function(){beginRewardedRequest();};
   var db=document.getElementById('aluRewardedDownloadNow');if(db)db.onclick=function(){
-    var p=pending,song=p?getSong(p.id):null;
+    var p=pending,song=p?.song||getSong(p?.id);
     if(song){directDownload(song,p.title);}
   };
   var cb=document.getElementById('aluRewardedCloseBtn');if(cb)cb.onclick=closeRewardedModal;

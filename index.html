@@ -1625,7 +1625,19 @@ async function aluPutAudio(key,file){
 }
 async function aluGetAudio(key){const db=await aluOpenDB();return new Promise((res,rej)=>{const tx=db.transaction('audio');const r=tx.objectStore('audio').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function aluOfflineUserKey(){
-  const email=String(window.state?.userAccount?.email||window.state?.profile?.email||'').trim().toLowerCase();
+  let email=String(window.state?.userAccount?.email||window.state?.profile?.email||'').trim().toLowerCase();
+  if(!email){
+    try{
+      const saved=JSON.parse(localStorage.getItem('artistLevelUpState')||'null');
+      email=String(saved?.userAccount?.email||saved?.profile?.email||'').trim().toLowerCase();
+      if(email&&window.state){
+        window.state.userAccount=window.state.userAccount||{};
+        window.state.userAccount.email=email;
+        window.state.profile=window.state.profile||{};
+        window.state.profile.email=email;
+      }
+    }catch(e){}
+  }
   return email?'user:'+email:'device:unregistered';
 }
 function aluOfflineKey(songId){return aluOfflineUserKey()+'::'+String(songId)}
@@ -6424,10 +6436,32 @@ async function directDownload(song,title){
     throw new Error('Offline storage did not return a saved record.');
   }catch(e){
     console.warn('Offline download save failed:',e);
-    var detail=String(e?.message||e||'Unknown save error').slice(0,180);
-    setStatus('Reward confirmed ✓ Save failed: '+detail);
+    var detail=String(e?.message||e||'Unknown save error');
+    if(/register your listener account/i.test(detail)){
+      setStatus('Reward confirmed ✓ Please complete your listener registration to finish saving this song.');
+      showUnlocked();
+      var b=document.getElementById('aluRewardedDownloadNow');
+      if(b){b.textContent='👤 Register & Save';b.onclick=function(){
+        try{if(typeof window.action==='function')window.action('openUserRegister');}catch(_e){}
+      };}
+      var once=function(){
+        try{document.removeEventListener('click',once,true);}catch(_e){}
+        setTimeout(function(){
+          try{
+            var modal=document.getElementById('modal');
+            if(modal)modal.classList.remove('show');
+            directDownload(song,title);
+          }catch(_e){}
+        },120);
+      };
+      document.addEventListener('click',function(ev){
+        if(ev.target.closest?.('[data-action="saveUserRegister"]'))once(ev);
+      },true);
+      return false;
+    }
+    setStatus('Reward confirmed ✓ Save failed: '+detail.slice(0,180));
     showUnlocked();
-    var b=document.getElementById('aluRewardedDownloadNow');if(b)b.textContent='📥 Save Offline Now';
+    var b2=document.getElementById('aluRewardedDownloadNow');if(b2)b2.textContent='📥 Save Offline Now';
     return false;
   }
 }

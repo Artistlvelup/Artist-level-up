@@ -6402,14 +6402,14 @@ function bindGptListeners(){
   googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
     if(evt.slot!==rewardedSlot)return;
     rewardedSlotClosed=true;
-    if(granted){
+    if(granted && rewardedVideoCompleted){
       setStatus('Reward confirmed ✓ Saving your song…');
       scheduleRewardedHandoff(100);
       return;
     }
     if(rewardedVideoCompleted){
       setStatus('Ad complete ✓ Waiting for reward confirmation…');
-      scheduleRewardedHandoff(5000);
+      scheduleRewardedHandoff(2000);
       return;
     }
     if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}

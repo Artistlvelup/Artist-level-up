@@ -5561,9 +5561,17 @@ boot();
 'use strict';
 function openOfflineRoom(){
   try{
+    var library=document.getElementById('library');
     var home=document.getElementById('libraryHomeView');
     var room=document.getElementById('offlineRoom');
-    if(typeof window.go==='function') window.go('library');
+    if(library){
+      document.querySelectorAll('.page').forEach(function(x){x.classList.remove('active');});
+      library.classList.add('active');
+      window.ALU_ACTIVE_PAGE='library';
+    }
+    document.querySelectorAll('.nav button').forEach(function(x){
+      x.classList.toggle('active',x.dataset.go==='library');
+    });
     if(home) home.style.display='none';
     if(room) room.style.display='block';
     if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();

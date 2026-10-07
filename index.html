@@ -1161,7 +1161,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
       <div class="studio-transport-tools">
         <label>BPM<input id="studioBpm" type="number" min="40" max="240" value="120"></label>
         <label>Key<select id="studioKey"><option>C</option><option>C#</option><option>D</option><option>D#</option><option>E</option><option>F</option><option>F#</option><option>G</option><option>G#</option><option>A</option><option>A#</option><option>B</option></select></label>
-        <label>Master<input id="studioMaster" type="range" min="0" max="1" step=".01" value=".9"></label>
+        <label>Master<input id="studioMaster" type="hidden" value=".9"><button type="button" class="alu-studio-master-button alu-rotary alu-master-rotary" data-master-knob aria-label="Master volume" value=".9"></button><span class="alu-master-readout">90%</span></label>
       </div>
     </div>
 
@@ -1186,7 +1186,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
     <div class="card studio-mixer">
       <div class="row between"><div><h2>🎚️ Mixer</h2><p class="tiny muted">Volume, pan, mute, solo and effects for every track.</p></div><span class="pill">MASTER</span></div>
       <div id="studioMixerTracks"></div>
-      <div class="studio-master-strip"><b>MASTER</b><span>Limiter-ready master bus</span><input id="studioMaster2" type="range" min="0" max="1" step=".01" value=".9"></div>
+      <div class="studio-master-strip"><b>MASTER</b><span>Limiter-ready master bus</span><button type="button" class="alu-rotary alu-master-rotary" data-master-knob aria-label="Master volume" value=".9"></button><span class="alu-master-readout">90%</span><input id="studioMaster2" type="hidden" value=".9"></div>
     </div>
 
     <div class="card">
@@ -1319,7 +1319,7 @@ function wav(buf){let ch=buf.numberOfChannels,rate=buf.sampleRate,n=buf.length,d
 async function exportWav(){if(!S.tracks.length)return note('Nothing to export yet.');note('Rendering your mix…');let sr=44100,dur=Math.max(1,...S.tracks.map(t=>t.duration||0))+.1,off=new OfflineAudioContext(2,Math.ceil(sr*dur),sr),solo=S.tracks.some(t=>t.solo);for(let t of S.tracks){try{let b=await off.decodeAudioData((await t.blob.arrayBuffer()).slice(0)),s=off.createBufferSource(),g=off.createGain(),p=off.createStereoPanner(),cp=off.createDynamicsCompressor();s.buffer=b;g.gain.value=t.mute||(solo&&!t.solo)?0:Number(t.volume??1);p.pan.value=Number(t.pan??0);cp.threshold.value=-2;cp.ratio.value=8;s.connect(g).connect(p).connect(cp).connect(off.destination);s.start(0)}catch(e){}}let b=await off.startRendering(),blob=wav(b),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(S.name||'Artist-Level-Up-Song')+'.wav';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);note('💿 WAV export complete ✓')}
 async function save(){await saveDB();note('💾 Studio project saved on this device ✓')}
 async function load(){let p=await loadDB();if(!p)return note('No saved Studio project found.');S.name=p.name||'Untitled';S.bpm=p.bpm||120;S.key=p.key||'C';S.tracks=(p.tracks||[]).map(t=>Object.assign({},t,{vocalLayer:t.vocalLayer||null}));render();note('📂 Studio project loaded ✓')}
-function init(){render();$('studioMaster').oninput=e=>$('studioMaster2').value=e.target.value;$('studioMaster2').oninput=e=>$('studioMaster').value=e.target.value;$('studioBpm').onchange=()=>{S.bpm=Math.max(40,Math.min(240,Number($('studioBpm').value)||120));render()};$('studioKey').onchange=()=>{S.key=$('studioKey').value;render()};$('studioImportInput').onchange=e=>{if(e.target.files?.length)importAudio([...e.target.files]);e.target.value=''};document.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{let k=b.dataset.fx;S.fx[k]=!S.fx[k];b.classList.toggle('active',S.fx[k]);S.tracks.forEach(apply)})}
+function init(){render();$('studioBpm').onchange=()=>{S.bpm=Math.max(40,Math.min(240,Number($('studioBpm').value)||120));render()};$('studioKey').onchange=()=>{S.key=$('studioKey').value;render()};$('studioImportInput').onchange=e=>{if(e.target.files?.length)importAudio([...e.target.files]);e.target.value=''};document.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{let k=b.dataset.fx;S.fx[k]=!S.fx[k];b.classList.toggle('active',S.fx[k]);S.tracks.forEach(apply)})}
 document.addEventListener('click',async e=>{let a=e.target.closest?.('[data-studio-action]');if(a){let x=a.dataset.studioAction;if(x==='close'){go('home');return}if(x==='record'){S.rec?S.rec.stop():record();return}if(x==='stop'){S.rec?S.rec.stop():stop();return}if(x==='play'){S.playing?stop():play();return}if(x==='rewind'){stop();$('studioClock').textContent='00:00.0';return}if(x==='import'){$('studioImportInput').click();return}if(x==='save'){save().catch(()=>note('Could not save project.'));return}if(x==='load'){load().catch(()=>note('Could not load project.'));return}if(x==='undo'){undo();return}if(x==='redo'){let z=S.redo.pop();if(z){S.undo.push(snap());S.tracks=z;render();note('Redo ✓')}return}if(x==='export'){exportWav();return}if(x==='metronome'){a.classList.toggle('is-on');note(a.classList.contains('is-on')?'Metronome on':'Metronome off');return}}
 let laneFxRoom=e.target.closest?.('[data-lane-effects]');if(laneFxRoom){
 e.preventDefault();e.stopPropagation();
@@ -1368,12 +1368,12 @@ function boot(){
       '<div class="grid">'+
       '<label>Start (sec)<input id="aluEdStart" type="number" min="0" step=".01" value="0"></label>'+
       '<label>End (sec)<input id="aluEdEnd" type="number" min=".01" step=".01" value="1"></label>'+
-      '<label>Gain <input id="aluEdGain" type="range" min="0" max="2" step=".01" value="1"></label>'+
-      '<label>Pan <input id="aluEdPan" type="range" min="-1" max="1" step=".01" value="0"></label>'+
-      '<label>EQ <input id="aluEdEQ" type="range" min="-12" max="12" step=".5" value="0"></label>'+
-      '<label>Fade In <input id="aluEdIn" type="range" min="0" max="2" step=".01" value="0"></label>'+
-      '<label>Fade Out <input id="aluEdOut" type="range" min="0" max="2" step=".01" value="0"></label>'+
-      '<label>Delay <input id="aluEdDelay" type="range" min="0" max=".5" step=".01" value="0"></label>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdGain" class="alu-rotary alu-editor-rotary" data-editor-min="0" data-editor-max="2" data-editor-step=".01" value="1" aria-label="Gain"></button><span>GAIN</span><b>100%</b></div>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdPan" class="alu-rotary alu-editor-rotary" data-editor-min="-1" data-editor-max="1" data-editor-step=".01" value="0" aria-label="Pan"></button><span>PAN</span><b>C</b></div>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdEQ" class="alu-rotary alu-editor-rotary" data-editor-min="-12" data-editor-max="12" data-editor-step=".5" value="0" aria-label="EQ"></button><span>EQ</span><b>0 dB</b></div>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdIn" class="alu-rotary alu-editor-rotary" data-editor-min="0" data-editor-max="2" data-editor-step=".01" value="0" aria-label="Fade In"></button><span>FADE IN</span><b>0.00s</b></div>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdOut" class="alu-rotary alu-editor-rotary" data-editor-min="0" data-editor-max="2" data-editor-step=".01" value="0" aria-label="Fade Out"></button><span>FADE OUT</span><b>0.00s</b></div>'+
+      '<div class="alu-editor-knob"><button type="button" id="aluEdDelay" class="alu-rotary alu-editor-rotary" data-editor-min="0" data-editor-max=".5" data-editor-step=".01" value="0" aria-label="Delay"></button><span>DELAY</span><b>0.00s</b></div>'+
       '</div><div class="grid">'+
       '<button type="button" class="btn primary" data-proper-edit="apply">🎚️ Apply Edits</button>'+
       '<button type="button" class="btn" data-proper-edit="split">✂️ Split Here</button>'+
@@ -5213,7 +5213,7 @@ function boot(){
      (t?'<div class="alu-vocal-clip" style="width:'+pct+'%;"><canvas class="alu-vocal-wave" width="720" height="94"></canvas><div class="alu-vocal-clip-meta">'+esc(x.role)+' · '+fmt(dur)+'</div></div>':'<div class="alu-vocal-clip empty"><div class="alu-vocal-empty">'+(active?'TAP ● TO RECORD INTO THIS LANE':'EMPTY LANE · SELECT TO RECORD')+'</div></div>')+
      '<div class="alu-vocal-bottom"><span class="alu-vocal-fx-title">FX</span>'+
      x.fx.map(function(k){return '<button type="button" class="alu-vocal-fx-chip '+(t&&af[k]?'on':'')+'" data-vocal-control="fxToggle" data-layer="'+x.n+'" data-fx="'+k+'">'+FX[k]+'</button>'}).join('')+
-     '<label>VOL</label><input type="range" min="0" max="1" step=".01" value="'+Number(t?.volume??1)+'" data-vocal-control="volume" data-layer="'+x.n+'"><label>PAN</label><input type="range" min="-1" max="1" step=".01" value="'+Number(t?.pan??0)+'" data-vocal-control="pan" data-layer="'+x.n+'"><button class="alu-vocal-fx-chip" type="button" data-vocal-control="fx" data-layer="'+x.n+'">🎛️ EFFECTS</button>'+(t?'<button class="alu-vocal-delete" type="button" data-vocal-control="delete" data-layer="'+x.n+'">🗑️ DELETE AUDIO</button>':'')+'</div>'+
+     '<div class="alu-vocal-knob-group"><button type="button" class="alu-rotary alu-vocal-rotary" data-knob="volume" data-track="'+(t?.id||'')+'" data-layer="'+x.n+'" aria-label="Layer '+x.n+' volume" '+(!t?'disabled':'')+'></button><span>VOL</span><b class="alu-rotary-value">100%</b></div><div class="alu-vocal-knob-group"><button type="button" class="alu-rotary alu-vocal-rotary" data-knob="pan" data-track="'+(t?.id||'')+'" data-layer="'+x.n+'" aria-label="Layer '+x.n+' pan" '+(!t?'disabled':'')+'></button><span>PAN</span><b class="alu-rotary-value">C</b></div><button class="alu-vocal-fx-chip" type="button" data-vocal-control="fx" data-layer="'+x.n+'">🎛️ EFFECTS</button>'+(t?'<button class="alu-vocal-delete" type="button" data-vocal-control="delete" data-layer="'+x.n+'">🗑️ DELETE AUDIO</button>':'')+'</div>'+
      '</div></div>';
    }).join('');
    lanes.querySelectorAll('.alu-vocal-wave').forEach(function(cv){var lane=cv.closest('.alu-vocal-lane'),n=Number(lane.getAttribute('data-vocal-layer')),t=laneTrack(n);drawWave(cv,t)});
@@ -5236,7 +5236,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="aluV101VocalLayerMountRecovery">
+<style id="aluV101AllRotaryLayout">#studio .alu-vocal-knob-group,#studio .alu-editor-knob{display:inline-flex;vertical-align:middle;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:54px;margin:2px}#studio .alu-vocal-knob-group>span,#studio .alu-editor-knob>span{font-size:8px;font-weight:900;color:#c8cad2}#studio .alu-vocal-knob-group .alu-rotary-value,#studio .alu-editor-knob>b,#studio .alu-master-readout{font-size:8px;font-weight:900;color:#fff;min-height:10px}#studio .alu-editor-knob{min-width:70px}#studio .alu-master-rotary{display:inline-block!important;width:42px!important;height:42px!important;border-radius:50%!important;padding:0!important}#studio .alu-master-rotary:disabled,#studio .alu-vocal-rotary:disabled{opacity:.35;cursor:not-allowed}#studio .studio-master-strip{display:flex;align-items:center;gap:10px}</style><script id="aluV101EditorMasterRotaryControls">(function(){'use strict';function clamp(v,a,b){return Math.max(a,Math.min(b,v))}function setRot(b,v,min,max){var p=(v-min)/(max-min);b.value=String(v);b.style.setProperty('--rot',(-135+clamp(p,0,1)*270)+'deg');var out=b.parentElement&&b.parentElement.querySelector('.alu-master-readout');if(out)out.textContent=Math.round(v*100)+'%';var eo=b.parentElement&&b.parentElement.querySelector('b');if(eo&&b.classList.contains('alu-editor-rotary')){var id=b.id;eo.textContent=id==='aluEdGain'?Math.round(v*100)+'%':id==='aluEdPan'?(Math.abs(v)<.001?'C':(v<0?Math.round(-v*100)+'L':Math.round(v*100)+'R')):id==='aluEdEQ'?v.toFixed(1)+' dB':v.toFixed(2)+'s'}}var active=null;document.addEventListener('pointerdown',function(e){var b=e.target.closest?.('.alu-editor-rotary,.alu-master-rotary');if(!b||b.disabled)return;var editor=b.classList.contains('alu-editor-rotary'),min=editor?Number(b.dataset.editorMin):0,max=editor?Number(b.dataset.editorMax):1,step=editor?Number(b.dataset.editorStep):.005;active={b:b,min:min,max:max,step:step,v:Number(b.value||0),y:e.clientY};b.setPointerCapture?.(e.pointerId);e.preventDefault()},{capture:true,passive:false});document.addEventListener('pointermove',function(e){if(!active)return;var b=active.b,v=clamp(active.v+(active.y-e.clientY)*active.step,active.min,active.max);setRot(b,v,active.min,active.max);if(b.classList.contains('alu-master-rotary')){var h=document.getElementById('studioMaster'),h2=document.getElementById('studioMaster2');if(h)h.value=v.toFixed(2);if(h2)h2.value=v.toFixed(2)}e.preventDefault()},{capture:true,passive:false});document.addEventListener('pointerup',function(){active=null},{capture:true});function sync(){document.querySelectorAll('#studio .alu-editor-rotary').forEach(function(b){setRot(b,Number(b.value||0),Number(b.dataset.editorMin),Number(b.dataset.editorMax))});document.querySelectorAll('#studio .alu-master-rotary').forEach(function(b){setRot(b,Number(b.value||document.getElementById('studioMaster')?.value||.9),0,1)})}setInterval(sync,700)})();</script><script id="aluV101VocalLayerMountRecovery">
 (function(){
 'use strict';
 function ensureMount(){
@@ -6165,11 +6165,7 @@ function boot(){
           }
         }
         if(lab.parentNode!==sg)sg.appendChild(lab);
-        if(id==='studioMaster'&&!lab.querySelector('.alu-studio-master-button')){
-          var vb=document.createElement('button');vb.type='button';vb.className='alu-studio-master-button';vb.textContent='🔊 '+Math.round(Number(el.value||.9)*100)+'%';
-          vb.addEventListener('click',function(e){e.preventDefault();var raw=prompt('Master volume (0–100%)',String(Math.round(Number(el.value||.9)*100)));if(raw===null)return;var n=Number(raw);if(!Number.isFinite(n))return;n=Math.max(0,Math.min(100,n));el.value=(n/100).toFixed(2);el.dispatchEvent(new Event('input',{bubbles:true}));vb.textContent='🔊 '+Math.round(n)+'%';});
-          lab.appendChild(vb);
-        }
+        if(id==='studioMaster'){var vb=lab.querySelector('.alu-studio-master-button');if(vb)vb.setAttribute('data-master-knob','');}
       });
     }
 

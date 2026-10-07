@@ -1552,6 +1552,7 @@ function genre(g){const list=state.songs.filter(s=>s.genre.toLowerCase()===g.toL
 function artist(a){const list=state.songs.filter(s=>s.artist===a);document.getElementById('modalBody').innerHTML=`<h2>${esc(a)} 👤</h2><p class="muted">Artist profile</p><button class="btn primary" data-action="follow">+ Follow</button>${list.map(songCard).join('')}`;document.getElementById('modal').classList.add('show')}
 function showLibrary(type){
 if(type==='offline'){
+ try{if(typeof go==='function' && window.ALU_ACTIVE_PAGE!=='library')go('library',false)}catch(e){}
  var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');
  if(home)home.style.display='none'; if(room)room.style.display='block';
  if(typeof renderOfflineRoom==='function')renderOfflineRoom(); return;

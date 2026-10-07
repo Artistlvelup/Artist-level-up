@@ -5924,3 +5924,331 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+
+<style id="aluStudioProfessionalTopBarV101">
+/* V101 Studio Professional Control Bar
+   Inspired by the compact control-bar/timeline relationship used by professional DAWs.
+   This is a UI/placement layer only; the existing V101 audio engine remains intact. */
+#studio .alu-studio-probar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  box-sizing:border-box;
+  margin:12px 0 14px;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  background:linear-gradient(180deg,#171a22,#0e1016);
+  box-shadow:0 12px 32px rgba(0,0,0,.24);
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:thin;
+}
+#studio .alu-studio-pro-group{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex:0 0 auto;
+}
+#studio .alu-studio-pro-sep{
+  width:1px;
+  height:34px;
+  background:rgba(255,255,255,.12);
+  flex:0 0 auto;
+}
+#studio .alu-studio-probar .studio-transport-btn{
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  flex:0 0 42px;
+  border-radius:12px!important;
+}
+#studio .alu-studio-probar .studio-transport-btn.studio-play{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  flex-basis:48px;
+  border-radius:50%!important;
+}
+#studio .alu-studio-probar .studio-transport-btn.studio-record{
+  color:#ff6b75;
+}
+#studio .alu-studio-probar .alu-studio-loop{
+  min-width:76px;
+  height:38px;
+  padding:0 11px;
+  border:1px solid #343744;
+  border-radius:10px;
+  background:#20232c;
+  color:#fff;
+  font-weight:900;
+  font-size:11px;
+  white-space:nowrap;
+}
+#studio .alu-studio-probar .alu-studio-loop.on{
+  background:#ffd21c;
+  color:#111;
+  border-color:#ffd21c;
+}
+#studio .alu-studio-probar .alu-studio-setting{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  height:38px;
+  padding:0 9px;
+  border:1px solid #343744;
+  border-radius:10px;
+  background:#181b23;
+  flex:0 0 auto;
+}
+#studio .alu-studio-probar .alu-studio-setting b{
+  font-size:9px;
+  letter-spacing:.4px;
+  color:#9ca2b2;
+}
+#studio .alu-studio-probar input[type=number],
+#studio .alu-studio-probar select{
+  width:58px;
+  height:30px;
+  margin:0!important;
+  padding:4px 6px!important;
+  border:0!important;
+  background:#252833!important;
+  border-radius:7px!important;
+  color:#fff!important;
+  font-weight:900;
+}
+#studio .alu-studio-probar .alu-studio-setting.master{
+  min-width:126px;
+}
+#studio .alu-studio-probar .alu-studio-setting.master input{
+  width:72px;
+  margin:0;
+}
+#studio .alu-studio-pro-time{
+  display:flex;
+  flex-direction:column;
+  min-width:82px;
+  flex:0 0 auto;
+}
+#studio .alu-studio-pro-time b{font-size:14px;letter-spacing:.3px}
+#studio .alu-studio-pro-time small{font-size:9px;color:#8e93a3;margin-top:2px}
+#studio .alu-studio-pro-meter{
+  min-width:150px;
+  flex:1 1 170px;
+  max-width:260px;
+}
+#studio .alu-studio-pro-meter .studio-meter-track{
+  height:8px!important;
+  min-height:8px!important;
+  margin-top:5px;
+}
+#studio .alu-studio-pro-meter .studio-tips{
+  display:none!important;
+}
+#studio .alu-studio-pro-project-tools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:10px 0 14px;
+}
+#studio .alu-studio-pro-project-tools .btn{
+  flex:1 1 115px;
+  min-height:38px;
+}
+#studio .alu-studio-pro-timeline{
+  margin-top:0!important;
+}
+#studio .alu-studio-pro-roadmap{display:none!important}
+#studio .alu-studio-probar::-webkit-scrollbar{height:5px}
+#studio .alu-studio-probar::-webkit-scrollbar-thumb{background:#343744;border-radius:99px}
+@media(max-width:650px){
+  #studio .alu-studio-probar{
+    gap:8px;
+    padding:9px;
+    border-radius:14px;
+    margin:10px 0 12px;
+  }
+  #studio .alu-studio-probar .studio-transport-btn{
+    width:40px!important;height:40px!important;min-width:40px!important;flex-basis:40px;
+  }
+  #studio .alu-studio-probar .studio-transport-btn.studio-play{
+    width:46px!important;height:46px!important;min-width:46px!important;flex-basis:46px;
+  }
+  #studio .alu-studio-pro-meter{min-width:130px;max-width:190px}
+  #studio .alu-studio-pro-setting{font-size:10px}
+  #studio .alu-studio-pro-project-tools .btn{flex:1 1 calc(50% - 7px)}
+}
+</style>
+<script id="aluStudioProfessionalTopBarV101">
+(function(){
+'use strict';
+function boot(){
+  var studio=document.getElementById('studio');
+  if(!studio){setTimeout(boot,100);return}
+  var shell=studio.querySelector('.studio-shell');
+  if(!shell){setTimeout(boot,100);return}
+
+  function ensureBar(){
+    var head=shell.querySelector('.studio-head');
+    if(!head)return null;
+    var bar=document.getElementById('aluStudioProfessionalBarV101');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='aluStudioProfessionalBarV101';
+      bar.className='alu-studio-probar';
+      bar.setAttribute('aria-label','Studio transport controls');
+      bar.innerHTML='<div class="alu-studio-pro-group alu-studio-pro-transport"></div>'+
+        '<div class="alu-studio-pro-sep"></div>'+
+        '<div class="alu-studio-pro-group alu-studio-pro-settings"></div>'+
+        '<div class="alu-studio-pro-sep"></div>'+
+        '<div class="alu-studio-pro-time"><b id="aluStudioProClock">00:00.0</b><small id="aluStudioProStatus">Ready</small></div>'+
+        '<div class="alu-studio-pro-meter"></div>';
+      head.insertAdjacentElement('afterend',bar);
+    }
+
+    var original=studio.querySelector('.studio-transport');
+    var row=original&&original.querySelector('.studio-transport-row');
+    var tools=original&&original.querySelector('.studio-transport-tools');
+    var tg=bar.querySelector('.alu-studio-pro-transport');
+    var sg=bar.querySelector('.alu-studio-pro-settings');
+
+    if(row&&tg){
+      ['rewind','stop','play','record','metronome'].forEach(function(kind){
+        var b=row.querySelector('[data-studio-action="'+kind+'"]');
+        if(b&&b.parentNode!==tg)tg.appendChild(b);
+      });
+      if(!tg.querySelector('.alu-studio-loop')){
+        var lb=document.createElement('button');
+        lb.type='button';lb.className='alu-studio-loop';lb.textContent='🔁 Loop Off';
+        lb.setAttribute('aria-label','Toggle loop playback');
+        lb.addEventListener('click',function(e){
+          e.preventDefault();e.stopPropagation();
+          var A=window.ALU_STUDIO_V101;
+          if(!A)return;
+          A.loop=!A.loop;
+          if(A.setLoop)A.setLoop(A.loop);
+          lb.classList.toggle('on',!!A.loop);
+          lb.textContent=A.loop?'🔁 Loop On':'🔁 Loop Off';
+          var st=document.getElementById('aluStudioProStatus');
+          if(st)st.textContent=A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓';
+        });
+        tg.appendChild(lb);
+      }
+    }
+
+    if(tools&&sg){
+      ['studioBpm','studioKey','studioMaster'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(!el)return;
+        var lab=el.closest('label');
+        if(!lab)return;
+        if(!lab.classList.contains('alu-studio-setting')){
+          lab.classList.add('alu-studio-setting');
+          var text=lab.firstChild;
+          if(text&&text.nodeType===3){
+            var b=document.createElement('b');
+            b.textContent=String(text.textContent||'').trim();
+            lab.insertBefore(b,text);
+            lab.removeChild(text);
+          }
+        }
+        if(lab.parentNode!==sg)sg.appendChild(lab);
+      });
+    }
+
+    var rowTime=row&&row.querySelector('.studio-time');
+    if(rowTime){
+      var clock=rowTime.querySelector('#studioClock');
+      var status=rowTime.querySelector('#studioStatus');
+      if(clock){
+        var proClock=document.getElementById('aluStudioProClock');
+        if(proClock)proClock.textContent=clock.textContent;
+      }
+      if(status){
+        var proStatus=document.getElementById('aluStudioProStatus');
+        if(proStatus)proStatus.textContent=status.textContent;
+      }
+      rowTime.style.display='none';
+    }
+
+    var meter=studio.querySelector('.studio-meter-top');
+    var meterHost=bar.querySelector('.alu-studio-pro-meter');
+    if(meter&&meterHost&&meter.parentNode!==meterHost)meterHost.appendChild(meter);
+
+    if(original)original.style.display='none';
+
+    if(head.nextElementSibling!==bar)shell.insertBefore(bar,head.nextElementSibling);
+
+    var timeline=studio.querySelector('#studioTracks')?.closest('.card');
+    if(timeline){
+      timeline.classList.add('alu-studio-pro-timeline');
+      if(timeline.parentNode!==shell || timeline.previousElementSibling!==bar){
+        shell.insertBefore(timeline,bar.nextSibling);
+      }
+    }
+
+    var actions=studio.querySelector('.studio-action-grid');
+    if(actions){
+      actions.classList.add('alu-studio-pro-project-tools');
+      if(actions.parentNode!==shell || actions.previousElementSibling!==timeline){
+        shell.insertBefore(actions,timeline?timeline.nextSibling:bar.nextSibling);
+      }
+    }
+
+    var edit=document.getElementById('aluStudioEditBar');
+    var editor=document.getElementById('aluStudioEditorPanel');
+    if(edit){
+      edit.style.marginTop='10px';
+      if(edit.parentNode!==shell) shell.appendChild(edit);
+    }
+    if(editor){
+      editor.style.marginTop='10px';
+      if(editor.parentNode!==shell) shell.appendChild(editor);
+    }
+
+    var roadmap=studio.querySelector('.studio-roadmap');
+    if(roadmap)roadmap.classList.add('alu-studio-pro-roadmap');
+
+    var fx=studio.querySelector('.studio-effects-host-v101');
+    if(fx)fx.style.marginTop='14px';
+
+    var oldTools=studio.querySelector('.studio-timeline-tools');
+    if(oldTools)oldTools.style.display='contents';
+    return bar;
+  }
+
+  function syncBar(){
+    var bar=ensureBar();
+    if(!bar)return;
+    var A=window.ALU_STUDIO_V101;
+    var loop=bar.querySelector('.alu-studio-loop');
+    if(loop&&A){
+      loop.classList.toggle('on',!!A.loop);
+      loop.textContent=A.loop?'🔁 Loop On':'🔁 Loop Off';
+    }
+    var clock=document.getElementById('studioClock'),status=document.getElementById('studioStatus');
+    var pc=document.getElementById('aluStudioProClock'),ps=document.getElementById('aluStudioProStatus');
+    if(clock&&pc)pc.textContent=clock.textContent;
+    if(status&&ps)ps.textContent=status.textContent;
+  }
+
+  var scheduled=false;
+  function schedule(){
+    if(scheduled)return;
+    scheduled=true;
+    setTimeout(function(){scheduled=false;syncBar()},0);
+  }
+
+  syncBar();
+  if(!studio.__aluProfessionalBarObserverV101){
+    studio.__aluProfessionalBarObserverV101=true;
+    var mo=new MutationObserver(function(){schedule()});
+    mo.observe(studio,{childList:true,subtree:true});
+  }
+  setInterval(syncBar,700);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>

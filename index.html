@@ -2083,13 +2083,15 @@ renderGrowthCenter();
 (function(){
   const oldAction=window.action;
   window.action=async function(a,el){
-    if(a==='openUserRegister'){
+    function openUserRegisterModal(){
       const modal=document.getElementById('modal'), body=document.getElementById('modalBody');
-      if(!modal||!body)return;
+      if(!modal||!body){try{toast('Registration window is unavailable. Please reopen Artist Level Up and try again.')}catch(e){};return false;}
       body.innerHTML=`<span class="pill">CREATE ACCOUNT</span><h2>Join Artist Level Up 👤</h2><p class="muted">Register as a music listener/supporter. You can follow artists, like songs and build your library.</p><label>Name</label><input id="userRegName" placeholder="Your name" autocomplete="name"><label>Email</label><input id="userRegEmail" type="email" placeholder="you@example.com" autocomplete="email"><label>Profile picture <span class="tiny">(optional)</span></label><input id="userRegAvatar" type="file" accept="image/*" aria-label="Choose profile picture"><div class="row" style="margin:4px 0 12px"><img id="userRegAvatarPreview" class="profile-avatar" style="width:58px;height:58px;display:none" alt="Profile preview"><div class="tiny muted">Add your picture so people can recognize you in the app.</div></div><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="userRegAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and User Agreement.</span></label><button class="btn primary full" data-action="saveUserRegister">Create My Account</button>`;document.getElementById('userRegAvatar')?.addEventListener('change',async e=>{const f=e.target.files?.[0],p=document.getElementById('userRegAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});
       modal.classList.add('show');
-      return;
+      return true;
     }
+    window.ALU_OPEN_USER_REGISTER=openUserRegisterModal;
+    if(a==='openUserRegister'){openUserRegisterModal();return;}
     if(a==='saveUserRegister'){
       const name=(document.getElementById('userRegName')?.value||'').trim();
       const email=(document.getElementById('userRegEmail')?.value||'').trim();
@@ -6219,6 +6221,10 @@ function listenerRegistered(){
 function requestListenerRegistration(songId,title,song){
   pendingRegistrationDownload={id:String(songId||''),title:String(title||song?.title||'this song'),song:song||null};
   try{
+    if(typeof window.ALU_OPEN_USER_REGISTER==='function'){
+      var opened=window.ALU_OPEN_USER_REGISTER();
+      if(opened!==false)return;
+    }
     if(typeof window.action==='function'){
       Promise.resolve(window.action('openUserRegister')).catch(function(e){
         pendingRegistrationDownload=null;

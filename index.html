@@ -2102,7 +2102,7 @@ renderGrowthCenter();
       if(avatarFile) avatar=await imageToDataURL(avatarFile,500,.82);
       state.userAccount={name,email,avatar:avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:state.userAccount?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
       state.profile={...(state.profile||{}),name,email,avatar:avatar||state.profile?.avatar||'',saved:true};
-      state.userRegistered=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); setTimeout(function(){if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED();},0); return;
+      state.userRegistered=true; state.memberAccessV101=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); setTimeout(function(){if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED();},0); return;
     }
     return oldAction(a,el);
   };
@@ -5905,7 +5905,7 @@ body.alu-member-locked-v101>.app{visibility:hidden;pointer-events:none}
 if(window.__ALU_MEMBER_GATE_V101)return;
 window.__ALU_MEMBER_GATE_V101=true;
 function getState(){return (typeof state!=='undefined'&&state)?state:null}
-function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim())}
+function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
 function persist(){var s=getState();if(!s)return;try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
 function ensureGate(){
   var old=document.getElementById('aluMemberGateV101');if(old)return old;
@@ -5927,14 +5927,14 @@ function ensureGate(){
     if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
     if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
     s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
-    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;persist();close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
+    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;persist();close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
   });
   document.getElementById('aluMemberLoginBtn').addEventListener('click',function(){
     var s=getState(),email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your member email.';return}
     var saved=String(s?.userAccount?.email||'').trim().toLowerCase();
     if(!saved||saved!==email){err.textContent='No member account was found for that email on this device. Choose Create Account.';return}
-    s.userRegistered=true;persist();close();try{toast('Welcome back ✓')}catch(e){}
+    s.userRegistered=true;s.memberAccessV101=true;persist();close();try{toast('Welcome back ✓')}catch(e){}
   });
   return wrap;
 }

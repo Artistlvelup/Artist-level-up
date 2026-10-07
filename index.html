@@ -6384,16 +6384,18 @@ function bindGptListeners(){
     if(evt.slot!==rewardedSlot)return;
     granted=true;
     if(requestTimer){clearTimeout(requestTimer);requestTimer=null;}
-    setStatus('Reward received ✓ Saving your offline download…');
-    var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
-    scheduleRewardedHandoff(250);
+    setStatus('Reward received ✓ Waiting for the ad to finish…');
+    /* Do not save on reward-granted alone. The video must also complete. */
+    if(rewardedVideoCompleted)scheduleRewardedHandoff(100);
   });
   googletag.pubads().addEventListener('rewardedSlotVideoCompleted',function(evt){
     if(evt.slot!==rewardedSlot)return;
     rewardedVideoCompleted=true;
-    setStatus('Ad complete ✓ Confirming your reward…');
+    setStatus(granted?'Ad complete ✓ Reward confirmed. Saving your song…':'Ad complete ✓ Confirming your reward…');
     showClose();
-    scheduleRewardedHandoff(5000);
+    /* Grant and completion can arrive in either order. Continue as soon as both are true. */
+    if(granted)scheduleRewardedHandoff(100);
+    else scheduleRewardedHandoff(2000);
   });
   googletag.pubads().addEventListener('rewardedSlotClosed',function(evt){
     if(evt.slot!==rewardedSlot)return;

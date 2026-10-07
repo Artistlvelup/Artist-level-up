@@ -6311,8 +6311,10 @@ function finishRewardedHandoff(){
   handoffBusy=true;
   if(handoffTimer){clearTimeout(handoffTimer);handoffTimer=null;}
   var p=pending,song=p?.song||getSong(p?.id);
-  if(!granted){
-    setStatus('The ad finished, but the reward was not confirmed. Tap Watch Ad Again.');
+  if(!granted || !rewardedVideoCompleted){
+    setStatus(!rewardedVideoCompleted
+      ? 'The ad did not finish. The free download was not unlocked.'
+      : 'The ad finished, but the reward was not confirmed. Tap Watch Ad Again.');
     cleanupSlot();
     var unlocked=document.getElementById('aluRewardedUnlockedCard');if(unlocked)unlocked.style.display='none';
     resetRetry();

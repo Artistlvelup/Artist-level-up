@@ -5556,7 +5556,19 @@ boot();
 .alu-download-play{width:38px;height:38px;border:0;border-radius:50%;background:var(--gold);color:#111;font-size:16px;font-weight:900;cursor:pointer}
 .alu-download-remove{width:34px;height:34px;border:0;border-radius:9px;background:#25262d;color:#fff;cursor:pointer}
 @media(max-width:380px){.alu-download-item{grid-template-columns:50px minmax(0,1fr) auto}.alu-download-art{width:50px;height:50px}.alu-download-title{font-size:13px}}
-</style><script id="aluV101OfflineRoomOpenBridge">(function(){\n"use strict";\nwindow.ALU_OPEN_OFFLINE_ROOM=function(){try{if(typeof showLibrary==="function"){showLibrary("offline");return}}catch(e){console.warn("Offline Room open failed:",e)}};\n})();</script>
+</style><script id="aluV101OfflineRoomOpenBridge">
+(function(){
+"use strict";
+window.ALU_OPEN_OFFLINE_ROOM=function(){
+  try{
+    if(typeof showLibrary==="function"){
+      showLibrary("offline");
+      return;
+    }
+  }catch(e){console.warn("Offline Room open failed:",e)}
+};
+})();
+</script>
 <script id="aluV101RewardedDownloadAds">
 (function(){
 'use strict';

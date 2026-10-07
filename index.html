@@ -2101,7 +2101,7 @@ renderGrowthCenter();
       if(avatarFile) avatar=await imageToDataURL(avatarFile,500,.82);
       state.userAccount={name,email,avatar:avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:state.userAccount?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
       state.profile={...(state.profile||{}),name,email,avatar:avatar||state.profile?.avatar||'',saved:true};
-      state.userRegistered=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED(); return;
+      state.userRegistered=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); setTimeout(function(){if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED();},0); return;
     }
     return oldAction(a,el);
   };

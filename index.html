@@ -2358,7 +2358,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       else if(a==='upload' && (state.songs?.length||0)>beforeSongs) await syncSongs();
       else if(a==='campaign' && (state.campaigns?.length||0)>beforeCampaigns) await syncCampaign(state.campaigns[0]);
       else if(a==='withdraw' && (state.transactions?.length||0)>beforeTx){const t=state.transactions.find(x=>x.type==='Withdrawal request'&&!x.remoteWithdrawalId);if(t) await syncWithdrawal(t);}
-      else if(a==='saveProfile') await syncProfile();
       localStorage.setItem(KEY,JSON.stringify(state));
       renderAll();
     }catch(e){console.warn('Supabase sync failed:',e);toast('Saved on this device · cloud sync will retry');}

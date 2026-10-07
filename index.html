@@ -1763,6 +1763,8 @@ async function aluSaveOfflineSong(song,title){
   const record={key,userKey,songId:String(song.id),title:String(title||song.title||'Untitled Song'),artist:String(song.artist||'Artist Level Up'),genre:String(song.genre||'Music'),coverArt:String(song.coverArt||song.coverUrl||song.coverImage||''),mime:String(blob.type||'audio/mpeg'),size:Number(blob.size||0),addedAt:Date.now(),blob};
   const saved=await aluPutOfflineDownload(record);
   if(!saved)throw new Error('Offline storage did not confirm the save.');
+  const verified=await aluGetOfflineDownload(record.key);
+  if(!verified||!(verified.blob instanceof Blob)||!verified.blob.size)throw new Error('Offline storage saved the record but could not verify the music file.');
   aluSaveBlobToDevice(blob,title,song);
   return saved;
 }

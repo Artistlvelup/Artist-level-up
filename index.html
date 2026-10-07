@@ -1302,7 +1302,7 @@ function render(){let box=$('studioTracks'),mix=$('studioMixerTracks');if(!box||
 '<button type="button" data-lane-action="mute" data-track="'+t.id+'" class="'+(t.mute?'on':'')+'">M</button>'+
 '<button type="button" data-lane-action="solo" data-track="'+t.id+'" class="'+(t.solo?'on':'')+'">S</button>'+
 '</div>'+
-'<div class="studio-lane-mix"><button type="button" data-lane-mix="volume" data-track="'+t.id+'" aria-label="Volume">🔊 VOL '+Math.round(Number(t.volume??1)*100)+'%</button><button type="button" data-lane-mix="pan" data-track="'+t.id+'" aria-label="Pan">↔ PAN</button></div>'+
+'<div class="studio-lane-mix"><div class="alu-rotary-wrap"><button type="button" class="alu-rotary" data-knob="volume" data-track="'+t.id+'" aria-label="Volume knob" aria-valuemin="0" aria-valuemax="1.5" aria-valuenow="'+(t.volume??1)+'"></button><span class="alu-rotary-label">VOL</span><span class="alu-rotary-value">'+Math.round(Number(t.volume??1)*100)+'%</span></div><div class="alu-rotary-wrap"><button type="button" class="alu-rotary" data-knob="pan" data-track="'+t.id+'" aria-label="Pan knob" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="'+(t.pan??0)+'"></button><span class="alu-rotary-label">PAN</span><span class="alu-rotary-value">'+(Number(t.pan??0)===0?'C':(Number(t.pan??0)<0?Math.round(-Number(t.pan??0)*100)+'L':Math.round(Number(t.pan??0)*100)+'R'))+'</span></div></div>'+
 '<div class="studio-lane-effects"><button type="button" data-lane-effects data-track="'+t.id+'" aria-label="Open effects for '+esc(t.name)+'">🎛️ EFFECTS</button></div>'+
 '<div class="studio-lane-status">'+(S.selected===t.id?'● ACTIVE · Effects opens in room':'Tap lane controls')+'</div></div></div>'+
 '<div class="studio-clip" data-track="'+t.id+'" style="width:'+Math.max(110,Math.min(700,(t.duration||1)*36))+'px"><canvas></canvas><span>'+esc(t.name)+'</span></div>';box.appendChild(q);wave(q.querySelector('canvas'),t.blob);let m=document.createElement('div');m.className='studio-mixer-track';m.innerHTML='<div><b>'+esc(t.name)+'</b><div class="tiny muted">'+fmt(t.duration)+'</div></div><div class="studio-volume-control"><button type="button" class="studio-vol-btn" data-volume-step="-0.1" data-track="'+t.id+'" aria-label="Decrease volume">−</button><div class="studio-volume-center"><input data-mix="volume" data-track="'+t.id+'" type="range" min="0" max="1.5" step=".01" value="'+(t.volume??1)+'"><span class="studio-volume-value" data-volume-value="'+t.id+'">'+Math.round(Number(t.volume??1)*100)+'%</span></div><button type="button" class="studio-vol-btn" data-volume-step="0.1" data-track="'+t.id+'" aria-label="Increase volume">+</button></div><input data-mix="pan" data-track="'+t.id+'" type="range" min="-1" max="1" step=".01" value="'+(t.pan??0)+'"><div class="studio-mixer-buttons"><button data-track="'+t.id+'" data-track-act="mute" class="'+(t.mute?'on':'')+'">M</button><button data-track="'+t.id+'" data-track-act="solo" class="'+(t.solo?'on':'')+'">S</button></div>';mix.appendChild(m)});$('studioProjectBadge').textContent=S.name+' · '+S.bpm+' BPM';$('studioBpm').value=S.bpm;$('studioKey').value=S.key}
@@ -6268,5 +6268,30 @@ function boot(){
   setInterval(syncBar,700);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
+<style id="aluStudioRotaryControlsV101">
+#studio .alu-rotary-wrap{display:flex;align-items:center;justify-content:center;gap:4px;min-width:70px}
+#studio .alu-rotary{width:42px;height:42px;border-radius:50%;border:2px solid #454957;background:radial-gradient(circle at 35% 30%,#3b3f4b,#171922 65%,#0e0f14);box-shadow:inset 0 1px 3px rgba(255,255,255,.12),0 3px 8px rgba(0,0,0,.35);position:relative;cursor:ns-resize;touch-action:none;padding:0;color:#fff}
+#studio .alu-rotary:before{content:"";position:absolute;left:50%;top:4px;width:3px;height:13px;border-radius:3px;background:#ffd21c;transform:translateX(-50%) rotate(var(--rot,0deg));transform-origin:50% 17px}
+#studio .alu-rotary-label{font-size:8px;font-weight:900;line-height:1;text-align:center;color:#c8cad2}
+#studio .alu-rotary-value{font-size:8px;font-weight:900;color:#fff;min-width:30px;text-align:center}
+</style>
+<script id="aluStudioRotaryControlsV101">
+(function(){
+  var active=null;
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+  function draw(b,v){
+    var kind=b.dataset.knob,min=kind==='volume'?0:-1,max=kind==='volume'?1.5:1,p=(v-min)/(max-min);
+    b.style.setProperty('--rot',(-135+p*270)+'deg');
+    var out=b.parentElement.querySelector('.alu-rotary-value');
+    if(out)out.textContent=kind==='volume'?Math.round(v*100)+'%':(v===0?'C':(v<0?Math.round(-v*100)+'L':Math.round(v*100)+'R'));
+    b.setAttribute('aria-valuenow',String(v));
+  }
+  function sync(){document.querySelectorAll('#studio .alu-rotary').forEach(function(b){var t=window.ALU_STUDIO_V101?.find?.(b.dataset.track);if(t)draw(b,Number(t[b.dataset.knob]??(b.dataset.knob==='volume'?1:0)))})}
+  document.addEventListener('pointerdown',function(e){var b=e.target.closest?.('.alu-rotary');if(!b)return;var t=window.ALU_STUDIO_V101?.find?.(b.dataset.track);if(!t)return;active={b:b,t:t,y:e.clientY,v:Number(t[b.dataset.knob]??(b.dataset.knob==='volume'?1:0)),m:false};b.setPointerCapture?.(e.pointerId);e.preventDefault()},{passive:false});
+  document.addEventListener('pointermove',function(e){if(!active)return;var b=active.b,t=active.t,k=b.dataset.knob,min=k==='volume'?0:-1,max=k==='volume'?1.5:1,step=k==='volume'?.005:.01,v=clamp(active.v+(active.y-e.clientY)*step,min,max);if(Math.abs(e.clientY-active.y)>3)active.m=true;t[k]=v;draw(b,v);window.ALU_STUDIO_V101?.apply?.(t);e.preventDefault()},{passive:false});
+  document.addEventListener('pointerup',function(){if(!active)return;var moved=active.m;active=null;if(moved)window.ALU_STUDIO_V101?.render?.();});
+  setInterval(sync,900);
 })();
 </script>

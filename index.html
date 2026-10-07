@@ -1781,14 +1781,6 @@ async function playOfflineDownload(key){
 }
 async function renderOfflineRoom(){
   const box=document.getElementById('offlineRoomContent');if(!box)return;
-  const registered=!!(window.state&&(window.state.userRegistered===true||window.state.userAccount?.email));
-  if(!registered){
-    const head=document.getElementById('offlineRoomMeta');
-    if(head)head.textContent='Member account required to save and manage offline downloads';
-    box.innerHTML='<div class="card" style="margin:0;text-align:center;background:#171820"><div style="font-size:34px">👤</div><b>Listener account required</b><p class="muted">You can open Downloads anytime. Create your free member account before saving songs offline.</p><button class="btn primary full" type="button" id="offlineRoomRegisterBtn">👤 Register / Sign In</button></div>';
-    document.getElementById('offlineRoomRegisterBtn')?.addEventListener('click',function(){try{if(typeof window.action==='function')window.action('openUserRegister');}catch(e){}});
-    return;
-  }
   try{
     const rows=await aluListOfflineDownloads();
     const total=rows.reduce((n,x)=>n+Number(x.size||0),0);

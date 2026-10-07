@@ -6023,10 +6023,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .alu-studio-probar .alu-studio-setting.master{
   min-width:126px;
 }
-#studio .alu-studio-probar .alu-studio-setting.master input{
-  width:72px;
-  margin:0;
-}
+#studio .alu-studio-probar .alu-studio-setting.master input{display:none!important}
+#studio .alu-studio-probar .alu-studio-master-button{height:30px;padding:0 10px;border:1px solid #3a3d49;border-radius:8px;background:#242731;color:#fff;font-weight:900;font-size:10px;cursor:pointer}
+#studio .alu-studio-probar .alu-studio-master-button:active{transform:scale(.96)}
+#studio .alu-studio-probar .alu-studio-master-button.on{background:#ffd21c;color:#111;border-color:#ffd21c}
 #studio .alu-studio-pro-time{
   display:flex;
   flex-direction:column;
@@ -6165,6 +6165,11 @@ function boot(){
           }
         }
         if(lab.parentNode!==sg)sg.appendChild(lab);
+        if(id==='studioMaster'&&!lab.querySelector('.alu-studio-master-button')){
+          var vb=document.createElement('button');vb.type='button';vb.className='alu-studio-master-button';vb.textContent='🔊 '+Math.round(Number(el.value||.9)*100)+'%';
+          vb.addEventListener('click',function(e){e.preventDefault();var raw=prompt('Master volume (0–100%)',String(Math.round(Number(el.value||.9)*100)));if(raw===null)return;var n=Number(raw);if(!Number.isFinite(n))return;n=Math.max(0,Math.min(100,n));el.value=(n/100).toFixed(2);el.dispatchEvent(new Event('input',{bubbles:true}));vb.textContent='🔊 '+Math.round(n)+'%';});
+          lab.appendChild(vb);
+        }
       });
     }
 

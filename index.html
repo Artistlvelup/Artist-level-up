@@ -5561,15 +5561,13 @@ boot();
 'use strict';
 function openOfflineRoom(){
   try{
+    var home=document.getElementById('libraryHomeView');
+    var room=document.getElementById('offlineRoom');
     if(typeof window.go==='function') window.go('library');
-    setTimeout(function(){
-      var home=document.getElementById('libraryHomeView');
-      var room=document.getElementById('offlineRoom');
-      if(home) home.style.display='none';
-      if(room) room.style.display='block';
-      if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();
-      if(room) room.scrollIntoView({behavior:'smooth',block:'start'});
-    },80);
+    if(home) home.style.display='none';
+    if(room) room.style.display='block';
+    if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();
+    if(room) room.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){console.warn('Offline Room button failed:',e);}
 }
 document.addEventListener('click',function(e){

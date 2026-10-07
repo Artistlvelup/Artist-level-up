@@ -997,8 +997,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 <div class="stat owner-stat"><span class="muted">Total marketplace orders</span><b id="ownerTotalOrders">0</b><small>Paid + pending</small></div>
 </div>
 <div class="card"><div class="row between"><div><h2 style="margin:0">🧾 Recent Paid Sales</h2><div class="tiny muted" id="ownerDashboardStatus">Loading live data…</div></div><button class="btn" data-action="ownerDashboardRefresh">↻ Refresh</button></div><div id="ownerRecentSales" style="margin-top:10px"></div></div>
-<div class="grid"><button class="btn primary" data-go="commissionEarningsPage">💰 Commission / Earnings</button><button class="btn" data-go="marketplace">🛒 Beat Marketplace</button><button class="btn" data-go="producerDashboard">🎛️ Producer Center</button><button class="btn" data-go="admin">⚙️ Admin Control Center</button></div>
-</section>
+<div class="grid"><button class="btn primary" data-go="commissionEarningsPage">💰 Commission / Earnings</button><button class="btn" data-go="marketplace">🛒 Beat Marketplace</button><button class="btn" data-go="producerDashboard">🎛️ Producer Center</button><button class="btn" data-go="admin">⚙️ Admin Control Center</button></div></section>
 <section class="page" id="admin"><span class="pill">OWNER CONTROL CENTER</span><h1>Admin Dashboard 👑</h1><p class="muted">Your private control center for Artist Level Up. Review music, monitor campaigns, track platform revenue and manage artist activity.</p><div class="hero" style="border-color:var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><span class="pill">ADMIN MODE · PROTOTYPE</span><h2 style="margin:10px 0 4px">Artist Level Up Control</h2><p class="muted" style="margin:0">Production version should require a secure admin login.</p></div><div style="font-size:44px">👑</div></div></div><div class="admin-stat-grid" style="margin-top:12px"><button class="stat admin-stat-card" data-admin-jump="songs" type="button"><span class="muted">Total songs</span><b id="adminSongs">0</b><small>Tap to manage music →</small></button><button class="stat admin-stat-card" data-admin-jump="pending" type="button"><span class="muted">Pending review</span><b id="adminPending">0</b><small>Tap to review →</small></button><button class="stat admin-stat-card" data-admin-jump="campaigns" type="button"><span class="muted">Campaigns</span><b id="adminCampaigns">0</b><small>Tap to monitor →</small></button><button class="stat admin-stat-card" data-admin-jump="streams" type="button"><span class="muted">Total streams</span><b id="adminStreams">0</b><small>Tap to view analytics →</small></button><button class="stat admin-stat-card" data-admin-jump="artists" type="button"><span class="muted">Artists</span><b id="adminArtists">0</b><small>Tap to manage artists →</small></button><button class="stat admin-stat-card" data-admin-jump="users" type="button"><span class="muted">Users</span><b id="adminUsers">0</b><small>Registered platform users</small></button><button class="stat admin-stat-card" data-admin-jump="revenue" type="button"><span class="muted">Platform revenue</span><b id="adminRevenue">₦0</b><small>Tap to view revenue →</small></button></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div class="row between"><div><span class="pill">👑 OWNER</span><h2 style="margin-top:8px">Live Owner Dashboard</h2></div><span>🔐</span></div><p class="muted">Open the secure live marketplace financial dashboard.</p><button class="btn primary full" data-go="ownerDashboard">👑 Open Owner Dashboard</button></div><div class="card"><h2>🎤 Artist Registration</h2><p class="muted">Open the artist registration form so new artists can create their account.</p><button class="btn primary full" data-go="register">➕ Register New Artist</button></div><div class="card"><h2>⚡ Admin Quick Control</h2><p class="muted">Fast overview and shortcuts for the most important platform controls.</p><div class="grid3"><div class="stat"><span class="muted">Free Artists</span><b id="adminFreeArtists">0</b></div><div class="stat"><span class="muted">Pro Artists</span><b id="adminProArtists">0</b></div><div class="stat"><span class="muted">Pending Withdrawals</span><b id="adminPendingWithdrawals">0</b></div></div><div class="grid"><button class="btn primary" data-go="register">🎤 Register Artist</button><button class="btn" data-go="create">🎵 Music / Upload</button><button class="btn" data-go="promote">🚀 Promote</button><button class="btn" data-go="wallet">💰 Wallet</button></div></div><div class="card"><h2>🎵 Music Review Queue</h2><p class="muted">Every new upload waits here until Admin approves it. Preview the song, then approve or reject it.</p><div class="grid" style="margin:12px 0"><button class="btn primary" data-action="approveLatestSong" onclick="action('approveLatestSong',this); return false;">✅ Approve Music</button><button class="btn red" data-action="rejectLatestSong" onclick="action('rejectLatestSong',this); return false;">❌ Reject Music</button></div><div class="grid3"><button class="btn" data-admin-filter="all">All</button><button class="btn" data-admin-filter="pending">Pending</button><button class="btn" data-admin-filter="approved">Approved</button><button class="btn" data-admin-filter="rejected">Rejected</button></div><div id="adminMusicQueue" style="margin-top:10px"></div></div><div class="card" id="adminVideoReviewCard"><div class="row between"><div><span class="pill">🎬 VIDEO MODERATION</span><h2 style="margin-top:8px">Video Review Queue</h2></div><button class="btn" data-action="refreshAdminVideos" type="button">↻ Refresh</button></div><p class="muted">Watch the actual uploaded video and thumbnail before approving it for Video Hub.</p><div class="grid3" style="margin:12px 0"><button class="btn" data-admin-video-filter="all">All</button><button class="btn" data-admin-video-filter="pending">Pending</button><button class="btn" data-admin-video-filter="approved">Approved</button><button class="btn" data-admin-video-filter="rejected">Rejected</button></div><div id="adminVideoQueue"></div></div><div class="card"><h2>📢 Campaign Monitor</h2><div id="adminCampaignList"></div></div><div class="card" id="adminCoursePayments"><h2>🎓 Course Payments</h2><p class="muted">Review the ₦15,000 full-course bank-transfer submissions. Approving a payment unlocks all 15 lessons.</p><div id="adminCoursePaymentList"></div><div class="card" style="margin-top:10px;background:rgba(255,255,255,.03)"><h3 style="margin-top:0">🏦 Receiving Bank Details</h3><p class="tiny muted">Set the bank details students should use for the course transfer.</p><label>Bank name</label><input id="courseOwnerBank" placeholder="e.g. Access Bank"/><label>Account name</label><input id="courseOwnerAccountName" placeholder="Account name"/><label>Account number</label><input id="courseOwnerAccountNumber" inputmode="numeric" placeholder="Account number"/><button class="btn primary full" data-action="saveCourseBank">💾 Save Course Bank Details</button><div class="tiny muted" id="courseBankSaveStatus" style="margin-top:8px"></div></div></div><div class="card" id="adminCommissionEarningsCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><div class="row between"><div><span class="pill">💰 MARKETPLACE COMMISSION</span><h2 style="margin-top:8px">Commission / Earnings</h2></div><span class="pill">OWNER</span></div><p class="muted">View completed beat sales and the Artist Level Up 10% marketplace commission.</p><button class="btn primary full" type="button" data-go="commissionEarningsPage">💰 Open Commission / Earnings</button></div>
 <div class="card" id="adminRevenuePanel"><h2>💰 Platform Revenue</h2><div class="listrow"><div class="grow"><b>Promotion service fees</b><div class="tiny muted">25% of campaign payments</div></div><b id="adminPromoRevenue">₦0</b></div><div class="listrow"><div class="grow"><b>Artist Pro payments</b><div class="tiny muted">Gross subscription payments in this prototype</div></div><b id="adminProRevenue">₦0</b></div><div class="listrow"><div class="grow"><b>Total platform revenue</b></div><b id="adminTotalRevenue">₦0</b></div></div><div class="card" id="adminAdvertisementManager" style="border:2px solid #7c5cff;background:linear-gradient(135deg,#151022,#15161c)"><div class="row between"><div><span class="pill">📢 ADVERTISEMENT MANAGER</span><h2 style="margin-top:8px">Manage Platform Advertisements</h2></div><span class="pill">OWNER</span></div><p class="muted">Create, approve, activate, pause and monitor paid advertisements. This first version is stored in the app for testing; payment gateway and live ad analytics will be connected later.</p><div class="grid3"><div class="stat"><span class="muted">Ads</span><b id="adminAdCount">0</b></div><div class="stat"><span class="muted">Active</span><b id="adminAdActive">0</b></div><div class="stat"><span class="muted">Ad Revenue</span><b id="adminAdRevenue">₦0</b></div></div><div class="card" style="margin-top:12px;background:rgba(255,255,255,.035)"><span class="pill">🏦 CAMPAIGN RECEIVING ACCOUNT</span><h3 style="margin-top:10px">Where advertisers pay for campaigns</h3><p class="tiny muted">Set the official Artist Level Up bank account. Advertisers will see these details before paying. Keep this separate from artist payout accounts.</p><label>Bank name</label><input id="campaignOwnerBank" placeholder="e.g. Access Bank"/><label>Account name</label><input id="campaignOwnerAccountName" placeholder="Artist Level Up / business account"/><label>Account number</label><input id="campaignOwnerAccountNumber" inputmode="numeric" maxlength="10" placeholder="10-digit account number"/><button class="btn primary full" type="button" data-action="saveCampaignReceivingBank">💾 Save Campaign Receiving Account</button><p class="tiny muted" id="campaignOwnerBankStatus" style="margin:8px 0 14px"></p><span class="pill">CREATE AD</span><h3 style="margin-top:10px">New Advertisement</h3><label>Advertiser / Business name</label><input id="adAdvertiser" placeholder="e.g. My Brand Ltd"/><label>Advertisement title</label><input id="adTitle" placeholder="e.g. New Single Out Now"/><label>Package</label><select id="adPackage"><option value="Starter" data-price="5000">Starter · ₦5,000</option><option value="Standard" data-price="10000">Standard · ₦10,000</option><option value="Featured" data-price="25000">Featured · ₦25,000</option><option value="Premium" data-price="50000">Premium · ₦50,000</option></select><label>Duration</label><select id="adDuration"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option></select><div class="card" style="margin:4px 0 10px;background:rgba(255,210,28,.06);border-color:#665b18"><div class="row between"><span class="muted">Advertisement price</span><b id="adCalculatedPrice">₦5,000</b></div><div class="tiny muted" id="adPriceNote" style="margin-top:4px">Price is determined by the selected package. Duration does not add an extra charge in this version.</div></div><label>Placement</label><select id="adPlacement"><option>Home</option><option>Discover</option><option>Video Hub</option><option>Artist Dashboard</option><option>Platform-wide</option></select><label>Target audience</label><select id="adAudience"><option>All users</option><option>Artists</option><option>Music fans</option><option>Video viewers</option></select><label>Advertisement picture or video (optional)</label><input id="adMediaFile" accept="image/*,video/*" type="file"/><div class="tiny muted" id="adMediaStatus" style="margin:4px 0 8px">You can upload a picture, upload a video, or leave it empty.</div><label>Ad image URL (optional)</label><input id="adImageUrl" placeholder="https://..."/><label>Destination URL (optional)</label><input id="adDestinationUrl" placeholder="https://..."/><button class="btn primary full" data-action="createAdvertisement" type="button">📢 Create Advertisement</button><div class="tiny muted" id="adCreateStatus" style="margin-top:8px"></div></div><h3 style="margin-top:16px">My Advertisements</h3><div id="adminAdvertisementList"></div></div><div class="card"><h2>👥 Artist Management</h2><p class="muted">Manage artists registered on this device.</p><input id="adminArtistSearch" placeholder="Search artist name or email"/><div class="grid" style="margin:12px 0"><button class="btn" data-action="suspendCurrentArtist">⏸️ Suspend Artist</button><button class="btn primary" data-action="restoreCurrentArtist">▶️ Restore Artist</button><span class="pill" id="adminArtistStatusControl">ACTIVE</span></div><div id="adminArtistList" style="margin-top:10px"></div></div>
 <div class="card" id="ownerWithdrawalsPanel" style="border-color:#665b18"><div class="row"><div class="grow"><span class="pill">OWNER CONTROL</span><h2 style="margin:8px 0 4px">💸 Owner Withdrawals</h2><p class="muted" style="margin:0">Review artist withdrawal requests before processing them.</p></div><span class="pill">ADMIN</span></div><div class="grid" style="margin:12px 0"><button class="btn primary" data-action="approveLatestWithdrawal" onclick="action('approveLatestWithdrawal',this); return false;" type="button">👑 Approve Withdrawal</button><button class="btn red" data-action="rejectLatestWithdrawal" onclick="action('rejectLatestWithdrawal',this); return false;" type="button">❌ Reject Withdrawal</button></div><div id="adminWithdrawals"><div class="listrow"><div class="grow"><b>🟢 No pending withdrawal requests</b><div class="tiny muted">When an artist submits a withdrawal, it will appear here automatically.</div></div></div></div></div>
@@ -1997,8 +1996,7 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const
       e.preventDefault();e.stopImmediatePropagation();
       play(playBtn.dataset.play);return;
     }
-  },true);
-})();
+  },true);})();
 </script><script id="coursePaymentSystem">
 /* Course payment layer — isolated from Pro, campaigns, wallet and music playback. */
 state.coursePayment=state.coursePayment||{price:15000,bankName:'',accountName:'',accountNumber:'',status:'Not Purchased',payerName:'',payerBank:'',payerAccount:'',reference:'',submittedAt:'',approvedAt:'',rejectedAt:''};
@@ -2997,8 +2995,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   function repairVideoDurableUrls(st){
     let changed=false; for(const v of stateVideos(st)){ const u=durableVideoPublicUrl(v); if(u && v.videoUrl!==u){v.videoUrl=u;changed=true;} }
     if(changed) saveState(st); return changed;
-  }
-  function mediaSrc(v){return String(durableVideoPublicUrl(v)||v?.localUrl||'').trim()}
+  }  function mediaSrc(v){return String(durableVideoPublicUrl(v)||v?.localUrl||'').trim()}
   function thumbSrc(v){return String(v?.thumbnailUrl||v?.thumbnail||'').trim()}
   function statusLabel(v){return v.status||'Pending Review'}
   function renderVideos(){
@@ -3997,8 +3994,7 @@ if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arg
       if(b.type!=='button') b.type='button';
     });
   }
-  function refreshCurrentSurface(){
-    try{
+  function refreshCurrentSurface(){    try{
       hardenMarketplaceButtons(); hardenNav();
       if(window.ALU_ACTIVE_PAGE==='marketplace' && window.ALU_MARKETPLACE?.load) window.ALU_MARKETPLACE.load();
     }catch(e){console.warn('ALU launch hardening skipped:',e)}
@@ -4997,8 +4993,7 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
   padding:0 2px;
   font-size:10px;
   letter-spacing:.7px;
-  color:#c7cad4;
-}
+  color:#c7cad4;}
 #studio .studio-effects-room-panel .alu-fx-group-title:before{
   content:"";
   width:7px;
@@ -5575,9 +5570,28 @@ function boot(){
      return;
    }
    if(!t)return;
-   if(a==='play'){if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.playTrack)window.ALU_STUDIO_V101.playTrack(t);
-   }else if(a==='pause'){if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.pauseTrack)window.ALU_STUDIO_V101.pauseTrack(t);
-   }else if(a==='stop'){if(window.ALU_STUDIO_V101&&window.ALU_STUDIO_V101.stopTrack)window.ALU_STUDIO_V101.stopTrack(t);}
+   if(a==='play'){
+     try{
+       if(t.audio){var pp=t.audio.play();if(pp&&pp.catch)pp.catch(function(){})}
+       else if(t.playAudio){var pp2=t.playAudio.play();if(pp2&&pp2.catch)pp2.catch(function(){})}
+       else if(t.__laneAudio){var pp3=t.__laneAudio.play();if(pp3&&pp3.catch)pp3.catch(function(){})}
+       else if(t.blob){
+         t.__laneAudio=new Audio(URL.createObjectURL(t.blob));
+         t.__laneAudio.preload='auto';
+         t.__laneAudio.volume=t.mute?0:Number(t.volume??1);
+         t.__laneAudio.muted=!!t.mute;
+         var pp4=t.__laneAudio.play();if(pp4&&pp4.catch)pp4.catch(function(){});
+       }
+     }catch(_e){}
+   }else if(a==='pause'){
+     try{if(t.audio)t.audio.pause();if(t.playAudio)t.playAudio.pause();if(t.__laneAudio)t.__laneAudio.pause()}catch(_e){}
+   }else if(a==='stop'){
+     try{
+       if(t.audio){t.audio.pause();t.audio.currentTime=0}
+       if(t.playAudio){t.playAudio.pause();t.playAudio.currentTime=0}
+       if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio.currentTime=0}
+     }catch(_e){}
+   }
    else if(a==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;}
    else if(a==='solo'){t.solo=!t.solo;}
    else if(a==='delete'){
@@ -5998,7 +6012,6 @@ function boot(){if(registered())return;open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>
-
 
 <style id="aluStudioProfessionalTopBarV101">
 /* V101 Studio Professional Control Bar

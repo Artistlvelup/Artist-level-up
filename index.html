@@ -5556,43 +5556,7 @@ boot();
 .alu-download-play{width:38px;height:38px;border:0;border-radius:50%;background:var(--gold);color:#111;font-size:16px;font-weight:900;cursor:pointer}
 .alu-download-remove{width:34px;height:34px;border:0;border-radius:9px;background:#25262d;color:#fff;cursor:pointer}
 @media(max-width:380px){.alu-download-item{grid-template-columns:50px minmax(0,1fr) auto}.alu-download-art{width:50px;height:50px}.alu-download-title{font-size:13px}}
-</style><script id="aluV101OfflineRoomButtonFix">
-(function(){
-'use strict';
-function openOfflineRoom(){
-  try{
-    var library=document.getElementById('library');
-    var home=document.getElementById('libraryHomeView');
-    var room=document.getElementById('offlineRoom');
-    if(library){
-      document.querySelectorAll('.page').forEach(function(x){x.classList.remove('active');});
-      library.classList.add('active');
-      window.ALU_ACTIVE_PAGE='library';
-    }
-    document.querySelectorAll('.nav button').forEach(function(x){
-      x.classList.toggle('active',x.dataset.go==='library');
-    });
-    if(home) home.style.display='none';
-    if(room) room.style.display='block';
-    if(typeof window.renderOfflineRoom==='function') window.renderOfflineRoom();
-    if(room) room.scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){console.warn('Offline Room button failed:',e);}
-}
-document.addEventListener('click',function(e){
-  var b=e.target.closest?.('[data-library="offline"]');
-  if(!b)return;
-  e.preventDefault();e.stopImmediatePropagation();openOfflineRoom();
-},true);
-window.ALU_OPEN_OFFLINE_ROOM=openOfflineRoom;
-document.addEventListener('click',function(e){
-  var b=e.target.closest?.('#offlineRoomBack');if(!b)return;
-  e.preventDefault();e.stopPropagation();
-  var home=document.getElementById('libraryHomeView'),room=document.getElementById('offlineRoom');
-  if(room)room.style.display='none';
-  if(home)home.style.display='';
-});
-})();
-</script>
+</style><script id="aluV101OfflineRoomOpenBridge">(function(){\n"use strict";\nwindow.ALU_OPEN_OFFLINE_ROOM=function(){try{if(typeof showLibrary==="function"){showLibrary("offline");return}}catch(e){console.warn("Offline Room open failed:",e)}};\n})();</script>
 <script id="aluV101RewardedDownloadAds">
 (function(){
 'use strict';

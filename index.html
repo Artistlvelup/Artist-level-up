@@ -5208,6 +5208,37 @@ function boot(){
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
      });
    }
+   /* V101 recovery-safe binding: the mount-recovery script can create the vocal box before this script. */
+   if(!box.__aluVocalControlsBoundV101){
+     box.__aluVocalControlsBoundV101=true;
+     box.addEventListener('click',function(e){
+       var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
+       e.preventDefault();e.stopPropagation();
+       var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
+       if(act==='select'){window.__ALU_VOCAL_LAYER_SELECTED=n;render();return}
+       if(act==='record'){window.__ALU_VOCAL_LAYER_SELECTED=n;if(A&&A.record)A.record();render();return}
+       if(!t){window.__ALU_VOCAL_LAYER_SELECTED=n;render();if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+n+' selected · ready to record');return}
+       if(act==='play'){playLane(t);return}
+       if(act==='pause'){pauseLane(t);return}
+       if(act==='stop'){stopLane(t);return}
+       if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;render();return}
+       if(act==='solo'){t.solo=!t.solo;render();return}
+       if(act==='fx'){
+         window.__ALU_VOCAL_LAYER_SELECTED=n;
+         var fxBtns=document.querySelectorAll('[data-lane-effects]');
+         for(var fi=0;fi<fxBtns.length;fi++)if(String(fxBtns[fi].getAttribute('data-track'))===String(t.id)){fxBtns[fi].click();break}
+         return;
+       }
+       if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render();return}
+     },true);
+     box.addEventListener('input',function(e){
+       var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
+       var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
+       var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
+       if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v}
+       if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
+     },true);
+   }
    render();
  }
  function render(){

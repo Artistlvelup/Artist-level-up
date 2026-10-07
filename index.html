@@ -1765,7 +1765,6 @@ async function aluSaveOfflineSong(song,title){
   if(!saved)throw new Error('Offline storage did not confirm the save.');
   const verified=await aluGetOfflineDownload(record.key);
   if(!verified||!(verified.blob instanceof Blob)||!verified.blob.size)throw new Error('Offline storage saved the record but could not verify the music file.');
-  aluSaveBlobToDevice(blob,title,song);
   return saved;
 }
 async function playOfflineDownload(key){
@@ -1784,8 +1783,8 @@ async function renderOfflineRoom(){
   const registered=!!(window.state&&(window.state.userRegistered===true||window.state.userAccount?.email));
   if(!registered){
     const head=document.getElementById('offlineRoomMeta');
-    if(head)head.textContent='Register a listener account to save and manage offline downloads';
-    box.innerHTML='<div class="card" style="margin:0;text-align:center;background:#171820"><div style="font-size:34px">👤</div><b>Listener account required</b><p class="muted">You can open Downloads anytime. Create your free listener account before saving songs offline.</p><button class="btn primary full" type="button" id="offlineRoomRegisterBtn">👤 Register / Sign In</button></div>';
+    if(head)head.textContent='Member account required to save and manage offline downloads';
+    box.innerHTML='<div class="card" style="margin:0;text-align:center;background:#171820"><div style="font-size:34px">👤</div><b>Listener account required</b><p class="muted">You can open Downloads anytime. Create your free member account before saving songs offline.</p><button class="btn primary full" type="button" id="offlineRoomRegisterBtn">👤 Register / Sign In</button></div>';
     document.getElementById('offlineRoomRegisterBtn')?.addEventListener('click',function(){try{if(typeof window.action==='function')window.action('openUserRegister');}catch(e){}});
     return;
   }
@@ -6219,22 +6218,14 @@ function listenerRegistered(){
   return false;
 }
 function requestListenerRegistration(songId,title,song){
-  pendingRegistrationDownload={id:String(songId||''),title:String(title||song?.title||'this song'),song:song||null};
+  pendingRegistrationDownload=null;
   try{
-    if(typeof window.ALU_OPEN_USER_REGISTER==='function'){
-      var opened=window.ALU_OPEN_USER_REGISTER();
-      if(opened!==false)return;
-    }
-    if(typeof window.action==='function'){
-      Promise.resolve(window.action('openUserRegister')).catch(function(e){
-        pendingRegistrationDownload=null;
-        try{window.toast('Please register first to download music.')}catch(_e){}
-      });
+    if(window.ALU_MEMBER_GATE_V101&&typeof window.ALU_MEMBER_GATE_V101.open==='function'){
+      window.ALU_MEMBER_GATE_V101.open();
       return;
     }
   }catch(e){}
-  pendingRegistrationDownload=null;
-  try{window.toast('Please register first to download music.')}catch(e){}
+  try{window.toast('Please create or log in to your member account first.')}catch(e){}
 }
 window.ALU_ON_USER_REGISTERED=function(){
   var p=pendingRegistrationDownload;
@@ -6339,7 +6330,7 @@ function finishRewardedHandoff(){
   }
   directDownload(song,p.title).then(function(saved){
     if(saved){
-      setStatus('Download confirmed ✓ Saved in Downloads.');
+      setStatus('Download confirmed ✓ Saved in Offline Room.');
       setTimeout(function(){
         cleanupSlot();
         var modal=document.getElementById('modal');if(modal)modal.classList.remove('show');

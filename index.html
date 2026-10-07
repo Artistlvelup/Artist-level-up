@@ -1511,7 +1511,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function openOwnerPinModal(mode='unlock'){const has=/^\d{4,6}$/.test(String(state.ownerPin||'').trim()) || /^\d{4,6}$/.test(String(state.profile?.pin||'').trim());let body='';if(!has){body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Create your private PIN (4–6 digits)</h2><p class="muted">This PIN protects the Admin Control Center. Choose a private 4–6 digit PIN only you know.</p><label for="ownerPin1">Create PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4–6 digits"><label for="ownerPin2">Confirm PIN</label><input id="ownerPin2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="Repeat 4–6 digits"><button class="btn primary full" data-action="createOwnerPin">Create Private PIN 🔒</button>`}else{body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Enter Owner PIN</h2><p class="muted">Admin Control Center is private. Enter your 4–6 digit PIN to continue.</p><label for="ownerPin1">Owner PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" placeholder="Enter 4–6 digits"><button class="btn primary full" data-action="unlockOwnerPin">Unlock Admin 🔓</button>`}document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('ownerPin1')?.focus(),100)}
 function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){openOwnerPinModal('unlock');return false}openOwnerPinModal('create');return false}
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
-function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
+function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}if(id==='profile'&&!state?.artistRegistered){try{if(state?.userRegistered){document.getElementById('headerUser')?.click()}else{window.ALU_MEMBER_GATE_V101?.open()}}catch(e){}return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
@@ -2073,30 +2073,20 @@ renderGrowthCenter();
 </script>
 <script id="generalUserRegistration">
 (function(){
+  function openCanonicalMemberGate(){
+    try{
+      if(window.ALU_MEMBER_GATE_V101&&typeof window.ALU_MEMBER_GATE_V101.open==='function'){
+        window.ALU_MEMBER_GATE_V101.open();
+        return true;
+      }
+    }catch(e){}
+    try{toast('Member registration is loading. Please try again.')}catch(e){}
+    return false;
+  }
+  window.ALU_OPEN_USER_REGISTER=openCanonicalMemberGate;
   const oldAction=window.action;
   window.action=async function(a,el){
-    function openUserRegisterModal(){
-      const modal=document.getElementById('modal'), body=document.getElementById('modalBody');
-      if(!modal||!body){try{toast('Registration window is unavailable. Please reopen Artist Level Up and try again.')}catch(e){};return false;}
-      body.innerHTML=`<span class="pill">CREATE ACCOUNT</span><h2>Join Artist Level Up 👤</h2><p class="muted">Register as a music listener/supporter. You can follow artists, like songs and build your library.</p><label>Name</label><input id="userRegName" placeholder="Your name" autocomplete="name"><label>Email</label><input id="userRegEmail" type="email" placeholder="you@example.com" autocomplete="email"><label>Profile picture <span class="tiny">(optional)</span></label><input id="userRegAvatar" type="file" accept="image/*" aria-label="Choose profile picture"><div class="row" style="margin:4px 0 12px"><img id="userRegAvatarPreview" class="profile-avatar" style="width:58px;height:58px;display:none" alt="Profile preview"><div class="tiny muted">Add your picture so people can recognize you in the app.</div></div><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="userRegAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and User Agreement.</span></label><button class="btn primary full" data-action="saveUserRegister">Create My Account</button>`;document.getElementById('userRegAvatar')?.addEventListener('change',async e=>{const f=e.target.files?.[0],p=document.getElementById('userRegAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});
-      modal.classList.add('show');
-      return true;
-    }
-    window.ALU_OPEN_USER_REGISTER=openUserRegisterModal;
-    if(a==='openUserRegister'){openUserRegisterModal();return;}
-    if(a==='saveUserRegister'){
-      const name=(document.getElementById('userRegName')?.value||'').trim();
-      const email=(document.getElementById('userRegEmail')?.value||'').trim();
-      const agreement=document.getElementById('userRegAgreement')?.checked===true;
-      if(!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Enter your name and a valid email');return;}
-      if(!agreement){toast('Please accept the Terms & Conditions and User Agreement first.');return;}
-      const avatarFile=document.getElementById('userRegAvatar')?.files?.[0];
-      let avatar='';
-      if(avatarFile) avatar=await imageToDataURL(avatarFile,500,.82);
-      state.userAccount={name,email,avatar:avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:state.userAccount?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
-      state.profile={...(state.profile||{}),name,email,avatar:avatar||state.profile?.avatar||'',saved:true};
-      state.userRegistered=true; state.memberAccessV101=true; state.totalUsers=Number(state.totalUsers||0)+(state.userAccountCounted?0:1); state.userAccountCounted=true; save(); document.getElementById('modal')?.classList.remove('show'); toast('Account created ✓'); setTimeout(function(){if(typeof window.ALU_ON_USER_REGISTERED==='function') window.ALU_ON_USER_REGISTERED();},0); return;
-    }
+    if(a==='openUserRegister'){openCanonicalMemberGate();return;}
     return oldAction(a,el);
   };
 })();
@@ -3783,7 +3773,10 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
   function val(id){return String(document.getElementById(id)?.value||'').trim()}
   async function registerArtistNow(btn){
     const name=val('regName'), email=val('regEmail'), country=String(document.getElementById('regCountry')?.value||'Nigeria'), pin=val('regPin'), agreement=document.getElementById('regAgreement')?.checked===true;
+    const memberEmail=String(state?.userAccount?.email||'').trim().toLowerCase();
+    if(state?.userRegistered!==true || !memberEmail || state?.memberAccessV101!==true){toast('Create or log in to your member account first.');try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return}
     if(!name){toast('Enter your artist / stage name first.');return}
+    if(String(email).trim().toLowerCase()!==memberEmail){toast('Artist email must match your member account email.');return}
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Enter a valid email address.');return}
     if(!/^\d{4,6}$/.test(pin)){toast('PIN must be 4–6 digits.');return}
     if(!agreement){toast('Please accept the Terms & Conditions and Artist Agreement first.');return}
@@ -3816,7 +3809,10 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     const email=String(document.getElementById('profileEmail')?.value||'').trim();
     const country=String(document.getElementById('profileCountry')?.value||'Nigeria');
     const pin=String(document.getElementById('profilePin')?.value||'').trim();
+    const memberEmail=String(state?.userAccount?.email||'').trim().toLowerCase();
+    if(state?.userRegistered!==true || !memberEmail || state?.memberAccessV101!==true || state?.artistRegistered!==true){toast('Artist profile access requires an active member account and artist registration.');return}
     if(!name){toast('Enter your artist name first.');return}
+    if(email.trim().toLowerCase()!==memberEmail){toast('Artist email must match your member account email.');return}
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Enter a valid email address.');return}
     if(pin && !/^\d{4,6}$/.test(pin)){toast('PIN must be 4–6 digits.');return}
     if(btn){btn.disabled=true;btn.textContent='SAVING PROFILE…'}

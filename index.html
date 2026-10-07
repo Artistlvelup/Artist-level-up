@@ -5913,14 +5913,18 @@ function ensureGate(){
     if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
     if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
     s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
-    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;persist();close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
+    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
+    try{if(typeof save==='function')save();else persist();}catch(e){console.error('Member account save failed:',e);err.textContent='Account could not be saved on this device. Please free some storage and try again.';return;}
+    close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
   });
   document.getElementById('aluMemberLoginBtn').addEventListener('click',function(){
     var s=getState(),email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your member email.';return}
     var saved=String(s?.userAccount?.email||'').trim().toLowerCase();
     if(!saved||saved!==email){err.textContent='No member account was found for that email on this device. Choose Create Account.';return}
-    s.userRegistered=true;s.memberAccessV101=true;persist();close();try{toast('Welcome back ✓')}catch(e){}
+    s.userRegistered=true;s.memberAccessV101=true;
+    try{if(typeof save==='function')save();else persist();}catch(e){console.error('Member login save failed:',e);err.textContent='Login could not be saved on this device. Please try again.';return;}
+    close();try{toast('Welcome back ✓')}catch(e){}
   });
   return wrap;
 }

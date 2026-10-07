@@ -6479,3 +6479,71 @@ window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
 window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};
 })();
 </script>
+
+<!-- V101 MEMBER ACCESS GATE -->
+<style id="aluV101MemberGateStyle">
+#aluMemberGateV101{position:fixed;inset:0;z-index:100000;background:linear-gradient(180deg,#08090c,#11131a);display:none;align-items:center;justify-content:center;padding:20px;overflow:auto}
+#aluMemberGateV101.show{display:flex}
+#aluMemberGateV101 .alu-member-card{width:min(520px,100%);background:#15161c;border:1px solid #2b2d36;border-radius:22px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+#aluMemberGateV101 h1{font-size:27px;margin:10px 0 7px}
+#aluMemberGateV101 .alu-member-logo{font-size:18px;font-weight:900;letter-spacing:.3px}
+#aluMemberGateV101 .alu-member-logo span{color:var(--gold)}
+#aluMemberGateV101 .alu-member-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 14px}
+#aluMemberGateV101 .alu-member-tab{border:1px solid var(--line);border-radius:11px;background:#202129;color:#fff;padding:11px;font-weight:900;cursor:pointer}
+#aluMemberGateV101 .alu-member-tab.active{background:var(--gold);color:#111;border-color:var(--gold)}
+#aluMemberGateV101 .alu-member-form{display:none}
+#aluMemberGateV101 .alu-member-form.active{display:block}
+#aluMemberGateV101 .alu-member-error{min-height:18px;color:#ff9da5;font-size:12px;margin:3px 0 8px}
+#aluMemberGateV101 .alu-member-note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:10px}
+#aluMemberGateV101 .alu-member-check{display:flex;gap:9px;align-items:flex-start;color:#fff;font-size:12px;line-height:1.4;margin:7px 0 12px}
+#aluMemberGateV101 .alu-member-check input{width:18px;height:18px;flex:none;margin:0}
+body.alu-member-locked-v101{overflow:hidden}
+body.alu-member-locked-v101>.app{visibility:hidden;pointer-events:none}
+</style>
+<script id="aluV101MemberAccessGate">
+(function(){
+'use strict';
+if(window.__ALU_MEMBER_GATE_V101)return;
+window.__ALU_MEMBER_GATE_V101=true;
+function getState(){return (typeof state!=='undefined'&&state)?state:null}
+function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim())}
+function persist(){var s=getState();if(!s)return;try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
+function ensureGate(){
+  var old=document.getElementById('aluMemberGateV101');if(old)return old;
+  var wrap=document.createElement('div');wrap.id='aluMemberGateV101';
+  wrap.innerHTML='<div class="alu-member-card" role="dialog" aria-modal="true" aria-labelledby="aluMemberGateTitle">'+
+    '<div class="alu-member-logo">ARTIST <span>LEVEL UP</span></div><div class="pill">MEMBER ACCESS</div>'+
+    '<h1 id="aluMemberGateTitle">Welcome to Artist Level Up 👋</h1>'+
+    '<p class="muted">Create your free member account or log in first. Artists and listeners use the same member account to enter the app.</p>'+
+    '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create Account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log In</button></div>'+
+    '<div id="aluMemberCreateForm" class="alu-member-form active"><label>Name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Your name"><label>Email</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="btn primary full">Create My Account</button></div>'+
+    '<div id="aluMemberLoginForm" class="alu-member-form"><label>Email</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Your member email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="btn primary full">Log In</button></div>'+
+    '<p class="alu-member-note">After entering the app, an artist can separately choose <b>Become an Artist</b> and complete the Artist Registration form. Artist registration is not required for normal members.</p></div>';
+  document.body.appendChild(wrap);
+  function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Welcome to Artist Level Up 👋':'Welcome Back 👋'}
+  wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
+  document.getElementById('aluMemberCreateBtn').addEventListener('click',function(){
+    var s=getState(),name=(document.getElementById('aluMemberName').value||'').trim(),email=(document.getElementById('aluMemberEmail').value||'').trim().toLowerCase(),agree=document.getElementById('aluMemberAgreement').checked===true,err=document.getElementById('aluMemberCreateError');err.textContent='';
+    if(!name||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your name and a valid email.';return}
+    if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
+    if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
+    s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
+    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;persist();close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
+  });
+  document.getElementById('aluMemberLoginBtn').addEventListener('click',function(){
+    var s=getState(),email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your member email.';return}
+    var saved=String(s?.userAccount?.email||'').trim().toLowerCase();
+    if(!saved||saved!==email){err.textContent='No member account was found for that email on this device. Choose Create Account.';return}
+    s.userRegistered=true;persist();close();try{toast('Welcome back ✓')}catch(e){}
+  });
+  return wrap;
+}
+function open(){var g=ensureGate();if(!g)return;g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(registered()?l:n)?.focus()}catch(e){}},80)}
+function close(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')}
+window.ALU_MEMBER_GATE_V101={open:open,close:close,isRegistered:registered};
+function boot(){if(registered())return;open()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
+})();
+</script>
+

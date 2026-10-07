@@ -5385,6 +5385,7 @@ function boot(){
   var studio=document.getElementById('studio');
   if(!studio){setTimeout(boot,100);return}
   function arrange(){
+    if(document.getElementById('aluStudioProfessionalBarV101'))return;
     var shell=studio.querySelector('.studio-shell');
     if(!shell)return;
     var head=shell.querySelector('.studio-head');

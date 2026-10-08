@@ -3876,10 +3876,14 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
         this.disabled=true;this.textContent='LOGGING OUT…';
         try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
         try{
-          if(window.state){
+          if(typeof state!=='undefined'&&state){
             state.userRegistered=false; state.memberAccessV101=false; state.userAccount=null;
             state.artistRegistered=false; state.profile={};
             if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+          }else{
+            var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
+            saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;saved.artistRegistered=false;saved.profile={};
+            localStorage.setItem('alu_full_v1',JSON.stringify(saved));
           }
         }catch(e){console.warn('Local member logout:',e)}
         try{document.getElementById('modal')?.classList.remove('show')}catch(e){}
@@ -6007,7 +6011,7 @@ window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};
 #aluMemberGateV101 .alu-member-check{display:flex;gap:9px;align-items:flex-start;color:#fff;font-size:12px;line-height:1.4;margin:7px 0 12px}
 #aluMemberGateV101 .alu-member-check input{width:18px;height:18px;flex:none;margin:0}
 body.alu-member-locked-v101{overflow:hidden}
-body.alu-member-locked-v101>.app{visibility:hidden;pointer-events:none}
+body.alu-member-locked-v101>*:not(#aluMemberGateV101){visibility:hidden!important;pointer-events:none!important}
 </style>
 <script id="aluV101MemberAccessGate">
 (function(){
@@ -6543,13 +6547,17 @@ function addButton(){
     b.disabled=true;b.textContent='LOGGING OUT…';
     try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
     try{
-      if(window.state){
+      if(typeof state!=='undefined'&&state){
         state.userRegistered=false;
         state.memberAccessV101=false;
         state.userAccount=null;
         state.artistRegistered=false;
         state.profile={};
         if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+      }else{
+        var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
+        saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;saved.artistRegistered=false;saved.profile={};
+        localStorage.setItem('alu_full_v1',JSON.stringify(saved));
       }
     }catch(e){console.warn('Local member logout:',e)}
     try{document.getElementById('modal')?.classList.remove('show')}catch(e){}

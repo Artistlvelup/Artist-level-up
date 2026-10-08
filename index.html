@@ -4252,7 +4252,30 @@ document.addEventListener('click',function(e){
 },true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModal',false);modal('aluHelpModal',false)}});
 })();
-</script><script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
+</script><script id="aluHelpButtonHardeningV101">
+(function(){
+'use strict';
+function bind(){
+  var b=document.querySelector('[data-action="aluOpenHelp"]');
+  var m=document.getElementById('aluHelpModal');
+  if(!b||!m)return;
+  if(b.__aluHelpBoundV101)return;
+  b.__aluHelpBoundV101=true;
+  function open(e){
+    if(e){e.preventDefault();e.stopPropagation();}
+    m.classList.add('show');
+    m.setAttribute('aria-hidden','false');
+  }
+  b.addEventListener('click',open,false);
+  b.addEventListener('pointerup',function(e){
+    if(e.pointerType==='touch')open(e);
+  },false);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+window.addEventListener('pageshow',bind);
+})();
+</script>
+<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
 #studio .alu-fx-rack{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,#151821,#0f1117)}
 #studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 #studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{display:block;color:#8e93a3;font-size:10px;margin-top:2px}

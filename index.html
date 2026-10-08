@@ -3870,7 +3870,21 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(state?.userRegistered&&!state?.artistRegistered){
       const avatar=String(state.profile?.avatar||state.userAccount?.avatar||'').trim();
       const safeAvatar=avatar?'<img class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px" src="'+esc(avatar)+'" alt="Profile picture">':'<div class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px;display:grid;place-items:center;font-size:42px">👤</div>';
-      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><button class="btn primary full" data-action="closeModal">Close</button></div>';
+      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><button class="btn primary full" data-action="closeModal">Close</button><button id="aluV101LogoutBtn" class="btn full" type="button" style="margin-top:10px">Log Out & Test Login</button></div>';
+      const logoutBtn=document.getElementById('aluV101LogoutBtn');
+      logoutBtn?.addEventListener('click',async function(){
+        this.disabled=true;this.textContent='LOGGING OUT…';
+        try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+        try{
+          if(window.state){
+            state.userRegistered=false; state.memberAccessV101=false; state.userAccount=null;
+            state.artistRegistered=false; state.profile={};
+            if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+          }
+        }catch(e){console.warn('Local member logout:',e)}
+        try{document.getElementById('modal')?.classList.remove('show')}catch(e){}
+        setTimeout(function(){location.reload()},150);
+      });
       document.getElementById('modal')?.classList.add('show');return;
     }
     go(state?.artistRegistered?'profile':'register');

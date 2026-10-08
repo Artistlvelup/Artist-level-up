@@ -6514,3 +6514,38 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   },700);
 })();
 </script>
+<script id="aluV101SafeLogout">
+(function(){
+'use strict';
+if(window.__ALU_SAFE_LOGOUT_V101)return;
+window.__ALU_SAFE_LOGOUT_V101=true;
+function addButton(){
+  var modal=document.getElementById('modal'),body=document.getElementById('modalBody');
+  if(!modal||!body||!modal.classList.contains('show'))return;
+  if(!/YOUR PROFILE/i.test(body.textContent||''))return;
+  if(document.getElementById('aluV101LogoutBtn'))return;
+  var b=document.createElement('button');b.id='aluV101LogoutBtn';b.type='button';b.className='btn full';b.style.marginTop='10px';b.textContent='Log Out & Test Login';
+  b.addEventListener('click',async function(){
+    b.disabled=true;b.textContent='LOGGING OUT…';
+    try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+    try{
+      if(window.state){
+        state.userRegistered=false;
+        state.memberAccessV101=false;
+        state.userAccount=null;
+        state.artistRegistered=false;
+        state.profile={};
+        if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+      }
+    }catch(e){console.warn('Local member logout:',e)}
+    try{document.getElementById('modal')?.classList.remove('show')}catch(e){}
+    try{document.body.classList.remove('alu-member-locked-v101')}catch(e){}
+    setTimeout(function(){location.reload()},150);
+  });
+  body.appendChild(b);
+}
+new MutationObserver(addButton).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+document.addEventListener('click',function(){setTimeout(addButton,0)},true);
+setTimeout(addButton,500);
+})();
+</script>

@@ -6270,10 +6270,9 @@ function boot(){
       }
     }
 
-    var vocalLayers=studio.querySelector('.alu-vocal-layers');
-    if(vocalLayers && actions && vocalLayers.parentNode!==shell){
-      shell.insertBefore(vocalLayers,actions.nextSibling);
-    }
+    /* V101: vocal timeline placement is owned exclusively by aluV101StudioFinalOrderLock.
+       Do not move .alu-vocal-layers here; moving it from the professional-bar observer
+       creates a layout tug-of-war with the authoritative Studio order observer. */
 
     var edit=document.getElementById('aluStudioEditBar');
     var editor=document.getElementById('aluStudioEditorPanel');

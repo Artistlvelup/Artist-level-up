@@ -6001,46 +6001,100 @@ body.alu-member-locked-v101>.app{visibility:hidden;pointer-events:none}
 if(window.__ALU_MEMBER_GATE_V101)return;
 window.__ALU_MEMBER_GATE_V101=true;
 function getState(){return (typeof state!=='undefined'&&state)?state:null}
+function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(_){}}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
 function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
-function persist(){var s=getState();if(!s)return;try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
+function client(){return window.ALU_SUPABASE_CLIENT||null}
+function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
+async function resumeCloudMember(){
+  var c=client(),s=getState();if(!c||!c.auth||!s)return false;
+  try{
+    var g=await c.auth.getSession(),session=g?.data?.session;if(!session?.user?.id)return false;
+    var uid=session.user.id;
+    var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+    if(p.error)throw p.error;
+    if(p.data){
+      s.userRegistered=true;s.memberAccessV101=true;
+      s.userAccount={...(s.userAccount||{}),name:p.data.display_name||s.userAccount?.name||'',email:session.user.email||s.userAccount?.email||''};
+      s.profile={...(s.profile||{}),name:p.data.display_name||s.profile?.name||'',avatar:p.data.avatar_url||s.profile?.avatar||'',email:session.user.email||s.profile?.email||'',saved:true};
+      if(p.data.role==='artist')s.artistRegistered=true;
+      persist();
+      return true;
+    }
+  }catch(e){console.error('V101 cloud member restore failed:',e)}
+  return false;
+}
+async function linkAnonymous(email){
+  var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
+  try{
+    var g=await c.auth.getSession(),u=g?.data?.session?.user;
+    if(!u)return {ok:false,error:new Error('No cloud session is available.')};
+    if(u.is_anonymous){
+      var r=await c.auth.updateUser({email:email});
+      if(r.error)return {ok:false,error:r.error};
+      return {ok:true,pending:true};
+    }
+    if(String(u.email||'').toLowerCase()===email)return {ok:true,pending:false};
+    return {ok:false,error:new Error('A different cloud account is already active.')};
+  }catch(e){return {ok:false,error:e}}
+}
+async function sendLoginLink(email){
+  var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
+  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+  if(r.error)throw r.error;
+}
 function ensureGate(){
   var old=document.getElementById('aluMemberGateV101');if(old)return old;
   var wrap=document.createElement('div');wrap.id='aluMemberGateV101';
   wrap.innerHTML='<div class="alu-member-card" role="dialog" aria-modal="true" aria-labelledby="aluMemberGateTitle">'+
-    '<div class="alu-member-logo">ARTIST <span>LEVEL UP</span></div><div class="pill">MEMBER ACCESS</div>'+
-    '<h1 id="aluMemberGateTitle">Welcome to Artist Level Up 👋</h1>'+
-    '<p class="muted">Create your free member account or log in first. Artists and listeners use the same member account to enter the app.</p>'+
-    '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create Account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log In</button></div>'+
-    '<div id="aluMemberCreateForm" class="alu-member-form active"><label>Name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Your name"><label>Email</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="btn primary full">Create My Account</button></div>'+
-    '<div id="aluMemberLoginForm" class="alu-member-form"><label>Email</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Your member email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="btn primary full">Log In</button></div>'+
-    '<p class="alu-member-note">After entering the app, an artist can separately choose <b>Become an Artist</b> and complete the Artist Registration form. Artist registration is not required for normal members.</p></div>';
+  '<div class="alu-member-logo">ARTIST <span>LEVEL UP</span></div><div class="pill">MEMBER ACCESS</div>'+
+  '<h1 id="aluMemberGateTitle">Welcome to Artist Level Up 👋</h1>'+
+  '<p class="muted">Create your free member account or log in. Your Artist account stays connected to the same cloud identity.</p>'+
+  '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create Account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log In</button></div>'+
+  '<div id="aluMemberCreateForm" class="alu-member-form active"><label>Name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Your name"><label>Email</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="btn primary full">Create My Account</button></div>'+
+  '<div id="aluMemberLoginForm" class="alu-member-form"><label>Email</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Your member email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="btn primary full">Send Login Link</button><p class="tiny muted">A secure sign-in link will be sent to your email.</p></div>'+
+  '<p class="alu-member-note">No password is stored by Artist Level Up. Keep your email account secure.</p></div>';
   document.body.appendChild(wrap);
   function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Welcome to Artist Level Up 👋':'Welcome Back 👋'}
   wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
-  document.getElementById('aluMemberCreateBtn').addEventListener('click',function(){
+  document.getElementById('aluMemberCreateBtn').addEventListener('click',async function(){
     var s=getState(),name=(document.getElementById('aluMemberName').value||'').trim(),email=(document.getElementById('aluMemberEmail').value||'').trim().toLowerCase(),agree=document.getElementById('aluMemberAgreement').checked===true,err=document.getElementById('aluMemberCreateError');err.textContent='';
-    if(!name||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your name and a valid email.';return}
+    if(!name||!emailOK(email)){err.textContent='Enter your name and a valid email.';return}
     if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
     if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
-    s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
-    s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
-    try{if(typeof save==='function')save();else persist();}catch(e){console.error('Member account save failed:',e);err.textContent='Account could not be saved on this device. Please free some storage and try again.';return;}
-    close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}
+    var b=this;b.disabled=true;b.textContent='CONNECTING ACCOUNT…';
+    try{
+      var linked=await linkAnonymous(email);
+      if(linked.error)throw linked.error;
+      s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
+      s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
+      persist();close();
+      try{toast(linked.pending?'Account saved ✓ Check your email to activate cloud login.':'Welcome to Artist Level Up ✓')}catch(e){}
+    }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
+    finally{b.disabled=false;b.textContent='Create My Account'}
   });
-  document.getElementById('aluMemberLoginBtn').addEventListener('click',function(){
-    var s=getState(),email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent='Enter your member email.';return}
-    var saved=String(s?.userAccount?.email||'').trim().toLowerCase();
-    if(!saved||saved!==email){err.textContent='No member account was found for that email on this device. Choose Create Account.';return}
-    s.userRegistered=true;s.memberAccessV101=true;
-    try{if(typeof save==='function')save();else persist();}catch(e){console.error('Member login save failed:',e);err.textContent='Login could not be saved on this device. Please try again.';return;}
-    close();try{toast('Welcome back ✓')}catch(e){}
+  document.getElementById('aluMemberLoginBtn').addEventListener('click',async function(){
+    var email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
+    if(!emailOK(email)){err.textContent='Enter your member email.';return}
+    var b=this;b.disabled=true;b.textContent='SENDING…';
+    try{
+      await sendLoginLink(email);
+      err.textContent='Login link sent ✓ Check your email and tap the link.';
+      try{toast('Login link sent ✓ Check your email.')}catch(e){}
+    }catch(e){console.error('V101 member login failed:',e);err.textContent=String(e?.message||e||'Cloud login failed. Please try again.')}
+    finally{b.disabled=false;b.textContent='Send Login Link'}
   });
   return wrap;
 }
 function open(){var g=ensureGate();if(!g)return;g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(registered()?l:n)?.focus()}catch(e){}},80)}
 function close(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')}
 window.ALU_MEMBER_GATE_V101={open:open,close:close,isRegistered:registered};
+if(client()?.auth?.onAuthStateChange){
+  client().auth.onAuthStateChange(function(event){
+    if(event==='SIGNED_IN'||event==='USER_UPDATED'){
+      setTimeout(async function(){if(await resumeCloudMember()){close();try{toast('Welcome back ✓')}catch(e){} }},0);
+    }
+  });
+}
 function boot(){if(registered())return;open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();

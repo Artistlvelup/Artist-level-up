@@ -6571,3 +6571,45 @@ document.addEventListener('click',function(){setTimeout(addButton,0)},true);
 setTimeout(addButton,500);
 })();
 </script>
+
+<script id="aluV101ArtistProfileLogout">
+(function(){
+'use strict';
+if(window.__ALU_ARTIST_PROFILE_LOGOUT_V101)return;
+window.__ALU_ARTIST_PROFILE_LOGOUT_V101=true;
+function addProfileLogout(){
+  var page=document.getElementById('profile');
+  if(!page||document.getElementById('aluV101ArtistProfileLogoutBtn'))return;
+  var headings=page.querySelectorAll('h2'),accountCard=null;
+  for(var i=0;i<headings.length;i++){
+    if((headings[i].textContent||'').trim()==='Account'){accountCard=headings[i].closest('.card');break;}
+  }
+  if(!accountCard)return;
+  var b=document.createElement('button');
+  b.id='aluV101ArtistProfileLogoutBtn';b.type='button';b.className='btn full';
+  b.style.marginTop='10px';b.textContent='Log Out & Test Login';
+  b.addEventListener('click',async function(){
+    b.disabled=true;b.textContent='LOGGING OUT…';
+    try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+    try{
+      if(typeof state!=='undefined'&&state){
+        state.userRegistered=false;state.memberAccessV101=false;state.userAccount=null;
+        state.artistRegistered=false;state.profile={};
+        if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+      }else{
+        var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
+        saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;
+        saved.artistRegistered=false;saved.profile={};
+        localStorage.setItem('alu_full_v1',JSON.stringify(saved));
+      }
+    }catch(e){console.warn('Artist profile logout:',e)}
+    location.reload();
+  });
+  accountCard.appendChild(b);
+}
+new MutationObserver(addProfileLogout).observe(document.documentElement,{subtree:true,childList:true});
+document.addEventListener('click',function(){setTimeout(addProfileLogout,0)},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addProfileLogout);
+else addProfileLogout();
+})();
+</script>

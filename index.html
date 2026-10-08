@@ -3119,7 +3119,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       const uploadRes=await fetch(storageUrl,{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
       if(!uploadRes.ok){let detail='';try{detail=await uploadRes.text()}catch(e){};throw new Error('Storage upload '+uploadRes.status+': '+(detail||uploadRes.statusText||'failed'));}
       item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      const row={artist_id:null,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:null,status:'pending',tiktok_url:'',instagram_url:'',facebook_url:'',youtube_url:'',song_id:item.songId||null};
+      const artistId=window.ALU_CLOUD?.artistId||await window.ALU_CLOUD?.ensureArtist?.();
+      if(!artistId)throw new Error('Cloud artist account is not ready. Please sign in to the registered Artist account and try again.');
+      const row={artist_id:artistId,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:null,status:'pending',tiktok_url:'',instagram_url:'',facebook_url:'',youtube_url:'',song_id:item.songId||null};
       let recordRes;
       if(item.remoteVideoId){
         recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});

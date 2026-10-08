@@ -6089,10 +6089,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio .alu-studio-pro-time b{font-size:14px;letter-spacing:.3px}
 #studio .alu-studio-pro-time small{font-size:9px;color:#8e93a3;margin-top:2px}
 #studio .alu-studio-pro-meter{
-  min-width:150px;
-  flex:1 1 170px;
-  max-width:260px;
+  min-width:100%;
+  flex:1 0 100%;
+  max-width:none;
+  order:-1;
 }
+#studio .alu-studio-pro-meter .studio-meter{margin:0!important;padding:8px 10px!important}
+#studio .alu-studio-pro-meter .studio-meter-track{width:100%}
 #studio .alu-studio-pro-meter .studio-meter-track{
   height:8px!important;
   min-height:8px!important;

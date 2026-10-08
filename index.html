@@ -5234,7 +5234,7 @@ function boot(){
    var lanes=box.querySelector('.alu-vocal-lanes'),r=box.querySelector('.alu-vocal-ruler');if(!lanes||!r)return;
    var ts=tracks(),sel=Math.max(1,Math.min(6,Number(window.__ALU_VOCAL_LAYER_SELECTED||1))),rr=ruler();r.innerHTML=rr.html;r.style.gridTemplateColumns='repeat('+((rr.max/10)+1)+',70px)';
    var sig=sel+'|'+ts.map(function(t){return [t.id,t.vocalLayer,t.duration,t.volume,t.pan,t.mute,t.solo,t.proFx&&JSON.stringify(t.proFx.active)].join(':')}).join(',');
-   if(lanes.getAttribute('data-v101-sig')===sig)return;
+   if(lanes.getAttribute('data-v101-sig')===sig && lanes.children.length===6)return;
    lanes.setAttribute('data-v101-sig',sig);
    var minTimeline=Math.max(720,rr.max*6);
    lanes.innerHTML=LAYERS.map(function(x){

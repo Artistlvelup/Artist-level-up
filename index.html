@@ -5182,6 +5182,7 @@ function boot(){
    var box=studio.querySelector('.alu-vocal-layers');
    if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
      box.addEventListener('click',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
        e.preventDefault();e.stopPropagation();
        var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
@@ -5197,6 +5198,7 @@ function boot(){
        else if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render()}
      },true);
      box.addEventListener('input',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
        var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
        var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
@@ -5208,6 +5210,7 @@ function boot(){
    if(!box.__aluVocalControlsBoundV101){
      box.__aluVocalControlsBoundV101=true;
      box.addEventListener('click',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
        e.preventDefault();e.stopPropagation();
        var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
@@ -5228,6 +5231,7 @@ function boot(){
        if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render();return}
      },true);
      box.addEventListener('input',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
        var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
        var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
@@ -5238,6 +5242,7 @@ function boot(){
    if(!box.__aluVocalEventsV101){
      box.__aluVocalEventsV101=true;
      box.addEventListener('click',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
        e.preventDefault();e.stopPropagation();
        var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
@@ -5254,6 +5259,7 @@ function boot(){
        else if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render()}
      },true);
      box.addEventListener('input',function(e){
+       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
        var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
        var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
        var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);

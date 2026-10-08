@@ -5285,9 +5285,14 @@ function ensureMount(){
  }
  var lanes=box.querySelector('.alu-vocal-lanes'),ruler=box.querySelector('.alu-vocal-ruler');
  if(!lanes||!ruler)return;
- if(window.ALU_VOCAL_LAYERS_V101&&typeof window.ALU_VOCAL_LAYERS_V101.refresh==='function'){
-   try{window.ALU_VOCAL_LAYERS_V101.refresh()}catch(e){}
+ function refreshLanes(){
+   var api=window.ALU_VOCAL_LAYERS_V101;
+   if(api&&typeof api.refresh==='function'){
+     try{api.refresh()}catch(e){console.error('V101 vocal timeline refresh failed',e)}
+   }
  }
+ refreshLanes();
+ [50,200,500,1000].forEach(function(ms){setTimeout(refreshLanes,ms)});
 }
 function boot(){
  ensureMount();

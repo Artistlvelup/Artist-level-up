@@ -4216,7 +4216,7 @@ if(typeof oldRenderAll==='function')window.renderAll=function(){const r=oldRende
 <button class="btn full" data-help-q="market">🛒 Marketplace</button><button class="btn full" data-help-q="payments">💳 Payments</button>
 <button class="btn full" data-help-q="feed">🌍 Global Feed</button><button class="btn full" data-help-q="privacy">🔒 Privacy</button>
 </div>
-<div class="card alu-support-form" style="margin:10px 0 0"><h3>📩 Contact Support</h3><p class="tiny muted">Prepare a support message you can copy and send through your preferred contact channel.</p><input id="aluSupportSubject" placeholder="Subject"><textarea id="aluSupportMessage" placeholder="Describe the problem..."></textarea><button class="btn primary full" type="button" id="aluCopySupport">📋 Copy Support Message</button><p class="tiny muted" id="aluSupportStatus"></p></div>
+<div class="card alu-support-form" style="margin:10px 0 0"><h3>📩 Artist Level Up Customer Care</h3><p class="tiny muted">Describe your problem and send it to the support agent. The agent will reply here and guide you through the correct Artist Level Up steps.</p><input id="aluSupportSubject" placeholder="Subject"><textarea id="aluSupportMessage" placeholder="Describe the problem..."></textarea><button class="btn primary full" type="button" id="aluSendSupport">🤖 Send to Customer Care</button><button class="btn full" type="button" id="aluCopySupport">📋 Copy Support Message</button><p class="tiny muted" id="aluSupportStatus"></p></div>
 <div class="alu-legal-actions"><button class="btn full" type="button" data-help-close>Close</button></div>
 </div></div>
 <script id="aluSettingsLegalSupportV101">
@@ -4239,16 +4239,45 @@ const answers={
 account:'For account changes, open your Profile/Account area. Keep your login and payout details private and use accurate information.',
 beats:'To upload beats, open the Creator/Upload area, choose your music upload option, add the beat details and follow the publishing steps.',
 market:'Open Beat Marketplace to browse published beats, choose a licence and start secure checkout. Read the licence terms before buying.',
-payments:'Marketplace payments use the configured payment provider. Producer payout details are managed in the producer payout area. If a payment is missing, keep the transaction reference and contact Support.',
-feed:'Global Feed is where approved pictures and videos can appear. Use the feed controls to interact with posts and report problems through Support.',
-privacy:'Open Settings → Privacy Policy for the privacy summary. Avoid sharing passwords, PINs or payment credentials with other users.'
+payments:'Marketplace payments use the configured payment provider. Producer payout details are managed in the producer payout area. If a payment is missing, keep the transaction reference and contact Customer Care.',
+feed:'Global Feed is where approved pictures and videos can appear. Use the feed controls to interact with posts and report problems through Customer Care.',
+privacy:'Open Settings → Privacy Policy for the privacy summary. Never share passwords, PINs, OTPs or payment credentials with anyone, including Customer Care.',
+login:'If you cannot log in to your registered Artist account, tell me the exact message you see and what happens after you tap the login button. I will guide you through the correct account checks.',
+cloud:'If you see “Saved on this device · Cloud will retry”, the item is saved locally but the cloud step needs attention. Tell me whether it is a song, video, picture or profile change and I will guide you through the cloud check.',
+video:'For video upload problems, tell me the exact message shown. If you see “Saved on this device · Cloud will retry”, send that exact message to me so I can guide you through the video cloud-upload check.',
+pin:'Never share your PIN with Customer Care. If your PIN is rejected, tell me where the rejection happens and whether a reset option is available. I will guide you without asking for the PIN itself.',
+download:'For download problems, tell me the song name and the exact message shown after the ad or download button. I will guide you through the download flow.',
+studio:'For Studio problems, tell me which feature is failing—recording, playback, effects, mixer, timeline or saving—and the exact message you see.',
+registration:'For Artist or User registration problems, tell me which registration form you opened and the exact message or missing button. I will guide you step by step.',
+upload:'For upload problems, tell me what you are uploading and the exact error or message shown. Do not send passwords, PINs or payment credentials.',
+general:'I’m the Artist Level Up Customer Care Agent. Tell me what happened, what you expected to happen, and the exact message you saw. I’ll guide you through the correct Artist Level Up support steps.'
 };
+function customerCareReply(message){
+  var s=String(message||'').trim().toLowerCase();
+  if(!s)return 'Please describe the problem first. Tell me what you clicked, what you expected, and the exact message you saw.';
+  var rules=[
+    [['login','log in','signin','sign in','registered artist','artist account','cannot login','can’t login','cant login'],answers.login],
+    [['cloud','saved on this device','cloud will retry','cloud upload'],answers.cloud],
+    [['video','video upload','video cloud'],answers.video],
+    [['pin','incorrect pin','wrong pin','reset pin'],answers.pin],
+    [['download','download button','ad again','soundcloud'],answers.download],
+    [['studio','recording','playback','mixer','timeline','effects'],answers.studio],
+    [['registration','register','artist registration','user registration','create account'],answers.registration],
+    [['upload','upload beat','upload music','upload picture'],answers.upload],
+    [['marketplace','paystack','payment','payout','checkout','licence','license'],answers.market],
+    [['feed','global feed','picture feed','video feed'],answers.feed],
+    [['privacy','password','otp','credential'],answers.privacy]
+  ];
+  for(var i=0;i<rules.length;i++){for(var j=0;j<rules[i][0].length;j++){if(s.indexOf(rules[i][0][j])!==-1)return rules[i][1];}}
+  return answers.general;
+}
 document.addEventListener('click',function(e){
  const lb=e.target.closest?.('[data-legal]');if(lb){e.preventDefault();openLegal(lb.dataset.legal);return}
  if(e.target.closest?.('[data-legal-close]')){modal('aluLegalModal',false);return}
  const hb=e.target.closest?.('[data-action="aluOpenHelp"]');if(hb){e.preventDefault();modal('aluHelpModal',true);return}
  if(e.target.closest?.('[data-help-close]')){modal('aluHelpModal',false);return}
- const q=e.target.closest?.('[data-help-q]');if(q){const key=q.dataset.helpQ;addChat(q.textContent.trim(),true);setTimeout(()=>addChat(answers[key]||'Please use Contact Support below and describe the issue.'),120);return}
+ const q=e.target.closest?.('[data-help-q]');if(q){const key=q.dataset.helpQ;addChat(q.textContent.trim(),true);setTimeout(()=>addChat(answers[key]||customerCareReply(q.textContent),220);return}
+ if(e.target.id==='aluSendSupport'){const subject=(document.getElementById('aluSupportSubject')?.value||'').trim();const problem=(document.getElementById('aluSupportMessage')?.value||'').trim();const status=document.getElementById('aluSupportStatus');if(!problem){if(status)status.textContent='Please describe the problem first.';return}addChat((subject?subject+': ':'')+problem,true);if(status)status.textContent='Sent to Customer Care ✓';setTimeout(()=>addChat(customerCareReply(subject+' '+problem),220);return}
  if(e.target.id==='aluLegalAgree'){localStorage.setItem('ALU_AGREEMENT_'+currentKey,'accepted');e.target.textContent='✓ Accepted';addChat('Your '+currentKey+' acceptance has been recorded on this device.',false);return}
  if(e.target.id==='aluCopySupport'){const subject=document.getElementById('aluSupportSubject').value.trim()||'Artist Level Up Support';const msg=document.getElementById('aluSupportMessage').value.trim();const out=subject+'\n\n'+msg;if(!msg){document.getElementById('aluSupportStatus').textContent='Please describe the problem first.';return}navigator.clipboard?.writeText(out).then(()=>document.getElementById('aluSupportStatus').textContent='Support message copied ✓').catch(()=>document.getElementById('aluSupportStatus').textContent='Select and copy the message manually.');}
 },true);

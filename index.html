@@ -918,7 +918,19 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
  .listener-page .listener-artist-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
  .listener-page .listener-genre-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
 }
-</style><script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>\n</head>
+</style><script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>\n
+<style id="aluV101VocalControlsHitTestFix">
+#studio.page.active .alu-vocal-layers{pointer-events:auto!important;position:relative!important;z-index:99999!important}
+#studio.page.active .alu-vocal-mini-controls,
+#studio.page.active .alu-vocal-mini-controls button,
+#studio.page.active .alu-vocal-bottom,
+#studio.page.active .alu-vocal-bottom button,
+#studio.page.active .alu-vocal-bottom input,
+#studio.page.active .alu-vocal-knob-group{position:relative;z-index:20;pointer-events:auto!important}
+#studio.page.active .alu-vocal-clip{pointer-events:none!important}
+#studio.page.active .alu-vocal-header{z-index:12!important}
+</style>
+</head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
   <button class="g77-close" type="button" aria-label="Close">×</button>
@@ -5181,46 +5193,23 @@ function boot(){
    studio=document.getElementById('studio');if(!studio)return;
    var box=studio.querySelector('.alu-vocal-layers');
    if(!box){box=document.createElement('section');box.className='alu-vocal-layers';box.innerHTML='<div class="alu-vocal-layers-head"><div><b>🎙️ Timeline</b><small>Six vocal lanes · every control works on its own take.</small></div><span class="pill">120 BPM</span></div><div class="alu-vocal-timeline"><div class="alu-vocal-ruler"></div><div class="alu-vocal-lanes"></div></div>';
+     /* V101 FIX: one authoritative vocal-lane event binding.
+        The previous build attached the same click/input handlers three times.
+        Keep the controls above the waveform hit-test layer and handle touch/click once. */
+     box.style.pointerEvents='auto';
      box.addEventListener('click',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
+       var ctl=e.target.closest?.('[data-vocal-control]');
+       if(!ctl||!box.contains(ctl))return;
        e.preventDefault();e.stopPropagation();
        var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
        if(act==='select'){window.__ALU_VOCAL_LAYER_SELECTED=n;render();return}
        if(act==='record'){window.__ALU_VOCAL_LAYER_SELECTED=n;if(A&&A.record)A.record();render();return}
-       if(!t){window.__ALU_VOCAL_LAYER_SELECTED=n;render();if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+n+' selected · ready to record');return}
-       if(act==='play')playLane(t);
-       else if(act==='pause')pauseLane(t);
-       else if(act==='stop')stopLane(t);
-       else if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;render()}
-       else if(act==='solo'){t.solo=!t.solo;render()}
-       else if(act==='fx'){window.__ALU_VOCAL_LAYER_SELECTED=n;var fxBtns=document.querySelectorAll('[data-lane-effects]');for(var fi=0;fi<fxBtns.length;fi++){if(String(fxBtns[fi].getAttribute('data-track'))===String(t.id)){fxBtns[fi].click();break}}}
-       else if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render()}
-     },true);
-     box.addEventListener('input',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
-       var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
-       var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
-       if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v}
-       if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
-     });
-   }
-   /* V101 recovery-safe binding: the mount-recovery script can create the vocal box before this script. */
-   if(!box.__aluVocalControlsBoundV101){
-     box.__aluVocalControlsBoundV101=true;
-     box.addEventListener('click',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
-       e.preventDefault();e.stopPropagation();
-       var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
-       if(act==='select'){window.__ALU_VOCAL_LAYER_SELECTED=n;render();return}
-       if(act==='record'){window.__ALU_VOCAL_LAYER_SELECTED=n;if(A&&A.record)A.record();render();return}
+       if(act==='delete'){if(t){try{if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio=null}}catch(_){};if(A&&A.remove)A.remove(t.id)}render();return}
        if(!t){window.__ALU_VOCAL_LAYER_SELECTED=n;render();if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+n+' selected · ready to record');return}
        if(act==='play'){playLane(t);return}
        if(act==='pause'){pauseLane(t);return}
        if(act==='stop'){stopLane(t);return}
-       if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;render();return}
+       if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;if(t.playAudio)t.playAudio.muted=!!t.mute;render();return}
        if(act==='solo'){t.solo=!t.solo;render();return}
        if(act==='fx'){
          window.__ALU_VOCAL_LAYER_SELECTED=n;
@@ -5229,44 +5218,15 @@ function boot(){
          return;
        }
        if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render();return}
-     },true);
+     },false);
      box.addEventListener('input',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
-       var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
-       var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
-       if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v}
-       if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
-     },true);
-   }
-   if(!box.__aluVocalEventsV101){
-     box.__aluVocalEventsV101=true;
-     box.addEventListener('click',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var ctl=e.target.closest('[data-vocal-control]');if(!ctl)return;
-       e.preventDefault();e.stopPropagation();
-       var n=Number(ctl.getAttribute('data-layer'))||1,t=laneTrack(n),act=ctl.getAttribute('data-vocal-control'),A=window.ALU_STUDIO_V101;
-       if(act==='select'){window.__ALU_VOCAL_LAYER_SELECTED=n;render();return}
-       if(act==='record'){window.__ALU_VOCAL_LAYER_SELECTED=n;if(A&&A.record)A.record();render();return}
-       if(act==='delete'){if(t){try{if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio=null}}catch(_e){};if(A&&A.remove)A.remove(t.id);else if(A&&A.deleteTrack)A.deleteTrack(t.id);else{var ts=A&&A.getTracks?A.getTracks():[];var idx=ts.indexOf(t);if(idx>=0)ts.splice(idx,1)}}render();return}
-       if(!t){window.__ALU_VOCAL_LAYER_SELECTED=n;render();if(window.toastMsg)toastMsg('🎙️ Vocal Layer '+n+' selected · ready to record');return}
-       if(act==='play')playLane(t);
-       else if(act==='pause')pauseLane(t);
-       else if(act==='stop')stopLane(t);
-       else if(act==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;if(t.playAudio)t.playAudio.muted=!!t.mute;render()}
-       else if(act==='solo'){t.solo=!t.solo;render()}
-       else if(act==='fx'){window.__ALU_VOCAL_LAYER_SELECTED=n;var fxBtns=document.querySelectorAll('[data-lane-effects]');for(var fi=0;fi<fxBtns.length;fi++){if(String(fxBtns[fi].getAttribute('data-track'))===String(t.id)){fxBtns[fi].click();break}}}
-       else if(act==='fxToggle'){setFx(t,ctl.getAttribute('data-fx'));render()}
-     },true);
-     box.addEventListener('input',function(e){
-       if(e.__aluVocalHandledV101)return;e.__aluVocalHandledV101=true;
-       var inp=e.target.closest('[data-vocal-control]');if(!inp)return;
+       var inp=e.target.closest?.('[data-vocal-control]');
+       if(!inp||!box.contains(inp))return;
        var n=Number(inp.getAttribute('data-layer'))||1,t=laneTrack(n);if(!t)return;
        var a=inp.getAttribute('data-vocal-control'),v=Number(inp.value);
        if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v;if(t.playAudio)t.playAudio.volume=t.mute?0:v}
-       if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}}
-     },true);
-   }
+       if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_){}}
+     },false);
    render();
  }
  function render(){

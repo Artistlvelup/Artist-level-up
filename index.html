@@ -6190,7 +6190,7 @@ window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login')},close
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 if(client()?.auth?.onAuthStateChange){
   client().auth.onAuthStateChange(function(event){
-    if(event==='SIGNED_IN'||event==='USER_UPDATED'){
+    if(event==='SIGNED_IN'){
       setTimeout(async function(){if(await resumeCloudMember()){close();try{toast('Welcome back ✓')}catch(e){} }},0);
     }
   });

@@ -2214,11 +2214,31 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       if(session){
         const check=await client.auth.getUser(session.access_token);
         if(check.error||!check.data?.user?.id){
-          try{await client.auth.signOut()}catch(_){}
-          session=null;
+          // V101 recovery safeguard: never discard a cached identity and silently
+          // replace it with a new anonymous UID. Keep the existing session in
+          // storage so the owner can recover the account before any new signup.
+          console.warn('V101: cached cloud session could not be validated; preserving it for account recovery.',check.error||'No user returned');
+          window.ALU_CLOUD.ready=false;
+          window.ALU_CLOUD.userId=session.user?.id||null;
+          return null;
         }
       }
       if(!session){
+        // If this browser already contains a registered/member profile, do not
+        // silently create a different anonymous cloud identity when its session
+        // is missing. Fresh visitors can still receive an anonymous session.
+        let hasLocalMember=false;
+        try{
+          hasLocalMember=typeof state!=='undefined'&&!!state&&(
+            state.userRegistered===true||state.memberAccessV101===true||state.artistRegistered===true
+          );
+        }catch(_){}
+        if(hasLocalMember){
+          console.warn('V101: local member data exists but cloud session is missing; preserving local data instead of creating a new UID.');
+          window.ALU_CLOUD.ready=false;
+          window.ALU_CLOUD.userId=null;
+          return null;
+        }
         const r=await client.auth.signInAnonymously();
         if(r.error) throw r.error;
         session=r.data?.session||null;

@@ -1477,7 +1477,25 @@ const seedSongs=[
 {id:6,title:'Street Code',artist:'Nova MC',genre:'Hip-Hop',country:'United States',streams:5400,liked:false},
 {id:7,title:'Grace Carry Me',artist:'Mira Soul',genre:'Gospel',country:'Ghana',streams:4800,liked:false}
 ];
-let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''},songs:seedSongs,campaigns:[],transactions:[],recent:[],playlists:['My Vibes'],followers:0,balance:0,pro:{active:false,plan:'',price:0,activatedAt:''},notifications:[],notificationSettings:{enabled:true,push:false}};state.pro=state.pro||{active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''},songs:seedSongs,campaigns:[],transactions:[],recent:[],playlists:['My Vibes'],followers:0,balance:0,pro:{active:false,plan:'',price:0,activatedAt:''},notifications:[],notificationSettings:{enabled:true,push:false}};
+/* V101 one-time cleanup of the confirmed local test-feed copies left after the cloud test reset. */
+(function(){
+  const marker='aluV101TestFeedCacheCleanup20261009';
+  try{
+    if(localStorage.getItem(marker)==='done') return;
+    const testTitles=new Set(['sugar','up','pasuma','angelina']);
+    if(Array.isArray(state.songs)){
+      state.songs=state.songs.filter(function(song){
+        const title=String(song?.title||'').trim().toLowerCase();
+        const artist=String(song?.artist||'').trim().toLowerCase();
+        const genre=String(song?.genre||'').trim().toLowerCase();
+        return !(testTitles.has(title)&&artist==='artist level up'&&genre==='afrobeats');
+      });
+      localStorage.setItem(KEY,JSON.stringify(state));
+    }
+    localStorage.setItem(marker,'done');
+  }catch(e){console.warn('V101 local test-feed cleanup skipped:',e)}
+})();state.pro=state.pro||{active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
 if(typeof state.pro.expiresAt==='undefined')state.pro.expiresAt='';
 if(typeof state.pro.status==='undefined')state.pro.status=state.pro.active?'Active':'Inactive';
 if(state.pro.active){let changed=false;let started=state.pro.activatedAt?new Date(state.pro.activatedAt):new Date();if(Number.isNaN(started.getTime()))started=new Date();if(!state.pro.activatedAt||Number.isNaN(new Date(state.pro.activatedAt).getTime())){state.pro.activatedAt=started.toISOString();changed=true;}if(!state.pro.expiresAt||Number.isNaN(new Date(state.pro.expiresAt).getTime())){const expires=new Date(started);if(state.pro.plan==='Yearly')expires.setFullYear(expires.getFullYear()+1);else expires.setDate(expires.getDate()+30);state.pro.expiresAt=expires.toISOString();changed=true;}if(state.pro.status!=='Active'){state.pro.status='Active';changed=true;}if(changed)localStorage.setItem(KEY,JSON.stringify(state));}

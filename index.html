@@ -6131,6 +6131,7 @@ async function resumeCloudMember(){
         var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
         if(ar.error)throw ar.error;
         recoveredArtist=ar.data;
+        if(p.data.role!=='artist'&&!recoveredArtist)return false;
       }
       var isArtist=p.data.role==='artist'||!!recoveredArtist;
       var displayName=recoveredArtist?.artist_name||p.data.display_name||'';

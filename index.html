@@ -6150,20 +6150,25 @@ async function resumeCloudMember(){
 async function linkAnonymous(email){
   var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
   try{
-    var g=await c.auth.getSession(),u=g?.data?.session?.user;
-    // V101 recovery: create a cloud identity only after explicit signup for the approved recovery email.
-    if(!u && String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
-      var fresh=await c.auth.signInAnonymously();
-      if(fresh.error)return {ok:false,error:fresh.error};
-      u=fresh.data?.user||fresh.data?.session?.user||null;
+    var normalizedEmail=String(email||'').trim().toLowerCase();
+    // V101 recovery: use a direct email magic-link signup for the approved recovery email.
+    // This avoids depending on anonymous sign-ins being enabled in Supabase.
+    if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
+      var signup=await c.auth.signInWithOtp({
+        email:normalizedEmail,
+        options:{shouldCreateUser:true,emailRedirectTo:'https://artist-level-up.vercel.app/'}
+      });
+      if(signup.error)return {ok:false,error:signup.error};
+      return {ok:true,pending:true};
     }
-    if(!u)return {ok:false,error:new Error('Cloud session could not be started. Please check your connection and try again.')};
+    var g=await c.auth.getSession(),u=g?.data?.session?.user;
+    if(!u)return {ok:false,error:new Error('No cloud session is available. Please sign in again.')};
     if(u.is_anonymous){
       var r=await c.auth.updateUser({email:email});
       if(r.error)return {ok:false,error:r.error};
       return {ok:true,pending:true};
     }
-    if(String(u.email||'').trim().toLowerCase()===String(email||'').trim().toLowerCase())return {ok:true,pending:false};
+    if(String(u.email||'').trim().toLowerCase()===normalizedEmail)return {ok:true,pending:false};
     return {ok:false,error:new Error('A different cloud account is already active.')};
   }catch(e){return {ok:false,error:e}}
 }

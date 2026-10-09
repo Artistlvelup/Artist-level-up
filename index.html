@@ -2292,9 +2292,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function ensureArtist(){
     const uid=await ensureSession(); if(!uid) return null;
     const profile=state.profile||{};
-    /* A user who has successfully reached the music uploader/moderation flow
-       must have an artist record available for the cloud song row. */
-    if(!profile.name) return null;
+    /* A generic placeholder must not create an artist record before the member
+       explicitly registers or a preserved artist identity is recovered. */
+    if(!profile.name || (profile.name==='Artist Level Up' && state.artistRegistered!==true)) return null;
     let {data,error}=await client.from('artists').select('id').eq('user_id',uid).maybeSingle();
     if(error) throw error;
     if(data?.id){window.ALU_CLOUD.artistId=data.id;return data.id;}
@@ -2309,6 +2309,14 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const p=state.profile||{}; const ua=state.userAccount||{};
     const displayName=p.name||ua.name||'Artist Level Up';
     let avatarUrl=String(p.avatar||ua.avatar||'').trim();
+    const authResult=await client.auth.getUser();
+    const signedEmail=String(authResult?.data?.user?.email||'').trim().toLowerCase();
+    let preservePlaceholderProfile=false;
+    if(signedEmail==='otunbacashmonnie1@gmail.com'){
+      const existing=await client.from('profiles').select('display_name,role').eq('id',uid).maybeSingle();
+      if(existing.error) throw existing.error;
+      preservePlaceholderProfile=existing.data?.display_name==='Artist Level Up'&&existing.data?.role==='user';
+    }
     if(avatarUrl.startsWith('data:image/')){
       const blob=await fetch(avatarUrl).then(x=>x.blob());
       const path=uid+'/profile.jpg';
@@ -2321,9 +2329,18 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       state.profile.avatar=avatarUrl;
       state.userAccount.avatar=avatarUrl;
     }
-    const r=await client.from('profiles').upsert({id:uid,display_name:displayName,avatar_url:avatarUrl||null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
-    if(r.error) throw r.error;
-    if(state.artistRegistered) await ensureArtist();    return avatarUrl;
+    if(!preservePlaceholderProfile){
+      const r=await client.from('profiles').upsert({id:uid,display_name:displayName,avatar_url:avatarUrl||null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
+      if(r.error) throw r.error;
+    }
+    if(state.artistRegistered){
+      const artistId=await ensureArtist();
+      if(preservePlaceholderProfile && artistId){
+        const artistUpdate=await client.from('artists').update({artist_name:displayName,country:p.country||'Nigeria'}).eq('user_id',uid);
+        if(artistUpdate.error) throw artistUpdate.error;
+      }
+    }
+    return avatarUrl;
   }
 
   async function syncSongs(){
@@ -6101,13 +6118,28 @@ async function resumeCloudMember(){
     var uid=session.user.id;
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
+    var recoveryEmail=String(session.user.email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com';
+    if(recoveryEmail && p.data?.role!=='artist'){
+      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+      if(recovery.error)throw recovery.error;
+      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+      if(p.error)throw p.error;
+    }
     if(p.data){
-      var isArtist=p.data.role==='artist';
+      var recoveredArtist=null;
+      if(recoveryEmail){
+        var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
+        if(ar.error)throw ar.error;
+        recoveredArtist=ar.data;
+        if(p.data.role!=='artist'&&!recoveredArtist)return false;
+      }
+      var isArtist=p.data.role==='artist'||!!recoveredArtist;
+      var displayName=recoveredArtist?.artist_name||p.data.display_name||'';
       var cloudEmail=String(session.user.email||'').trim();
       var safeEmail=cloudEmail||(session.user.is_anonymous?'':String(s.userAccount?.email||'').trim());
       s.userRegistered=true;s.memberAccessV101=true;
-      s.userAccount={...(s.userAccount||{}),name:p.data.display_name||'',email:safeEmail,avatar:p.data.avatar_url||''};
-      s.profile={...(s.profile||{}),name:p.data.display_name||'',avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist};
+      s.userAccount={...(s.userAccount||{}),name:displayName,email:safeEmail,avatar:p.data.avatar_url||''};
+      s.profile={...(s.profile||{}),name:displayName,avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist,country:s.profile?.country||'Nigeria'};
       s.artistRegistered=isArtist;
       persist();
       return true;
@@ -6131,6 +6163,9 @@ async function linkAnonymous(email){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
+  if(String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
+    throw new Error('Your saved Solo_vibez artist profile was found, but this email has no active cloud login yet. Choose Create Account, use this same email, and confirm the email link to reconnect your profile.');
+  }
   var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
   if(r.error)throw r.error;
 }
@@ -6157,6 +6192,19 @@ function ensureGate(){
     try{
       var linked=await linkAnonymous(email);
       if(linked.error)throw linked.error;
+      if(email==='otunbacashmonnie1@gmail.com'){
+        if(linked.pending){
+          err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
+          try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
+          return;
+        }
+        if(await resumeCloudMember()){
+          close();
+          try{toast('Saved Solo_vibez artist profile reconnected ✓')}catch(e){}
+          return;
+        }
+        throw new Error('The email is connected, but the saved artist profile could not be reconnected. No existing data was changed.');
+      }
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
       s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
       persist();

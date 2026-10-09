@@ -6031,10 +6031,13 @@ async function resumeCloudMember(){
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
     if(p.data){
+      var isArtist=p.data.role==='artist';
+      var cloudEmail=String(session.user.email||'').trim();
+      var safeEmail=cloudEmail||(session.user.is_anonymous?'':String(s.userAccount?.email||'').trim());
       s.userRegistered=true;s.memberAccessV101=true;
-      s.userAccount={...(s.userAccount||{}),name:p.data.display_name||s.userAccount?.name||'',email:session.user.email||s.userAccount?.email||''};
-      s.profile={...(s.profile||{}),name:p.data.display_name||s.profile?.name||'',avatar:p.data.avatar_url||s.profile?.avatar||'',email:session.user.email||s.profile?.email||'',saved:true};
-      if(p.data.role==='artist')s.artistRegistered=true;
+      s.userAccount={...(s.userAccount||{}),name:p.data.display_name||'',email:safeEmail,avatar:p.data.avatar_url||''};
+      s.profile={...(s.profile||{}),name:p.data.display_name||'',avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist};
+      s.artistRegistered=isArtist;
       persist();
       return true;
     }
@@ -6113,7 +6116,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-async function boot(){if(registered())return;if(await resumeCloudMember())return;open()}
+async function boot(){if(await resumeCloudMember())return;if(registered())return;open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

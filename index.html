@@ -6151,13 +6151,19 @@ async function linkAnonymous(email){
   var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
   try{
     var g=await c.auth.getSession(),u=g?.data?.session?.user;
-    if(!u)return {ok:false,error:new Error('No cloud session is available.')};
+    // V101 recovery: create a cloud identity only after explicit signup for the approved recovery email.
+    if(!u && String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
+      var fresh=await c.auth.signInAnonymously();
+      if(fresh.error)return {ok:false,error:fresh.error};
+      u=fresh.data?.user||fresh.data?.session?.user||null;
+    }
+    if(!u)return {ok:false,error:new Error('Cloud session could not be started. Please check your connection and try again.')};
     if(u.is_anonymous){
       var r=await c.auth.updateUser({email:email});
       if(r.error)return {ok:false,error:r.error};
       return {ok:true,pending:true};
     }
-    if(String(u.email||'').toLowerCase()===email)return {ok:true,pending:false};
+    if(String(u.email||'').trim().toLowerCase()===String(email||'').trim().toLowerCase())return {ok:true,pending:false};
     return {ok:false,error:new Error('A different cloud account is already active.')};
   }catch(e){return {ok:false,error:e}}
 }

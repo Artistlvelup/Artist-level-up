@@ -1483,6 +1483,40 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email
     localStorage.setItem(KEY,JSON.stringify(state));
     localStorage.setItem(marker,'done');
   }catch(e){console.warn('V101 cached test-media cleanup skipped:',e)}
+})();
+/* V101 one-time prototype cleanup: clear test content and Solo_vibez identity; preserve app settings, admin access, and payment integration code. */
+(function(){
+  const marker='aluV101PrototypeCleanup20261009';
+  try{
+    if(localStorage.getItem(marker)==='done') return;
+    state.songs=[];
+    state.videos=[];
+    state.course=state.course&&typeof state.course==='object'?state.course:{};
+    state.course.videos={};
+    state.campaigns=[];
+    state.transactions=[];
+    state.recent=[];
+    state.notifications=[];
+    state.balance=0;
+    state.followers=0;
+    state.wallet=state.wallet&&typeof state.wallet==='object'?state.wallet:{};
+    state.wallet.pendingBalance=0;
+    state.wallet.paymentMethod=null;
+    state.pro={active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
+    state.artistStatuses={};
+    state.artistFollows={};
+    const identity=String(state.profile?.name||state.userAccount?.name||'').trim().toLowerCase().replace(/[\\s_-]+/g,' ');
+    if(['solo vibez','artist level up'].includes(identity)){
+      state.profile={name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''};
+      state.userAccount={};
+      state.artistRegistered=false;
+      state.userRegistered=false;
+      state.userAccountCounted=false;
+      state.memberAccessV101=false;
+    }
+    localStorage.setItem(KEY,JSON.stringify(state));
+    localStorage.setItem(marker,'done');
+  }catch(e){console.warn('V101 prototype cleanup skipped:',e)}
 })();state.pro=state.pro||{active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
 if(typeof state.pro.expiresAt==='undefined')state.pro.expiresAt='';
 if(typeof state.pro.status==='undefined')state.pro.status=state.pro.active?'Active':'Inactive';
@@ -6130,9 +6164,12 @@ function ensureGate(){
       var linked=await linkAnonymous(email);
       if(linked.error)throw linked.error;
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
-      s.profile={...(s.profile||{}),name:name,email:email,saved:true};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
-      persist();close();
-      try{toast(linked.pending?'Account saved ✓ Check your email to activate cloud login.':'Welcome to Artist Level Up ✓')}catch(e){}
+      s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
+      persist();
+      var cloudSynced=false;
+      try{if(window.ALU_CLOUD?.syncProfile){await window.ALU_CLOUD.syncProfile();cloudSynced=true;persist();}}catch(syncErr){console.warn('V101 member profile cloud sync will retry:',syncErr)}
+      close();
+      try{toast(linked.pending?(cloudSynced?'Account saved ✓ Check your email to activate cloud login.':'Account saved on this device; cloud sync will retry. Check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
     }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
     finally{b.disabled=false;b.textContent='Create My Account'}
   });

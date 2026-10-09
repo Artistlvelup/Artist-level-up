@@ -1484,7 +1484,7 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email
     localStorage.setItem(marker,'done');
   }catch(e){console.warn('V101 cached test-media cleanup skipped:',e)}
 })();
-/* V101 one-time prototype cleanup: clear test content and Solo_vibez identity; preserve app settings, admin access, and payment integration code. */
+/* V101 one-time prototype cleanup: clear test content only; preserve real member and artist account identity. */
 (function(){
   const marker='aluV101PrototypeCleanup20261009';
   try{
@@ -1505,12 +1505,6 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email
     state.pro={active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
     state.artistStatuses={};
     state.artistFollows={};
-    state.profile={name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''};
-    state.userAccount={};
-    state.artistRegistered=false;
-    state.userRegistered=false;
-    state.userAccountCounted=false;
-    state.memberAccessV101=false;
     localStorage.setItem(KEY,JSON.stringify(state));
     localStorage.setItem(marker,'done');
   }catch(e){console.warn('V101 prototype cleanup skipped:',e)}
@@ -6198,7 +6192,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;if(registered())return;open()}
+async function boot(){if(await resumeCloudMember())return;if(registered())return;open('login')}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

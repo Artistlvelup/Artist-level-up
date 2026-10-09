@@ -1468,33 +1468,18 @@ window.ALU_SUPABASE_CLIENT=(window.supabase&&window.supabase.createClient)?windo
 
 <script>
 const KEY='alu_full_v1';
-const seedSongs=[
-{id:1,title:'Midnight Vibes',artist:'Kenny Blaze',genre:'Afrobeats',country:'Nigeria',streams:12400,liked:false},
-{id:2,title:'Paris Nights',artist:'Léa Martin',genre:'Pop',country:'France',streams:9300,liked:false},
-{id:3,title:'Madrid Flow',artist:'Rayo',genre:'Latin',country:'Spain',streams:8700,liked:false},
-{id:4,title:'Energy',artist:'Tobi Fresh',genre:'Afro-pop',country:'Nigeria',streams:7200,liked:false},
-{id:5,title:'Golden Piano',artist:'Thabo Keys',genre:'Amapiano',country:'South Africa',streams:6100,liked:false},
-{id:6,title:'Street Code',artist:'Nova MC',genre:'Hip-Hop',country:'United States',streams:5400,liked:false},
-{id:7,title:'Grace Carry Me',artist:'Mira Soul',genre:'Gospel',country:'Ghana',streams:4800,liked:false}
-];
+/* V101: no copyrighted/demo tracks are preloaded; the feed starts empty. */
+const seedSongs=[];
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''},songs:seedSongs,campaigns:[],transactions:[],recent:[],playlists:['My Vibes'],followers:0,balance:0,pro:{active:false,plan:'',price:0,activatedAt:''},notifications:[],notificationSettings:{enabled:true,push:false}};
-/* V101 one-time cleanup of the confirmed local test-feed copies left after the cloud test reset. */
+/* V101 one-time removal of all locally cached demo/test music, per owner request. */
 (function(){
-  const marker='aluV101TestFeedCacheCleanup20261009';
+  const marker='aluV101RemoveAllCachedTestMusic20261009';
   try{
     if(localStorage.getItem(marker)==='done') return;
-    const testTitles=new Set(['sugar','up','pasuma','angelina']);
-    if(Array.isArray(state.songs)){
-      state.songs=state.songs.filter(function(song){
-        const title=String(song?.title||'').trim().toLowerCase();
-        const artist=String(song?.artist||'').trim().toLowerCase();
-        const genre=String(song?.genre||'').trim().toLowerCase();
-        return !(testTitles.has(title)&&artist==='artist level up'&&genre==='afrobeats');
-      });
-      localStorage.setItem(KEY,JSON.stringify(state));
-    }
+    state.songs=[];
+    localStorage.setItem(KEY,JSON.stringify(state));
     localStorage.setItem(marker,'done');
-  }catch(e){console.warn('V101 local test-feed cleanup skipped:',e)}
+  }catch(e){console.warn('V101 cached test-music cleanup skipped:',e)}
 })();state.pro=state.pro||{active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
 if(typeof state.pro.expiresAt==='undefined')state.pro.expiresAt='';
 if(typeof state.pro.status==='undefined')state.pro.status=state.pro.active?'Active':'Inactive';

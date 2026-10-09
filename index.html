@@ -2337,9 +2337,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(!artistId) throw new Error('Cloud artist account is not ready.');
     for(const s of (state.songs||[])){
       if(!s.local) continue;
-      /* Avoid repeating the same PATCH for songs already saved to cloud.
-         New songs and failed/pending syncs still pass through this loop. */
-      if(s.remoteSongId && s.cloudSaved && !s.cloudSyncPending) continue;
       let audioUrl=/^https?:\/\//i.test(String(s.audioRemoteUrl||''))?String(s.audioRemoteUrl):'';
       if(!audioUrl && s.audioStoragePath){
         const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
@@ -4055,6 +4052,9 @@ if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arg
     if(!artistId) throw new Error('Cloud artist account is not ready.');
     for(const s of (state.songs||[])){
       if(!s.local) continue;
+      /* Avoid repeating the same PATCH for songs already saved to cloud.
+         New songs and failed/pending syncs still pass through this loop. */
+      if(s.remoteSongId && s.cloudSaved && !s.cloudSyncPending) continue;
       let audioUrl=/^https?:\/\//i.test(String(s.audioRemoteUrl||''))?String(s.audioRemoteUrl):'';
       if(!audioUrl && s.audioStoragePath){
         const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');

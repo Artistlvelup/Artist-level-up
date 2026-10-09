@@ -1505,7 +1505,7 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||{profile:{name:'',email
     state.pro={active:false,plan:'',price:0,activatedAt:'',expiresAt:'',status:'Inactive'};
     state.artistStatuses={};
     state.artistFollows={};
-    const identity=String(state.profile?.name||state.userAccount?.name||'').trim().toLowerCase().replace(/[\\s_-]+/g,' ');
+    const identity=String(state.profile?.name||state.userAccount?.name||'').trim().toLowerCase().replace(/[\s_-]+/g,' ');
     if(['solo vibez','artist level up'].includes(identity)){
       state.profile={name:'',email:'',country:'Nigeria',pin:'',saved:false,avatar:''};
       state.userAccount={};

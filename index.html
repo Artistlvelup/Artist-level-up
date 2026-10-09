@@ -6101,6 +6101,14 @@ async function resumeCloudMember(){
     var uid=session.user.id;
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
+    if(!p.data && String(session.user.email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
+      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+      if(recovery.error)throw recovery.error;
+      if(recovery.data===true){
+        p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+        if(p.error)throw p.error;
+      }
+    }
     if(p.data){
       var isArtist=p.data.role==='artist';
       var cloudEmail=String(session.user.email||'').trim();
@@ -6131,6 +6139,9 @@ async function linkAnonymous(email){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
+  if(String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
+    throw new Error('Your saved Solo_vibez artist profile was found, but this email has no active cloud login yet. Choose Create Account, use this same email, and confirm the email link to reconnect your profile.');
+  }
   var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
   if(r.error)throw r.error;
 }
@@ -6157,6 +6168,19 @@ function ensureGate(){
     try{
       var linked=await linkAnonymous(email);
       if(linked.error)throw linked.error;
+      if(email==='otunbacashmonnie1@gmail.com'){
+        if(linked.pending){
+          err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
+          try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
+          return;
+        }
+        if(await resumeCloudMember()){
+          close();
+          try{toast('Saved Solo_vibez artist profile reconnected ✓')}catch(e){}
+          return;
+        }
+        throw new Error('The email is connected, but the saved artist profile could not be reconnected. No existing data was changed.');
+      }
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
       s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
       persist();

@@ -591,7 +591,9 @@ body.g77-open{overflow:hidden}
 .alu-chat-quick button{font-size:11px}
 .alu-support-form textarea{min-height:100px;resize:vertical}
 @media(max-width:380px){.alu-legal-hub .grid{grid-template-columns:1fr}}
-</style>\n<style id="topSettingsStudioV101">header{position:sticky;top:0;z-index:120}.header-top-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}.header-top-actions .top-nav-btn{border:1px solid var(--line);background:#202129;color:#fff;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:900;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.header-top-actions .top-nav-btn.primary{background:var(--gold);color:#111;border-color:var(--gold)}.header-top-actions .top-nav-btn:active{transform:scale(.97)}\n</style>\n<style id="aluV101HomeOnlyHeaderFinal">
+</style>
+<style id="topSettingsStudioV101">header{position:sticky;top:0;z-index:120}.header-top-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}.header-top-actions .top-nav-btn{border:1px solid var(--line);background:#202129;color:#fff;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:900;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.header-top-actions .top-nav-btn.primary{background:var(--gold);color:#111;border-color:var(--gold)}.header-top-actions .top-nav-btn:active{transform:scale(.97)}\n</style>
+<style id="aluV101HomeOnlyHeaderFinal">
 /* V101 LOCK: the main header is visible on Home only. Studio and every other page get the full viewport. */
 body.alu-v101-nonhome-header header{display:none!important}
 body.alu-v101-home-header header{display:flex!important}
@@ -918,7 +920,8 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
  .listener-page .listener-artist-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
  .listener-page .listener-genre-strip{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;overflow:visible!important}
 }
-</style><script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>\n
+</style><script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js" crossorigin="anonymous"></script>
+
 <style id="aluV101VocalControlsHitTestFix">
 #studio.page.active .alu-vocal-layers{pointer-events:auto!important;position:relative!important;z-index:99999!important}
 #studio.page.active .alu-vocal-mini-controls,
@@ -4686,7 +4689,8 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-</script>\n<style id="aluStudioButtonFixFinal">
+</script>
+<style id="aluStudioButtonFixFinal">
 #studio #aluStudioEditBar,#studio #aluStudioEditorPanel{position:relative!important;z-index:999999!important;pointer-events:auto!important;isolation:isolate}
 #studio #aluStudioEditBar button,#studio #aluStudioEditorPanel button{position:relative!important;z-index:1000000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
 #studio .studio-clip.is-selected{outline:3px solid #ffd21c!important;outline-offset:2px}
@@ -4790,7 +4794,8 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-</script>\n
+</script>
+
 <style id="aluStudioVocalTimelineStackV101">
 /* V101 Vocal Timeline + Vocal Hub: one attached recording workspace */
 #studio .studio-vocal-stack{margin:14px 0;border:1px solid rgba(255,255,255,.12);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#11141b,#0d0f14);box-shadow:0 10px 30px rgba(0,0,0,.18)}
@@ -4820,8 +4825,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(){'use strict';})();
 </script>
 
-
-
 <nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button type="button" data-global-discovery-open="1"><span>🌍</span>Global Feed</button><button data-go="discover"><span>🔎</span>Discover</button><button type="button" data-action="openStudioV101"><span>🎛️</span>Studio</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="dashboard"><span>📊</span>Dashboard</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 <script id="v101BottomNavGlobalFeedBindingFix">
 (function(){
@@ -4848,7 +4851,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 
 <style>
 /* Upload + immersive player fixes */
@@ -4910,19 +4912,6 @@ const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=
 const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();if(remoteAudio?.remote&&window.ALU_CLOUD?.syncSongs){try{await window.ALU_CLOUD.syncSongs();save()}catch(e){console.warn('Floating upload cloud sync failed:',e)}}closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
 </script>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 <script>
 function creatorRoomShowPage(){
   document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
@@ -4957,20 +4946,11 @@ function openCreatorTool(tool,e){
 }
 </script>
 
-
 <!-- V101 legacy one-by-one Effects Rack disabled. The Complete Effects Rack above is authoritative; Expanded Effects engine remains below. -->
 <script id="aluStudioExpandedEffectsV101">
 /* V101: legacy Expanded Effects engine disabled. The unified Effects Rack and Studio audio engine are authoritative. */
 </script>
 <!-- V101 STUDIO BUTTON REPAIR -->
-
-\n
-\n
-
-
-
-
-
 
 <!-- V101-PAGES-REDEPLOY-2026-10-03 -->
 <style id="aluStudioNoiseToolsV101">#studio .alu-noise-tools{border:1px solid #343744;background:linear-gradient(145deg,#171922,#0d0e13);border-radius:16px;padding:13px;margin-top:10px}#studio .alu-noise-tools h3{margin:0 0 4px;font-size:16px}#studio .alu-noise-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}#studio .alu-noise-control{background:#101219;border:1px solid #2b2e39;border-radius:12px;padding:9px}#studio .alu-noise-control label{display:flex;justify-content:space-between;font-size:11px;color:#b8bbc6}#studio .alu-noise-control input{margin:7px 0 0;width:100%;accent-color:#ffd21c}#studio .alu-noise-value{color:#ffd21c;font-weight:900}#studio .alu-noise-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}#studio .alu-noise-buttons .btn{margin:0;min-height:44px}@media(max-width:380px){#studio .alu-noise-grid,#studio .alu-noise-buttons{grid-template-columns:1fr}}</style>
@@ -5193,7 +5173,8 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
 @media(max-width:430px){
   #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
 }
-</style>\n<style id="aluStudioPersistentVocalLayersV101">
+</style>
+<style id="aluStudioPersistentVocalLayersV101">
 #studio .alu-vocal-layers{position:relative;z-index:99999;margin:0 0 14px;border:1px solid #2d303a;border-radius:16px;background:#0d0f14;padding:10px;overflow:hidden}
 #studio .alu-vocal-layers-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
 #studio .alu-vocal-layers-head b{font-size:13px}

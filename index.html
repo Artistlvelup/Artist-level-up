@@ -5418,8 +5418,14 @@ document.addEventListener('click',function(e){if(e.target.closest?.('[data-actio
   function publicSongs(){
     const all=Array.isArray(state.songs)?state.songs:[];
     const map=new Map();
-    all.filter(s=>['Published','published'].includes(String(s.status||'')) && (s.audioRemoteUrl||s.audioUrl||s.audioDataUrl||s.audioKey))
-      .forEach(s=>map.set(String(s.remoteSongId||s.id),s));
+    all.filter(s=>{
+      const published=['Published','published'].includes(String(s.status||''));
+      const playable=!!(s.audioRemoteUrl||s.audioUrl||s.audioDataUrl||s.audioKey);
+      const artist=String(s.artist||'').trim().toLowerCase();
+      const cloud=!!(s.remoteSongId||String(s.id||'').startsWith('cloud_'));
+      const realArtist=!!artist&&!['artist level up','artist','unknown artist'].includes(artist);
+      return published&&playable&&(!cloud||realArtist);
+    }).forEach(s=>map.set(String(s.remoteSongId||s.id),s));
     return [...map.values()];
   }
   function card(s){
@@ -5481,14 +5487,21 @@ document.addEventListener('click',function(e){if(e.target.closest?.('[data-actio
       const client=window.ALU_SUPABASE_CLIENT;
       if(client){
         let q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artists(artist_name)').eq('status','published').order('created_at',{ascending:false}).limit(60);
+        let artistJoinAvailable=true;
         if(q.error){
+          artistJoinAvailable=false;
           q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artist_id').eq('status','published').order('created_at',{ascending:false}).limit(60);
         }
         if(!q.error && Array.isArray(q.data)){
-          q.data.forEach(r=>{
+          const eligibleRows=artistJoinAvailable?q.data.filter(r=>{
+            const name=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||'';
+            const normalized=String(name).trim().toLowerCase();
+            return !!String(r.artist_id||'').trim()&&!!normalized&&!['artist level up','artist','unknown artist'].includes(normalized);
+          }):[];
+          eligibleRows.forEach(r=>{
             const id=String(r.id);
             let s=(state.songs||[]).find(x=>String(x.remoteSongId||'')===id);
-            const artist=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||s?.artist||'Artist Level Up';
+            const artist=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||s?.artist||'';
             const mapped={id:'cloud_'+id,remoteSongId:id,title:r.title||'Untitled',genre:r.genre||'Music',artist,country:s?.country||'Global',streams:Number(s?.streams||0),plays:Number(s?.plays||0),likes:Number(s?.likes||0),liked:!!s?.liked,status:'Published',local:true,audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',createdAt:r.created_at||'',createdAtTs:new Date(r.created_at||0).getTime(),cloudSaved:true};
             if(s){const keepId=s.id;Object.assign(s,mapped);s.id=keepId;}else state.songs.push(mapped);
           });

@@ -3870,7 +3870,25 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(state?.userRegistered&&!state?.artistRegistered){
       const avatar=String(state.profile?.avatar||state.userAccount?.avatar||'').trim();
       const safeAvatar=avatar?'<img class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px" src="'+esc(avatar)+'" alt="Profile picture">':'<div class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px;display:grid;place-items:center;font-size:42px">👤</div>';
-      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><button class="btn primary full" data-action="closeModal">Close</button><button id="aluV101LogoutBtn" class="btn full" type="button" style="margin-top:10px">Log Out & Test Login</button></div>';
+      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><p id="aluCloudDiagStatus" class="muted">Cloud session: not checked</p><button id="aluCloudDiagBtn" class="btn full" type="button">Check Cloud Session</button><button class="btn primary full" data-action="closeModal">Close</button><button id="aluV101LogoutBtn" class="btn full" type="button" style="margin-top:10px">Log Out & Test Login</button></div>';
+      const diagBtn=document.getElementById('aluCloudDiagBtn');
+      diagBtn?.addEventListener('click',async function(){
+        const status=document.getElementById('aluCloudDiagStatus');
+        this.disabled=true;this.textContent='CHECKING…';
+        try{
+          const cc=window.ALU_SUPABASE_CLIENT;
+          if(!cc?.auth)throw new Error('Cloud client unavailable');
+          const sr=await cc.auth.getSession();
+          if(sr.error)throw sr.error;
+          const su=sr.data?.session?.user;
+          if(!su?.id){status.textContent='Cloud session: none';return;}
+          const pr=await cc.from('profiles').select('display_name,role').eq('id',su.id).maybeSingle();
+          if(pr.error)throw pr.error;
+          const pd=pr.data||{};
+          status.textContent='Cloud session: '+(su.is_anonymous?'ANONYMOUS':'SIGNED IN')+' | UID: '+su.id+' | Profile: '+(pd.display_name||'not found')+' | Role: '+(pd.role||'not found');
+        }catch(e){status.textContent='Cloud check failed: '+String(e?.message||e).slice(0,160);}
+        finally{this.disabled=false;this.textContent='Check Cloud Session';}
+      });
       const logoutBtn=document.getElementById('aluV101LogoutBtn');
       logoutBtn?.addEventListener('click',async function(){
         this.disabled=true;this.textContent='LOGGING OUT…';

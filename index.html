@@ -6100,37 +6100,54 @@ function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 async function resumeCloudMember(){
   var c=client(),s=getState();if(!c||!c.auth||!s)return false;
   try{
-    var g=await c.auth.getSession(),session=g?.data?.session;if(!session?.user?.id)return false;
-    var uid=session.user.id;
+    var g=await c.auth.getSession(),session=g?.data?.session,u=session?.user;
+    if(!u?.id||u.is_anonymous||!String(u.email||'').trim()){
+      if(s.userRegistered===true||s.memberAccessV101===true){
+        s.userRegistered=false;s.userAccountCounted=false;s.memberAccessV101=false;
+        persist();
+      }
+      return false;
+    }
+    var uid=u.id;
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
-    if(p.data){
-      var isArtist=p.data.role==='artist';
-      var cloudEmail=String(session.user.email||'').trim();
-      var safeEmail=cloudEmail||(session.user.is_anonymous?'':String(s.userAccount?.email||'').trim());
-      s.userRegistered=true;s.memberAccessV101=true;
-      s.userAccount={...(s.userAccount||{}),name:p.data.display_name||'',email:safeEmail,avatar:p.data.avatar_url||''};
-      s.profile={...(s.profile||{}),name:p.data.display_name||'',avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist};
-      s.artistRegistered=isArtist;
-      persist();
-      return true;
+    var metaName=String(u.user_metadata?.display_name||u.user_metadata?.name||s.userAccount?.name||s.profile?.name||'').trim();
+    if(!p.data){
+      var ins=await c.from('profiles').insert({id:uid,display_name:metaName,role:'user'}).select('display_name,avatar_url,role').single();
+      if(ins.error)throw ins.error;
+      p={data:ins.data,error:null};
     }
+    var isArtist=p.data.role==='artist';
+    var cloudEmail=String(u.email||'').trim();
+    s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
+    s.userAccount={...(s.userAccount||{}),name:p.data.display_name||metaName,email:cloudEmail,avatar:p.data.avatar_url||'',registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
+    s.profile={...(s.profile||{}),name:p.data.display_name||metaName,avatar:p.data.avatar_url||'',email:cloudEmail,saved:isArtist};
+    s.artistRegistered=isArtist||s.artistRegistered===true;
+    persist();
+    return true;
   }catch(e){console.error('V101 cloud member restore failed:',e)}
   return false;
 }
-async function linkAnonymous(email){
-  var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
-  try{
-    var g=await c.auth.getSession(),u=g?.data?.session?.user;
-    if(!u)return {ok:false,error:new Error('No cloud session is available.')};
-    if(u.is_anonymous){
-      var r=await c.auth.updateUser({email:email});
-      if(r.error)return {ok:false,error:r.error};
-      return {ok:true,pending:true};
+function makeEphemeralPassword(){
+  if(!window.crypto?.getRandomValues)throw new Error('Secure account creation is unavailable in this browser. Please reopen Artist Level Up in a supported browser.');
+  var bytes=new Uint8Array(32);window.crypto.getRandomValues(bytes);
+  return Array.from(bytes,function(b){return b.toString(16).padStart(2,'0')}).join('')+'Aa!9';
+}
+async function createMemberAccount(email,name){
+  var c=client();if(!c?.auth)throw new Error('Cloud registration is not ready. Please reopen the app.');
+  var r=await c.auth.signUp({
+    email:email,
+    password:makeEphemeralPassword(),
+    options:{
+      data:{display_name:name,member_access_v101:true},
+      emailRedirectTo:location.origin+location.pathname
     }
-    if(String(u.email||'').toLowerCase()===email)return {ok:true,pending:false};
-    return {ok:false,error:new Error('A different cloud account is already active.')};
-  }catch(e){return {ok:false,error:e}}
+  });
+  if(r.error)throw r.error;
+  if(r.data?.user&&Array.isArray(r.data.user.identities)&&r.data.user.identities.length===0){
+    throw new Error('This email may already have an account. Switch to Log In and request a sign-in link.');
+  }
+  return r.data||{};
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
@@ -6158,15 +6175,20 @@ function ensureGate(){
     if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
     var b=this;b.disabled=true;b.textContent='CONNECTING ACCOUNT…';
     try{
-      var linked=await linkAnonymous(email);
-      if(linked.error)throw linked.error;
-      s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
-      s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
+      var created=await createMemberAccount(email,name);
+      s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101',cloudPending:true};
+      s.profile={...(s.profile||{}),name:name,email:email,saved:false};
+      s.userRegistered=false;s.userAccountCounted=false;s.memberAccessV101=false;
       persist();
-      var cloudSynced=false;
-      try{if(window.ALU_CLOUD?.syncProfile){await window.ALU_CLOUD.syncProfile();cloudSynced=true;persist();}}catch(syncErr){console.warn('V101 member profile cloud sync will retry:',syncErr)}
-      close();
-      try{toast(linked.pending?(cloudSynced?'Account saved ✓ Check your email to activate cloud login.':'Account saved on this device; cloud sync will retry. Check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
+      if(created.session&&created.user&&!created.user.is_anonymous&&String(created.user.email||'').trim()){
+        if(await resumeCloudMember()){
+          close();
+          try{toast('Welcome to Artist Level Up ✓')}catch(e){}
+          return;
+        }
+      }
+      err.textContent='Registration started. Check '+email+' for the confirmation link, then open it to activate your member account. This screen will stay here until cloud login is confirmed.';
+      try{toast('Check your email to finish registration.')}catch(e){}
     }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
     finally{b.disabled=false;b.textContent='Create My Account'}
   });
@@ -6195,7 +6217,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;if(registered())return;open()}
+async function boot(){if(await resumeCloudMember())return;open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

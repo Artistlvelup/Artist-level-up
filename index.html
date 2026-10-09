@@ -6113,7 +6113,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-function boot(){if(registered())return;open()}
+async function boot(){if(registered())return;if(await resumeCloudMember())return;open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

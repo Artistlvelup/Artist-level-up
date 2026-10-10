@@ -6126,6 +6126,7 @@ async function resumeCloudMember(){
       s.profile={...(s.profile||{}),name:displayName,avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist,country:s.profile?.country||'Nigeria'};
       s.artistRegistered=isArtist;
       persist();
+      try{window.ALU_SYNC_ARTIST_ACCESS_V101?.()}catch(e){}
       return true;
     }
   }catch(e){console.error('V101 cloud member restore failed:',e)}

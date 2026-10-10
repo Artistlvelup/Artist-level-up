@@ -6255,7 +6255,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;if(registered())return;open('login')}
+async function boot(){if(await resumeCloudMember())return;if(registered())return;close()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>
@@ -6755,3 +6755,33 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else addProfileLogout();
 })();
 </script>
+
+
+<!-- V101 AUTH RESET TEST: retire the old email/profile registration screens without deleting saved data -->
+<style id="aluV101AuthResetTest">
+#registerFormCard,#registerAlreadyCard{display:none!important}
+#register [data-action="openMemberLogin"]{display:none!important}
+#aluMemberGateV101{display:none!important}
+#aluV101NewAccessCard{display:block}
+</style>
+<script id="aluV101NewAccessFlow">
+(function(){
+ 'use strict';
+ function install(){
+   var page=document.getElementById('register');
+   if(page&&!document.getElementById('aluV101NewAccessCard')){
+     var card=document.createElement('div');
+     card.id='aluV101NewAccessCard';card.className='card';
+     card.innerHTML='<span class="pill">ARTIST LEVEL UP · V101</span><h1 style="margin-top:12px">Your Artist Space</h1><p class="muted">We are replacing the old registration screens. No email form and no duplicate artist-profile form will appear here.</p><p class="muted">Your saved account and artist data have not been deleted.</p><button class="btn primary full" type="button" id="aluV101ContinueDevice">Continue to Artist Level Up</button>';
+     var intro=document.getElementById('registerIntro');
+     if(intro&&intro.parentNode)intro.insertAdjacentElement('afterend',card);else page.appendChild(card);
+     document.getElementById('aluV101ContinueDevice').addEventListener('click',function(){try{window.ALU_MEMBER_GATE_V101?.close()}catch(e){};if(typeof go==='function')go('home');else location.hash='#home'});
+   }
+   try{window.ALU_MEMBER_GATE_V101={open:function(){var p=document.getElementById('aluV101NewAccessCard');if(p){p.scrollIntoView({behavior:'smooth',block:'center'});p.style.outline='2px solid var(--gold)';setTimeout(function(){p.style.outline=''},1200)}},openLogin:function(){this.open()},close:function(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')},isRegistered:function(){return false}}}catch(e){}
+   var old=document.getElementById('aluMemberGateV101');if(old){old.classList.remove('show');old.style.display='none'}
+   document.body.classList.remove('alu-member-locked-v101');
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
+</script>
+

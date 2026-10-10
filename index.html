@@ -6188,8 +6188,9 @@ function ensureGate(){
       var cloudSynced=false;
       try{if(window.ALU_CLOUD?.syncProfile){await window.ALU_CLOUD.syncProfile();cloudSynced=true;persist();}}catch(syncErr){console.warn('V101 member profile cloud sync will retry:',syncErr)}
       close();
+      try{if(typeof go==='function')go('register')}catch(e){console.warn('V101 registration page open skipped:',e)}
       try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}
-      try{toast(linked.pending?(cloudSynced?'Account saved ✓ Check your email to activate cloud login.':'Account saved on this device; cloud sync will retry. Check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
+      try{toast(linked.pending?(cloudSynced?'Member account ready ✓ Check your email to activate cloud login.':'Member account saved on this device; check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
     }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
     finally{b.disabled=false;b.textContent='Create My Account'}
   });
@@ -6730,7 +6731,6 @@ else addProfileLogout();
 #registerFormCard{border:1px solid rgba(255,210,28,.32);background:linear-gradient(145deg,rgba(255,210,28,.055),rgba(20,22,29,.96))}
 #registerFormCard label{margin-top:12px}
 #registerFormCard #regName{font-size:16px}
-#aluMemberGateV101{display:none}
 </style>
 <script id="aluV101RegistrationRefreshFlow">
 (function(){

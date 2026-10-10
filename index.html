@@ -6200,7 +6200,7 @@ function ensureGate(){
   '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create Account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log In</button></div>'+
   '<div id="aluMemberCreateForm" class="alu-member-form active"><label>Name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Your name"><label>Email</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="btn primary full">Create My Account</button></div>'+
   '<div id="aluMemberLoginForm" class="alu-member-form"><label>Email</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Your member email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="btn primary full">Send Login Link</button><p class="tiny muted">A secure sign-in link will be sent to your email.</p></div>'+
-  '<p class="alu-member-note">No password is stored by Artist Level Up. Keep your email account secure.</p><button type="button" id="aluMemberCloseBtn" class="btn full" style="margin-top:10px">Close / Continue on Device</button></div>'; 
+  '<p class="alu-member-note">No password is stored by Artist Level Up. Keep your email account secure.</p></div>'; 
   document.body.appendChild(wrap);
   function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Welcome to Artist Level Up 👋':'Welcome Back 👋'}
   wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
@@ -6239,7 +6239,6 @@ function ensureGate(){
     }catch(e){console.error('V101 member login failed:',e);err.textContent=String(e?.message||e||'Cloud login failed. Please try again.')}
     finally{b.disabled=false;b.textContent='Send Login Link'}
   });
-  document.getElementById('aluMemberCloseBtn')?.addEventListener('click',close);
   return wrap;
 }
 function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered()||!!(s?.artistRegistered&&email);if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}

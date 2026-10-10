@@ -6228,6 +6228,7 @@ function ensureGate(){
       var cloudSynced=false;
       try{if(window.ALU_CLOUD?.syncProfile){await window.ALU_CLOUD.syncProfile();cloudSynced=true;persist();}}catch(syncErr){console.warn('V101 member profile cloud sync will retry:',syncErr)}
       close();
+      try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}
       try{toast(linked.pending?(cloudSynced?'Account saved ✓ Check your email to activate cloud login.':'Account saved on this device; cloud sync will retry. Check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
     }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
     finally{b.disabled=false;b.textContent='Create My Account'}
@@ -6253,7 +6254,7 @@ document.addEventListener('click',function(e){var b=e.target.closest('[data-acti
 if(client()?.auth?.onAuthStateChange){
   client().auth.onAuthStateChange(function(event){
     if(event==='SIGNED_IN'){
-      setTimeout(async function(){if(await resumeCloudMember()){close();try{toast('Welcome back ✓')}catch(e){} }},0);
+      setTimeout(async function(){if(await resumeCloudMember()){close();try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}try{toast('Welcome back ✓')}catch(e){} }},0);
     }
   });
 }

@@ -962,7 +962,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div class="listener-tools"><div class="listener-section-head"><h2>Artist Level Up Tools</h2></div><div class="listener-tools-grid"><button data-go="create">＋<small>Create</small></button><button data-go="videos">🌍<small>Global Feed</small></button><button data-action="openStudioV101">🎛️<small>Studio</small></button><button data-go="marketplace">🛒<small>Market</small></button><button data-go="promote">🚀<small>Promote</small></button><button data-go="growthCenter">📈<small>Growth</small></button></div></div>
   
   <div class="card" id="artistRegistrationHomeCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
-    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Create your Artist Level Up artist account once. After registration, this registration form disappears and your Artist Profile becomes your home.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="name" id="regName" placeholder="e.g. Solovibes"/><label>Email</label><input autocomplete="email" id="regEmail" placeholder="you@example.com" type="email"/><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is used for sensitive account actions.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create Artist Account</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Already a member? Log In / Restore Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
+    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Set up your new artist space. Your member email connects automatically, so you do not need to enter it twice.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="nickname" id="regName" placeholder="Your new stage name" maxlength="60"/><input id="regEmail" type="hidden" autocomplete="email"/><p class="muted tiny" id="aluRegEmailNote">Your member email will be connected automatically. You only enter it once.</p><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is used for sensitive account actions.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Already a member? Log In / Restore Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
   </div>
   <div id="homeSongs" style="display:none"></div>
 </section>
@@ -3894,7 +3894,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
     }
-    if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}
+    if(btn){btn.disabled=false;btn.textContent='🎤 Create My Artist Profile'}
   }
   document.addEventListener('click',function(e){
     const b=e.target.closest('[data-action="registerArtist"]');
@@ -6124,23 +6124,9 @@ async function resumeCloudMember(){
     var uid=session.user.id;
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
-    var recoveryEmail=String(session.user.email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com';
-    if(recoveryEmail && p.data?.role!=='artist'){
-      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
-      if(recovery.error)throw recovery.error;
-      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
-      if(p.error)throw p.error;
-    }
     if(p.data){
-      var recoveredArtist=null;
-      if(recoveryEmail){
-        var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
-        if(ar.error)throw ar.error;
-        recoveredArtist=ar.data;
-        if(p.data.role!=='artist'&&!recoveredArtist)return false;
-      }
-      var isArtist=p.data.role==='artist'||!!recoveredArtist;
-      var displayName=recoveredArtist?.artist_name||p.data.display_name||'';
+      var isArtist=p.data.role==='artist';
+      var displayName=p.data.display_name||'';
       var cloudEmail=String(session.user.email||'').trim();
       var safeEmail=cloudEmail||(session.user.is_anonymous?'':String(s.userAccount?.email||'').trim());
       s.userRegistered=true;s.memberAccessV101=true;
@@ -6157,16 +6143,6 @@ async function linkAnonymous(email){
   var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
   try{
     var normalizedEmail=String(email||'').trim().toLowerCase();
-    // V101 recovery: use a direct email magic-link signup for the approved recovery email.
-    // This avoids depending on anonymous sign-ins being enabled in Supabase.
-    if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
-      var signup=await c.auth.signInWithOtp({
-        email:normalizedEmail,
-        options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/'}
-      });
-      if(signup.error)return {ok:false,error:signup.error};
-      return {ok:true,pending:true};
-    }
     var g=await c.auth.getSession(),u=g?.data?.session?.user;
     if(!u)return {ok:false,error:new Error('No cloud session is available. Please sign in again.')};
     if(u.is_anonymous){
@@ -6206,19 +6182,6 @@ function ensureGate(){
     try{
       var linked=await linkAnonymous(email);
       if(linked.error)throw linked.error;
-      if(email==='otunbacashmonnie1@gmail.com'){
-        if(linked.pending){
-          err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
-          try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
-          return;
-        }
-        if(await resumeCloudMember()){
-          close();
-          try{toast('Saved Solo_vibez artist profile reconnected ✓')}catch(e){}
-          return;
-        }
-        throw new Error('The email is connected, but the saved artist profile could not be reconnected. No existing data was changed.');
-      }
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
       s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
       persist();
@@ -6757,31 +6720,55 @@ else addProfileLogout();
 </script>
 
 
-<!-- V101 AUTH RESET TEST: retire the old email/profile registration screens without deleting saved data -->
-<style id="aluV101AuthResetTest">
-#registerFormCard,#registerAlreadyCard{display:none!important}
-#register [data-action="openMemberLogin"]{display:none!important}
-#aluMemberGateV101{display:none!important}
-#aluV101NewAccessCard{display:block}
+
+<!-- V101 REGISTRATION REFRESH: fresh artist setup; member email is collected once -->
+<style id="aluV101RegistrationRefresh">
+#registerFormCard{display:block!important}
+#registerAlreadyCard{display:none!important}
+#register #regEmail{display:none!important}
+#register #aluRegEmailNote{margin:0 0 10px}
+#registerFormCard{border:1px solid rgba(255,210,28,.32);background:linear-gradient(145deg,rgba(255,210,28,.055),rgba(20,22,29,.96))}
+#registerFormCard label{margin-top:12px}
+#registerFormCard #regName{font-size:16px}
+#aluMemberGateV101{display:none}
 </style>
-<script id="aluV101NewAccessFlow">
+<script id="aluV101RegistrationRefreshFlow">
 (function(){
  'use strict';
+ function stateRef(){try{return typeof state!=='undefined'&&state?state:null}catch(e){return null}}
+ function refreshEmail(){
+   var s=stateRef(),email=String(s?.userAccount?.email||'').trim();
+   var field=document.getElementById('regEmail'),note=document.getElementById('aluRegEmailNote');
+   if(field)field.value=email;
+   if(note)note.textContent=email?'Connected member email: '+email:'Your member email will connect automatically after you create your free member account.';
+ }
+ function clearRetiredIdentity(){
+   var s=stateRef();if(!s)return;
+   var email=String(s.userAccount?.email||s.profile?.email||'').trim().toLowerCase();
+   var oldName=String(s.profile?.name||s.userAccount?.name||'').trim().toLowerCase();
+   if(email!=='otunbacashmonnie1@gmail.com'&&oldName!=='solo_vibez')return;
+   s.userRegistered=false;s.memberAccessV101=false;s.userAccount=null;
+   s.artistRegistered=false;s.profile={};
+   try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){console.warn('V101 retired local identity cleanup:',e)}
+ }
  function install(){
-   var page=document.getElementById('register');
-   if(page&&!document.getElementById('aluV101NewAccessCard')){
-     var card=document.createElement('div');
-     card.id='aluV101NewAccessCard';card.className='card';
-     card.innerHTML='<span class="pill">ARTIST LEVEL UP · V101</span><h1 style="margin-top:12px">Your Artist Space</h1><p class="muted">We are replacing the old registration screens. No email form and no duplicate artist-profile form will appear here.</p><p class="muted">Your saved account and artist data have not been deleted.</p><button class="btn primary full" type="button" id="aluV101ContinueDevice">Continue to Artist Level Up</button>';
-     var intro=document.getElementById('registerIntro');
-     if(intro&&intro.parentNode)intro.insertAdjacentElement('afterend',card);else page.appendChild(card);
-     document.getElementById('aluV101ContinueDevice').addEventListener('click',function(){try{window.ALU_MEMBER_GATE_V101?.close()}catch(e){};if(typeof go==='function')go('home');else location.hash='#home'});
+   clearRetiredIdentity();
+   refreshEmail();
+   var form=document.getElementById('registerFormCard');
+   var button=form?.querySelector('[data-action="registerArtist"]');
+   if(button&&!button.dataset.aluRefreshBound){
+     button.dataset.aluRefreshBound='1';
+     button.textContent='🎤 Create My Artist Profile';
    }
-   try{window.ALU_MEMBER_GATE_V101={open:function(){var p=document.getElementById('aluV101NewAccessCard');if(p){p.scrollIntoView({behavior:'smooth',block:'center'});p.style.outline='2px solid var(--gold)';setTimeout(function(){p.style.outline=''},1200)}},openLogin:function(){this.open()},close:function(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')},isRegistered:function(){return false}}}catch(e){}
-   var old=document.getElementById('aluMemberGateV101');if(old){old.classList.remove('show');old.style.display='none'}
-   document.body.classList.remove('alu-member-locked-v101');
+   document.addEventListener('click',function(e){
+     if(e.target.closest('[data-action="registerArtist"]'))setTimeout(refreshEmail,0);
+     if(e.target.closest('[data-member-tab="create"],#aluMemberCreateBtn'))setTimeout(refreshEmail,100);
+   },true);
+   if(window.ALU_MEMBER_GATE_V101){
+     var prior=window.ALU_MEMBER_GATE_V101;
+     if(typeof prior.open==='function')window.ALU_MEMBER_GATE_V101.open=prior.open.bind(prior);
+   }
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
 </script>
-

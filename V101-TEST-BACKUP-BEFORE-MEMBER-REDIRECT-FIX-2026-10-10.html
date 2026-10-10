@@ -961,8 +961,8 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div class="listener-section-head"><h2>🎵 Browse by Genre</h2><button type="button" data-go="discover">See All</button></div><div class="listener-genre-strip" id="listenerHomeGenres"></div>
   <div class="listener-tools"><div class="listener-section-head"><h2>Artist Level Up Tools</h2></div><div class="listener-tools-grid"><button data-go="create">＋<small>Create</small></button><button data-go="videos">🌍<small>Global Feed</small></button><button data-action="openStudioV101">🎛️<small>Studio</small></button><button data-go="marketplace">🛒<small>Market</small></button><button data-go="promote">🚀<small>Promote</small></button><button data-go="growthCenter">📈<small>Growth</small></button></div></div>
   
-  <div class="card" id="artistRegistrationHomeCard" style="display:none;border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
-    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Set up your new artist space. Your member email connects automatically, so you do not need to enter it twice.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="nickname" id="regName" placeholder="Your new stage name" maxlength="60"/><input id="regEmail" type="hidden" autocomplete="email"/><p class="muted tiny" id="aluRegEmailNote">Your member email will be connected automatically. You only enter it once.</p><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is used for sensitive account actions.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🆕 Create Free Member Account / Log In</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
+  <div class="card" id="artistRegistrationHomeCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
+    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Create your Artist Level Up artist account once. After registration, this registration form disappears and your Artist Profile becomes your home.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="name" id="regName" placeholder="e.g. Solovibes"/><label>Email</label><input autocomplete="email" id="regEmail" placeholder="you@example.com" type="email"/><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is used for sensitive account actions.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create Artist Account</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Already a member? Log In / Restore Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
   </div>
   <div id="homeSongs" style="display:none"></div>
 </section>
@@ -1083,7 +1083,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 <div id="marketplaceList"></div>
 <div class="card" style="margin-top:14px"><span class="pill">💳 CHECKOUT</span><h2 style="margin-top:8px">Customer email</h2><p class="muted">Paystack needs an email for the transaction. If your account does not have one, enter it here and it will be saved on this device for the next checkout.</p><label>Email</label><input id="marketplaceEmail" type="email" autocomplete="email" placeholder="you@example.com"/><div class="tiny muted" id="marketplaceEmailStatus" style="margin-top:8px"></div></div>
 </section>
-<section class="page" id="profile"><span class="pill">PROFILE</span><h1>My Artist Profile 👤</h1><div class="card alu-welcome-card" id="profileSavedCard" style="display:none"><div class="alu-welcome-top"><div class="alu-welcome-avatar-wrap"><img alt="Artist profile picture" class="profile-avatar alu-welcome-avatar" id="profilePublicAvatar"/></div><div class="grow"><span class="alu-welcome-badge">🎧 ARTIST PROFILE</span><h2 id="savedProfileWelcome">Welcome to your Artist Space</h2><div class="alu-welcome-handle" id="savedProfileHandle">@yourstage</div></div></div><div class="alu-welcome-message"><strong>Your music space starts here.</strong><span>Create your sound, upload your music, promote your work and build your audience — all from here.</span></div><div class="alu-welcome-stats"><div><small>Followers</small><b id="profileFollowers">0</b></div><div><small>Country</small><b id="savedProfileCountry">Nigeria</b></div><div><small>Role</small><b>Artist</b></div></div><p class="alu-welcome-email" id="savedProfileEmail"></p><div class="alu-welcome-actions"><button class="btn alu-welcome-primary" data-go="create">🎵 Start Creating</button><button class="btn alu-welcome-secondary" data-action="editProfile">✏️ Edit Artist Profile</button></div></div><div class="card" id="profileFormCard"><label>Artist name</label><input autocomplete="name" id="profileName" name="name" placeholder="Your artist name"/><label>Email</label><input autocomplete="email" id="profileEmail" inputmode="email" name="email" placeholder="you@example.com" type="email"/><label>Artist profile picture</label><input accept="image/*" id="profileAvatar" type="file"/><div class="row"><img alt="Artist profile picture" class="profile-avatar" id="profileAvatarPreview"/><div class="grow muted tiny">Your face/photo will appear beside your artist name.</div></div><label>Country</label><select id="profileCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Spain</option><option>Canada</option><option>Australia</option><option>Brazil</option></select><label>Account PIN <span class="tiny">(4–6 digits for sensitive actions)</span></label><input id="profilePin" inputmode="numeric" maxlength="6" placeholder="Set a PIN" type="password"/><p class="muted tiny">Prototype only: this PIN is stored locally on this device. A production app will verify it securely on the server.</p><button class="btn primary full" data-action="saveProfile">Save Profile</button></div><div class="card"><h2>Artist Pro</h2><button class="btn primary full" data-go="pro">💎 Open Artist Pro</button></div><div class="card"><h2>Account</h2><button class="btn" data-action="follow">+ Follow another artist</button><button class="btn red full" data-action="deleteAccount">Delete Account</button><button class="btn red full" data-action="reset">Reset local test data</button></div></section>
+<section class="page" id="profile"><span class="pill">PROFILE</span><h1>My Artist Profile 👤</h1><div class="card alu-welcome-card" id="profileSavedCard" style="display:none"><div class="alu-welcome-top"><div class="alu-welcome-avatar-wrap"><img alt="Artist profile picture" class="profile-avatar alu-welcome-avatar" id="profilePublicAvatar"/></div><div class="grow"><span class="alu-welcome-badge">🎧 SOLO VIBES ARTIST</span><h2 id="savedProfileWelcome">Welcome to Solo_vibez</h2><div class="alu-welcome-handle" id="savedProfileHandle">@solovibes</div></div></div><div class="alu-welcome-message"><strong>Welcome to Solo_vibez — your music space.</strong><span>Create your sound, upload your music, promote your work and build your audience — all from here.</span></div><div class="alu-welcome-stats"><div><small>Followers</small><b id="profileFollowers">0</b></div><div><small>Country</small><b id="savedProfileCountry">Nigeria</b></div><div><small>Role</small><b>Artist</b></div></div><p class="alu-welcome-email" id="savedProfileEmail"></p><div class="alu-welcome-actions"><button class="btn alu-welcome-primary" data-go="create">🎵 Start Creating</button><button class="btn alu-welcome-secondary" data-action="editProfile">✏️ Edit Artist Profile</button></div></div><div class="card" id="profileFormCard"><label>Artist name</label><input autocomplete="name" id="profileName" name="name" placeholder="Your artist name"/><label>Email</label><input autocomplete="email" id="profileEmail" inputmode="email" name="email" placeholder="you@example.com" type="email"/><label>Artist profile picture</label><input accept="image/*" id="profileAvatar" type="file"/><div class="row"><img alt="Artist profile picture" class="profile-avatar" id="profileAvatarPreview"/><div class="grow muted tiny">Your face/photo will appear beside your artist name.</div></div><label>Country</label><select id="profileCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Spain</option><option>Canada</option><option>Australia</option><option>Brazil</option></select><label>Account PIN <span class="tiny">(4–6 digits for sensitive actions)</span></label><input id="profilePin" inputmode="numeric" maxlength="6" placeholder="Set a PIN" type="password"/><p class="muted tiny">Prototype only: this PIN is stored locally on this device. A production app will verify it securely on the server.</p><button class="btn primary full" data-action="saveProfile">Save Profile</button></div><div class="card"><h2>Artist Pro</h2><button class="btn primary full" data-go="pro">💎 Open Artist Pro</button></div><div class="card"><h2>Account</h2><button class="btn" data-action="follow">+ Follow another artist</button><button class="btn red full" data-action="deleteAccount">Delete Account</button><button class="btn red full" data-action="reset">Reset local test data</button></div></section>
 <section class="page" id="notifications"><div class="row between"><div><span class="pill">🔔 NOTIFICATIONS</span><h1 style="margin-bottom:4px">Notifications</h1><p class="muted" style="margin:0">Important updates about your music, account, promotions and Artist Level Up.</p></div><button class="btn" type="button" data-action="markAllNotificationsRead">Mark all read</button></div><div class="card" style="margin-top:14px"><div class="row between"><div><h2 style="margin:0">Notification Center</h2><p class="muted" style="margin:5px 0 0">Unread notifications will appear here.</p></div><span class="pill" id="notificationCountPill">0 unread</span></div><div id="notificationList" style="margin-top:8px"></div></div><div class="card"><h2>Push notifications</h2><p class="muted">Allow browser notifications to receive alerts while using the app. Full background push delivery will be connected when the app is hosted as a secure web app.</p><button class="btn primary full" type="button" data-action="enablePushNotifications" id="enablePushBtn">🔔 Enable Notifications</button><p class="tiny muted" id="pushStatus" style="margin-top:8px"></p></div></section><section class="page" id="settings"><span class="pill">SETTINGS</span><h1>Settings ⚙️</h1><div class="card"><button class="btn full" data-action="language">🌍 Language: English</button><button class="btn full" data-action="currency">💱 Currency: NGN</button><button class="btn full" data-action="notifications">🔔 Notifications: On</button></div><div class="card" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><h2>👑 Owner Controls</h2><p class="muted">Private area for the app owner. Artists can use the app normally without access to Admin.</p><button class="btn primary full" data-action="ownerLogin">🔐 Open Admin Control Center</button><button class="btn full" data-action="changeOwnerPin">🔑 Change Owner PIN</button></div><div class="card alu-legal-hub" id="aluLegalHub">
 <h2>📚 Legal, Policies & Support</h2>
 <p class="muted">Everything you need to understand Artist Level Up, your rights, your responsibilities, licensing and how to get help.</p>
@@ -1572,7 +1572,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function openOwnerPinModal(mode='unlock'){const has=/^\d{4,6}$/.test(String(state.ownerPin||'').trim()) || /^\d{4,6}$/.test(String(state.profile?.pin||'').trim());let body='';if(!has){body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Create your private PIN (4–6 digits)</h2><p class="muted">This PIN protects the Admin Control Center. Choose a private 4–6 digit PIN only you know.</p><label for="ownerPin1">Create PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4–6 digits"><label for="ownerPin2">Confirm PIN</label><input id="ownerPin2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="Repeat 4–6 digits"><button class="btn primary full" data-action="createOwnerPin">Create Private PIN 🔒</button>`}else{body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Enter Owner PIN</h2><p class="muted">Admin Control Center is private. Enter your 4–6 digit PIN to continue.</p><label for="ownerPin1">Owner PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" placeholder="Enter 4–6 digits"><button class="btn primary full" data-action="unlockOwnerPin">Unlock Admin 🔓</button>`}document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('ownerPin1')?.focus(),100)}
 function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){openOwnerPinModal('unlock');return false}openOwnerPinModal('create');return false}
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
-function showArtistRegistrationV101(){var card=document.getElementById('artistRegistrationHomeCard');if(card)card.style.display='block';try{window.ALU_SYNC_ARTIST_ACCESS_V101?.()}catch(e){}if(typeof go==='function')go('home');setTimeout(function(){try{card?.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}},80)}window.ALU_SHOW_ARTIST_REGISTRATION_V101=showArtistRegistrationV101;function go(id,push=true){var member=!!(state?.userRegistered===true&&state?.userAccount?.email&&state?.memberAccessV101===true),artist=!!(member&&state?.artistRegistered===true&&state?.profile?.saved===true);if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'){if(!member){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(e){}return;}if(!artist){showArtistRegistrationV101();return;}id='profile';}if(!artist&&!['home','discover'].includes(id)){if(!member){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(e){}return;}try{toast('Register as an artist to unlock uploads, Studio, courses, promotion and artist tools.')}catch(e){}showArtistRegistrationV101();return;}window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;try{window.ALU_SYNC_ARTIST_ACCESS_V101?.()}catch(e){}p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
+function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}if(id==='profile'&&!state?.artistRegistered){try{if(state?.userRegistered){document.getElementById('headerUser')?.click()}else{window.ALU_MEMBER_GATE_V101?.open()}}catch(e){}return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
@@ -2311,7 +2311,13 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     let avatarUrl=String(p.avatar||ua.avatar||'').trim();
     const authResult=await client.auth.getUser();
     const signedEmail=String(authResult?.data?.user?.email||'').trim().toLowerCase();
-        if(avatarUrl.startsWith('data:image/')){
+    let preservePlaceholderProfile=false;
+    if(signedEmail==='otunbacashmonnie1@gmail.com'){
+      const existing=await client.from('profiles').select('display_name,role').eq('id',uid).maybeSingle();
+      if(existing.error) throw existing.error;
+      preservePlaceholderProfile=existing.data?.display_name==='Artist Level Up'&&existing.data?.role==='user';
+    }
+    if(avatarUrl.startsWith('data:image/')){
       const blob=await fetch(avatarUrl).then(x=>x.blob());
       const path=uid+'/profile.jpg';
       const up=await client.storage.from('avatars').upload(path,blob,{contentType:'image/jpeg',cacheControl:'3600',upsert:true});
@@ -2323,11 +2329,16 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       state.profile.avatar=avatarUrl;
       state.userAccount.avatar=avatarUrl;
     }
-    const r=await client.from('profiles').upsert({id:uid,display_name:displayName,avatar_url:avatarUrl||null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
-    if(r.error) throw r.error;
+    if(!preservePlaceholderProfile){
+      const r=await client.from('profiles').upsert({id:uid,display_name:displayName,avatar_url:avatarUrl||null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
+      if(r.error) throw r.error;
+    }
     if(state.artistRegistered){
       const artistId=await ensureArtist();
-      
+      if(preservePlaceholderProfile && artistId){
+        const artistUpdate=await client.from('artists').update({artist_name:displayName,country:p.country||'Nigeria'}).eq('user_id',uid);
+        if(artistUpdate.error) throw artistUpdate.error;
+      }
     }
     return avatarUrl;
   }
@@ -3883,7 +3894,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
     }
-    if(btn){btn.disabled=false;btn.textContent='🎤 Create My Artist Profile'}
+    if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}
   }
   document.addEventListener('click',function(e){
     const b=e.target.closest('[data-action="registerArtist"]');
@@ -4245,7 +4256,6 @@ function showCreatorChoices(e){
 }
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
-  if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Creator Room.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
@@ -4407,7 +4417,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.addEventListener('pageshow',bind);
 })();
 </script>
-<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Studio.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return;}var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
+<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
 #studio .alu-fx-rack{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,#151821,#0f1117)}
 #studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 #studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{display:block;color:#8e93a3;font-size:10px;margin-top:2px}
@@ -4975,7 +4985,6 @@ function showCreatorChoices(e){
 }
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
-  if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Creator Room.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
@@ -5361,7 +5370,6 @@ function boot(){
        if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v;if(t.playAudio)t.playAudio.volume=t.mute?0:v}
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_){}}
      },false);
-   }
    render();
  }
  function render(){
@@ -6116,9 +6124,23 @@ async function resumeCloudMember(){
     var uid=session.user.id;
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
+    var recoveryEmail=String(session.user.email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com';
+    if(recoveryEmail && p.data?.role!=='artist'){
+      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+      if(recovery.error)throw recovery.error;
+      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+      if(p.error)throw p.error;
+    }
     if(p.data){
-      var isArtist=p.data.role==='artist';
-      var displayName=p.data.display_name||'';
+      var recoveredArtist=null;
+      if(recoveryEmail){
+        var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
+        if(ar.error)throw ar.error;
+        recoveredArtist=ar.data;
+        if(p.data.role!=='artist'&&!recoveredArtist)return false;
+      }
+      var isArtist=p.data.role==='artist'||!!recoveredArtist;
+      var displayName=recoveredArtist?.artist_name||p.data.display_name||'';
       var cloudEmail=String(session.user.email||'').trim();
       var safeEmail=cloudEmail||(session.user.is_anonymous?'':String(s.userAccount?.email||'').trim());
       s.userRegistered=true;s.memberAccessV101=true;
@@ -6126,7 +6148,6 @@ async function resumeCloudMember(){
       s.profile={...(s.profile||{}),name:displayName,avatar:p.data.avatar_url||'',email:safeEmail,saved:isArtist,country:s.profile?.country||'Nigeria'};
       s.artistRegistered=isArtist;
       persist();
-      try{window.ALU_SYNC_ARTIST_ACCESS_V101?.()}catch(e){}
       return true;
     }
   }catch(e){console.error('V101 cloud member restore failed:',e)}
@@ -6136,23 +6157,21 @@ async function linkAnonymous(email){
   var c=client();if(!c?.auth)return {ok:false,error:new Error('Cloud login is not ready. Please reopen the app.')};
   try{
     var normalizedEmail=String(email||'').trim().toLowerCase();
-    var g=await c.auth.getSession(),u=g?.data?.session?.user;
-    if(!u){
-      var anon=await c.auth.signInAnonymously();
-      if(!anon.error)u=anon.data?.user||anon.data?.session?.user||null;
-      if(!u){
-        var direct=await c.auth.signInWithOtp({email:normalizedEmail,options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/' }});
-        if(direct.error)return {ok:false,error:direct.error};
-        return {ok:true,pending:true};
-      }
+    // V101 recovery: use a direct email magic-link signup for the approved recovery email.
+    // This avoids depending on anonymous sign-ins being enabled in Supabase.
+    if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
+      var signup=await c.auth.signInWithOtp({
+        email:normalizedEmail,
+        options:{shouldCreateUser:true,emailRedirectTo:'https://artist-level-up.vercel.app/'}
+      });
+      if(signup.error)return {ok:false,error:signup.error};
+      return {ok:true,pending:true};
     }
+    var g=await c.auth.getSession(),u=g?.data?.session?.user;
+    if(!u)return {ok:false,error:new Error('No cloud session is available. Please sign in again.')};
     if(u.is_anonymous){
-      var r=await c.auth.updateUser({email:normalizedEmail});
-      if(r.error){
-        var directFallback=await c.auth.signInWithOtp({email:normalizedEmail,options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/' }});
-        if(directFallback.error)return {ok:false,error:r.error};
-        return {ok:true,pending:true};
-      }
+      var r=await c.auth.updateUser({email:email});
+      if(r.error)return {ok:false,error:r.error};
       return {ok:true,pending:true};
     }
     if(String(u.email||'').trim().toLowerCase()===normalizedEmail)return {ok:true,pending:false};
@@ -6161,7 +6180,7 @@ async function linkAnonymous(email){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:window.location.origin+'/'}});
+  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:'https://artist-level-up.vercel.app/'}});
   if(r.error)throw r.error;
 }
 function ensureGate(){
@@ -6187,15 +6206,27 @@ function ensureGate(){
     try{
       var linked=await linkAnonymous(email);
       if(linked.error)throw linked.error;
+      if(email==='otunbacashmonnie1@gmail.com'){
+        if(linked.pending){
+          err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
+          try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
+          return;
+        }
+        if(await resumeCloudMember()){
+          close();
+          try{toast('Saved Solo_vibez artist profile reconnected ✓')}catch(e){}
+          return;
+        }
+        throw new Error('The email is connected, but the saved artist profile could not be reconnected. No existing data was changed.');
+      }
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101'};
       s.profile={...(s.profile||{}),name:name,email:email,saved:false};s.userRegistered=true;s.userAccountCounted=true;s.memberAccessV101=true;
       persist();
       var cloudSynced=false;
       try{if(window.ALU_CLOUD?.syncProfile){await window.ALU_CLOUD.syncProfile();cloudSynced=true;persist();}}catch(syncErr){console.warn('V101 member profile cloud sync will retry:',syncErr)}
       close();
-      try{if(typeof go==='function')go('register')}catch(e){console.warn('V101 registration page open skipped:',e)}
       try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}
-      try{toast(linked.pending?(cloudSynced?'Member account ready ✓ Check your email to activate cloud login.':'Member account saved on this device; check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
+      try{toast(linked.pending?(cloudSynced?'Account saved ✓ Check your email to activate cloud login.':'Account saved on this device; cloud sync will retry. Check your email to activate cloud login.'):(cloudSynced?'Welcome to Artist Level Up ✓':'Account saved on this device; cloud sync will retry.'))}catch(e){}
     }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
     finally{b.disabled=false;b.textContent='Create My Account'}
   });
@@ -6210,24 +6241,21 @@ function ensureGate(){
     }catch(e){console.error('V101 member login failed:',e);err.textContent=String(e?.message||e||'Cloud login failed. Please try again.')}
     finally{b.disabled=false;b.textContent='Send Login Link'}
   });
-  document.getElementById('aluMemberCloseBtn')?.addEventListener('click',function(){if(registered()){close();return}var err=document.getElementById('aluMemberCreateError');if(err)err.textContent='Create a free member account or log in before continuing.';tab('create')});
+  document.getElementById('aluMemberCloseBtn')?.addEventListener('click',close);
   return wrap;
 }
-function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||(mode!=='create'&&(registered()||!!(s?.artistRegistered&&email)));if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}
+function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered()||!!(s?.artistRegistered&&email);if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}
 function close(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')}
 window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login')},close:close,isRegistered:registered};
-document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open()},true);
+document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 if(client()?.auth?.onAuthStateChange){
   client().auth.onAuthStateChange(function(event){
     if(event==='SIGNED_IN'){
-      setTimeout(async function(){
-        try{await window.ALU_CLOUD?.syncProfile?.()}catch(e){console.warn('V101 new-member profile sync will retry:',e)}
-        if(await resumeCloudMember()){close();try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}try{toast('Welcome back ✓')}catch(e){} }
-      },0);
+      setTimeout(async function(){if(await resumeCloudMember()){close();try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}try{toast('Welcome back ✓')}catch(e){} }},0);
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;if(registered())return;open('create')}
+async function boot(){if(await resumeCloudMember())return;if(registered())return;open('login')}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>
@@ -6725,93 +6753,5 @@ new MutationObserver(addProfileLogout).observe(document.documentElement,{subtree
 document.addEventListener('click',function(){setTimeout(addProfileLogout,0)},true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addProfileLogout);
 else addProfileLogout();
-})();
-</script>
-
-
-
-<!-- V101 REGISTRATION REFRESH: fresh artist setup; member email is collected once -->
-<style id="aluV101RegistrationRefresh">
-#registerFormCard{display:block!important}
-#registerAlreadyCard{display:none!important}
-#register #regEmail{display:none!important}
-#register #aluRegEmailNote{margin:0 0 10px}
-#registerFormCard{border:1px solid rgba(255,210,28,.32);background:linear-gradient(145deg,rgba(255,210,28,.055),rgba(20,22,29,.96))}
-#registerFormCard label{margin-top:12px}
-#registerFormCard #regName{font-size:16px}
-</style>
-<script id="aluV101RegistrationRefreshFlow">
-(function(){
- 'use strict';
- function stateRef(){try{return typeof state!=='undefined'&&state?state:null}catch(e){return null}}
- function refreshEmail(){
-   var s=stateRef(),email=String(s?.userAccount?.email||'').trim();
-   var field=document.getElementById('regEmail'),note=document.getElementById('aluRegEmailNote');
-   if(field)field.value=email;
-   if(note)note.textContent=email?'Connected member email: '+email:'Your member email will connect automatically after you create your free member account.';
- }
- function clearRetiredIdentity(){
-   var s=stateRef();if(!s)return;
-   var email=String(s.userAccount?.email||s.profile?.email||'').trim().toLowerCase();
-   var oldName=String(s.profile?.name||s.userAccount?.name||'').trim().toLowerCase();
-   if(email!=='otunbacashmonnie1@gmail.com'&&oldName!=='solo_vibez')return;
-   s.userRegistered=false;s.memberAccessV101=false;s.userAccount=null;
-   s.artistRegistered=false;s.profile={};
-   try{window.ALU_SUPABASE_CLIENT?.auth?.signOut({scope:'local'})}catch(e){console.warn('V101 retired cloud session cleanup:',e)}
-   try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){console.warn('V101 retired local identity cleanup:',e)}
- }
- function install(){
-   clearRetiredIdentity();
-   refreshEmail();
-   var form=document.getElementById('registerFormCard');
-   var button=form?.querySelector('[data-action="registerArtist"]');
-   if(button&&!button.dataset.aluRefreshBound){
-     button.dataset.aluRefreshBound='1';
-     button.textContent='🎤 Create My Artist Profile';
-   }
-   document.addEventListener('click',function(e){
-     if(e.target.closest('[data-action="registerArtist"]'))setTimeout(refreshEmail,0);
-     if(e.target.closest('[data-member-tab="create"],#aluMemberCreateBtn'))setTimeout(refreshEmail,100);
-   },true);
-   if(window.ALU_MEMBER_GATE_V101){
-     var prior=window.ALU_MEMBER_GATE_V101;
-     if(typeof prior.open==='function')window.ALU_MEMBER_GATE_V101.open=prior.open.bind(prior);
-   }
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-})();
-</script>
-
-<script id="aluV101ArtistAccessGate">
-(function(){
-'use strict';
-function member(){return !!(typeof state!=='undefined'&&state.userRegistered===true&&state.userAccount&&String(state.userAccount.email||'').trim()&&state.memberAccessV101===true)}
-function artist(){return !!(member()&&state.artistRegistered===true&&state.profile&&state.profile.saved===true)}
-window.ALU_HAS_ARTIST_ACCESS_V101=artist;window.ALU_SYNC_ARTIST_ACCESS_V101=syncAccessUI;
-function syncAccessUI(){
- var isArtist=artist(),isMember=member();
- var card=document.getElementById('artistRegistrationHomeCard');
- if(card)card.style.display=(isMember&&!isArtist)?'block':'none';
- var tools=document.querySelector('.listener-tools');
- if(tools)tools.style.display=isArtist?'':'none';
- document.querySelectorAll('.nav [data-go]').forEach(function(b){
-   var id=b.getAttribute('data-go');
-   if(['home','discover'].includes(id))b.style.display='';
-   else b.style.display=isArtist?'':'none';
- });
- document.querySelectorAll('.nav [data-action="openStudioV101"],.nav [data-action="openNotifications"],.nav [data-action="ownerLogin"],.listener-header [data-go="settings"],.listener-header [data-go="profile"]').forEach(function(b){b.style.display=isArtist?'':'none'});
-}
-document.addEventListener('click',function(e){
- var b=e.target.closest?.('[data-go]');
- if(!b)return;
- var id=b.getAttribute('data-go');
- if(artist()||['home','discover'].includes(id))return;
- e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
- if(!member()){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(_){}return;}
- try{toast('Register as an artist to unlock artist tools.')}catch(_){}
- try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){}
-},true);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',syncAccessUI,{once:true});else syncAccessUI();
-window.addEventListener('pageshow',syncAccessUI);
 })();
 </script>

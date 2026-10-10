@@ -6133,7 +6133,7 @@ function persist(){var s=getState();if(!s)return;try{if(typeof save==='function'
 function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
 function client(){return window.ALU_SUPABASE_CLIENT||null}
 /* V101 auth fix: never send email confirmation/login links back to a temporary localhost preview. Use the stable public app URL so the callback can open on the user's phone. */
-function memberAuthRedirectUrl(){return 'https://artist-level-up.onrender.com/'}
+function memberAuthRedirectUrl(){var origin=String(window.location?.origin||'');if(origin==='https://artist-level-up-v101-gate-test.onrender.com'||origin==='https://artist-level-up.onrender.com')return origin+'/';return 'https://artist-level-up.onrender.com/'}
 function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 async function resumeCloudMember(){
   var c=client(),s=getState();if(!c||!c.auth||!s)return false;

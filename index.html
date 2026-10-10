@@ -6180,9 +6180,6 @@ async function linkAnonymous(email){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  if(String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
-    throw new Error('Your saved Solo_vibez artist profile was found, but this email has no active cloud login yet. Choose Create Account, use this same email, and confirm the email link to reconnect your profile.');
-  }
   var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:'https://artist-level-up.vercel.app/'}});
   if(r.error)throw r.error;
 }

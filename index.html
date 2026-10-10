@@ -6207,10 +6207,10 @@ function ensureGate(){
     }catch(e){console.error('V101 member login failed:',e);err.textContent=String(e?.message||e||'Cloud login failed. Please try again.')}
     finally{b.disabled=false;b.textContent='Send Login Link'}
   });
-  document.getElementById('aluMemberCloseBtn')?.addEventListener('click',close);
+  document.getElementById('aluMemberCloseBtn')?.addEventListener('click',function(){if(registered()){close();return}var err=document.getElementById('aluMemberCreateError');if(err)err.textContent='Create a free member account or log in before continuing.';tab('create')});
   return wrap;
 }
-function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered()||!!(s?.artistRegistered&&email);if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}
+function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||(mode!=='create'&&(registered()||!!(s?.artistRegistered&&email)));if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}
 function close(){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101')}
 window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login')},close:close,isRegistered:registered};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open()},true);
@@ -6224,7 +6224,7 @@ if(client()?.auth?.onAuthStateChange){
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;if(registered())return;close()}
+async function boot(){if(await resumeCloudMember())return;if(registered())return;open('create')}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

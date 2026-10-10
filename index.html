@@ -6134,10 +6134,22 @@ async function linkAnonymous(email){
   try{
     var normalizedEmail=String(email||'').trim().toLowerCase();
     var g=await c.auth.getSession(),u=g?.data?.session?.user;
-    if(!u)return {ok:false,error:new Error('No cloud session is available. Please sign in again.')};
+    if(!u){
+      var anon=await c.auth.signInAnonymously();
+      if(!anon.error)u=anon.data?.user||anon.data?.session?.user||null;
+      if(!u){
+        var direct=await c.auth.signInWithOtp({email:normalizedEmail,options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/' }});
+        if(direct.error)return {ok:false,error:direct.error};
+        return {ok:true,pending:true};
+      }
+    }
     if(u.is_anonymous){
-      var r=await c.auth.updateUser({email:email});
-      if(r.error)return {ok:false,error:r.error};
+      var r=await c.auth.updateUser({email:normalizedEmail});
+      if(r.error){
+        var directFallback=await c.auth.signInWithOtp({email:normalizedEmail,options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/' }});
+        if(directFallback.error)return {ok:false,error:r.error};
+        return {ok:true,pending:true};
+      }
       return {ok:true,pending:true};
     }
     if(String(u.email||'').trim().toLowerCase()===normalizedEmail)return {ok:true,pending:false};
@@ -6205,7 +6217,10 @@ document.addEventListener('click',function(e){var b=e.target.closest('[data-acti
 if(client()?.auth?.onAuthStateChange){
   client().auth.onAuthStateChange(function(event){
     if(event==='SIGNED_IN'){
-      setTimeout(async function(){if(await resumeCloudMember()){close();try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}try{toast('Welcome back ✓')}catch(e){} }},0);
+      setTimeout(async function(){
+        try{await window.ALU_CLOUD?.syncProfile?.()}catch(e){console.warn('V101 new-member profile sync will retry:',e)}
+        if(await resumeCloudMember()){close();try{if(typeof window.ALU_ON_USER_REGISTERED==='function')window.ALU_ON_USER_REGISTERED()}catch(e){console.warn('V101 pending download resume skipped:',e)}try{toast('Welcome back ✓')}catch(e){} }
+      },0);
     }
   });
 }
@@ -6739,6 +6754,7 @@ else addProfileLogout();
    if(email!=='otunbacashmonnie1@gmail.com'&&oldName!=='solo_vibez')return;
    s.userRegistered=false;s.memberAccessV101=false;s.userAccount=null;
    s.artistRegistered=false;s.profile={};
+   try{window.ALU_SUPABASE_CLIENT?.auth?.signOut({scope:'local'})}catch(e){console.warn('V101 retired cloud session cleanup:',e)}
    try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){console.warn('V101 retired local identity cleanup:',e)}
  }
  function install(){

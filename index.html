@@ -6162,7 +6162,7 @@ async function linkAnonymous(email){
     if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
       var signup=await c.auth.signInWithOtp({
         email:normalizedEmail,
-        options:{shouldCreateUser:true,emailRedirectTo:'https://artist-level-up.vercel.app/'}
+        options:{shouldCreateUser:true,emailRedirectTo:window.location.origin+'/'}
       });
       if(signup.error)return {ok:false,error:signup.error};
       return {ok:true,pending:true};
@@ -6180,7 +6180,7 @@ async function linkAnonymous(email){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:'https://artist-level-up.vercel.app/'}});
+  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:window.location.origin+'/'}});
   if(r.error)throw r.error;
 }
 function ensureGate(){

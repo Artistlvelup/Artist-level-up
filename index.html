@@ -1578,7 +1578,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function openOwnerPinModal(mode='unlock'){const has=/^\d{4,6}$/.test(String(state.ownerPin||'').trim()) || /^\d{4,6}$/.test(String(state.profile?.pin||'').trim());let body='';if(!has){body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Create your private PIN (4–6 digits)</h2><p class="muted">This PIN protects the Admin Control Center. Choose a private 4–6 digit PIN only you know.</p><label for="ownerPin1">Create PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4–6 digits"><label for="ownerPin2">Confirm PIN</label><input id="ownerPin2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="Repeat 4–6 digits"><button class="btn primary full" data-action="createOwnerPin">Create Private PIN 🔒</button>`}else{body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Enter Owner PIN</h2><p class="muted">Admin Control Center is private. Enter your 4–6 digit PIN to continue.</p><label for="ownerPin1">Owner PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" placeholder="Enter 4–6 digits"><button class="btn primary full" data-action="unlockOwnerPin">Unlock Admin 🔓</button>`}document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('ownerPin1')?.focus(),100)}
 function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){openOwnerPinModal('unlock');return false}openOwnerPinModal('create');return false}
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
-function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}if(id==='profile'&&!state?.artistRegistered){try{if(state?.userRegistered){document.getElementById('headerUser')?.click()}else{window.ALU_MEMBER_GATE_V101?.open()}}catch(e){}return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
+function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}const aluV101ArtistOnlyPages=new Set(['profile','settings','create','marketplace','promote','growthCenter','wallet','commissionEarningsPage','producerDashboard','ownerDashboard','pro','dashboard','course']);if(!state?.artistRegistered&&aluV101ArtistOnlyPages.has(id)){if(state?.userRegistered===true&&state?.memberAccessV101===true){try{toast('Complete Artist Registration to unlock this artist feature.')}catch(e){}id='register';}else{try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
@@ -6067,6 +6067,39 @@ window.ALU_WATCH_AD_TO_DOWNLOAD=function(songId,title,selectedSong){
   var cb=document.getElementById('aluRewardedCloseBtn');if(cb)cb.onclick=closeRewardedModal;
 };
 window.ALU_REWARDED_DOWNLOAD_CONFIG={adUnit:AD_UNIT,testAdUnit:TEST_AD_UNIT};
+})();
+</script>
+
+<!-- V101 ARTIST-ONLY ACTION GATE -->
+<script id="aluV101ArtistActionGate">
+(function(){
+'use strict';
+if(window.__ALU_ARTIST_ACTION_GATE_V101)return;
+window.__ALU_ARTIST_ACTION_GATE_V101=true;
+var protectedActions=new Set([
+'openStudioV101','upload','createPictureUpload','uploadArtistVideo','submitCoursePayment',
+'uploadCourseVideo','upgradePro','proTool','openLevelAchievements','saveGrowthGoals',
+'createAdvertisement','setPromotionType','campaign','payNow','goPromote','launchCampaign',
+'cancelCampaign','producerConnectPayout','producerConnectGlobalPayout','producerPublishBeat',
+'producerRefresh','marketplaceRefresh','editProfile','saveProfile','deleteArtistVideo',
+'promoteVideo','approveArtistVideo','rejectArtistVideo','publishArtistVideo'
+]);
+var safeActions=new Set(['play','prev','next','closePlayer','closeModal','artistPreview','followArtist','follow','readNotification','markAllNotificationsRead','openNotifications','language','currency','notifications','aluOpenHelp']);
+document.addEventListener('click',function(e){
+ var el=e.target&&e.target.closest?e.target.closest('[data-action]'):null;
+ if(!el)return;
+ var action=String(el.getAttribute('data-action')||'');
+ if(!protectedActions.has(action)||safeActions.has(action))return;
+ var s=(typeof state!=='undefined'&&state)?state:null;
+ if(s&&s.artistRegistered===true)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(s&&s.userRegistered===true&&s.memberAccessV101===true){
+   try{toast('Complete Artist Registration first to unlock this feature.')}catch(_){}
+   try{if(typeof go==='function')go('register')}catch(_){}
+ }else{
+   try{window.ALU_MEMBER_GATE_V101&&window.ALU_MEMBER_GATE_V101.open()}catch(_){}
+ }
+},true);
 })();
 </script>
 

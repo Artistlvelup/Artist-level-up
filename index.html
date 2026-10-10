@@ -5359,6 +5359,7 @@ function boot(){
        if(a==='volume'){t.volume=v;if(t.audio)t.audio.volume=v;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:v;if(t.playAudio)t.playAudio.volume=t.mute?0:v}
        if(a==='pan'){t.pan=v;if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_){}}
      },false);
+   }
    render();
  }
  function render(){

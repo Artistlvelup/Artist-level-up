@@ -961,7 +961,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div class="listener-section-head"><h2>🎵 Browse by Genre</h2><button type="button" data-go="discover">See All</button></div><div class="listener-genre-strip" id="listenerHomeGenres"></div>
   <div class="listener-tools"><div class="listener-section-head"><h2>Artist Level Up Tools</h2></div><div class="listener-tools-grid"><button data-go="create">＋<small>Create</small></button><button data-go="videos">🌍<small>Global Feed</small></button><button data-action="openStudioV101">🎛️<small>Studio</small></button><button data-go="marketplace">🛒<small>Market</small></button><button data-go="promote">🚀<small>Promote</small></button><button data-go="growthCenter">📈<small>Growth</small></button></div></div>
   
-  <div class="card" id="artistRegistrationHomeCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
+  <div class="card" id="artistRegistrationHomeCard" style="display:none;border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
     <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Set up your new artist space. Your member email connects automatically, so you do not need to enter it twice.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="nickname" id="regName" placeholder="Your new stage name" maxlength="60"/><input id="regEmail" type="hidden" autocomplete="email"/><p class="muted tiny" id="aluRegEmailNote">Your member email will be connected automatically. You only enter it once.</p><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><label>Account PIN</label><input id="regPin" inputmode="numeric" maxlength="6" placeholder="4–6 digits" type="password"/><p class="muted tiny">Your PIN is used for sensitive account actions.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🆕 Create Free Member Account / Log In</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
   </div>
   <div id="homeSongs" style="display:none"></div>
@@ -1572,7 +1572,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function openOwnerPinModal(mode='unlock'){const has=/^\d{4,6}$/.test(String(state.ownerPin||'').trim()) || /^\d{4,6}$/.test(String(state.profile?.pin||'').trim());let body='';if(!has){body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Create your private PIN (4–6 digits)</h2><p class="muted">This PIN protects the Admin Control Center. Choose a private 4–6 digit PIN only you know.</p><label for="ownerPin1">Create PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4–6 digits"><label for="ownerPin2">Confirm PIN</label><input id="ownerPin2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="Repeat 4–6 digits"><button class="btn primary full" data-action="createOwnerPin">Create Private PIN 🔒</button>`}else{body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Enter Owner PIN</h2><p class="muted">Admin Control Center is private. Enter your 4–6 digit PIN to continue.</p><label for="ownerPin1">Owner PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" placeholder="Enter 4–6 digits"><button class="btn primary full" data-action="unlockOwnerPin">Unlock Admin 🔓</button>`}document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('ownerPin1')?.focus(),100)}
 function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){openOwnerPinModal('unlock');return false}openOwnerPinModal('create');return false}
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
-function go(id,push=true){if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}if(id==='profile'&&!state?.artistRegistered){try{if(state?.userRegistered){document.getElementById('headerUser')?.click()}else{window.ALU_MEMBER_GATE_V101?.open()}}catch(e){}return;}if(id==='register'&&state?.artistRegistered&&state?.profile?.saved)id='profile';window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
+function showArtistRegistrationV101(){var card=document.getElementById('artistRegistrationHomeCard');if(card)card.style.display='block';if(typeof go==='function')go('home');setTimeout(function(){try{card?.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}},80)}window.ALU_SHOW_ARTIST_REGISTRATION_V101=showArtistRegistrationV101;function go(id,push=true){var member=!!(state?.userRegistered===true&&state?.userAccount?.email&&state?.memberAccessV101===true),artist=!!(member&&state?.artistRegistered===true&&state?.profile?.saved===true);if(id==='admin'&&!state.adminAuthenticated){openOwnerPinModal();return;}if(id==='register'){if(!member){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(e){}return;}if(!artist){showArtistRegistrationV101();return;}id='profile';}if(!artist&&!['home','discover'].includes(id)){if(!member){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(e){}return;}try{toast('Register as an artist to unlock uploads, Studio, courses, promotion and artist tools.')}catch(e){}showArtistRegistrationV101();return;}window.ALU_ACTIVE_PAGE=id;if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
@@ -4245,6 +4245,7 @@ function showCreatorChoices(e){
 }
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Creator Room.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
@@ -4406,7 +4407,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.addEventListener('pageshow',bind);
 })();
 </script>
-<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
+<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Studio.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return;}var p=document.getElementById("studio");if(!p)return;document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active");});p.classList.add("active");window.ALU_ACTIVE_PAGE="studio";document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x===b);});window.scrollTo(0,0);setTimeout(function(){if(window.ALU_STUDIO_V101&&typeof window.ALU_STUDIO_V101.init==="function")window.ALU_STUDIO_V101.init();},30);},true);})();</script><style id="aluStudioEffectsRackV101">
 #studio .alu-fx-rack{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,#151821,#0f1117)}
 #studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 #studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{display:block;color:#8e93a3;font-size:10px;margin-top:2px}
@@ -4974,6 +4975,7 @@ function showCreatorChoices(e){
 }
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  if(!(window.ALU_HAS_ARTIST_ACCESS_V101&&window.ALU_HAS_ARTIST_ACCESS_V101())){try{toast('Register as an artist to unlock Creator Room.')}catch(_){ }try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){ }return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
@@ -6776,5 +6778,39 @@ else addProfileLogout();
    }
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+})();
+</script>
+
+<script id="aluV101ArtistAccessGate">
+(function(){
+'use strict';
+function member(){return !!(window.state&&state.userRegistered===true&&state.userAccount&&String(state.userAccount.email||'').trim()&&state.memberAccessV101===true)}
+function artist(){return !!(member()&&state.artistRegistered===true&&state.profile&&state.profile.saved===true)}
+window.ALU_HAS_ARTIST_ACCESS_V101=artist;
+function syncAccessUI(){
+ var isArtist=artist(),isMember=member();
+ var card=document.getElementById('artistRegistrationHomeCard');
+ if(card)card.style.display=(isMember&&!isArtist)?'block':'none';
+ var tools=document.querySelector('.listener-tools');
+ if(tools)tools.style.display=isArtist?'':'none';
+ document.querySelectorAll('.nav [data-go]').forEach(function(b){
+   var id=b.getAttribute('data-go');
+   if(['home','discover'].includes(id))b.style.display='';
+   else b.style.display=isArtist?'':'none';
+ });
+ document.querySelectorAll('.nav [data-action="openStudioV101"],.nav [data-action="openNotifications"],.nav [data-action="ownerLogin"],.listener-header [data-go="settings"],.listener-header [data-go="profile"]').forEach(function(b){b.style.display=isArtist?'':'none'});
+}
+document.addEventListener('click',function(e){
+ var b=e.target.closest?.('[data-go]');
+ if(!b)return;
+ var id=b.getAttribute('data-go');
+ if(artist()||['home','discover'].includes(id))return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+ if(!member()){try{window.ALU_MEMBER_GATE_V101?.open('create')}catch(_){}return;}
+ try{toast('Register as an artist to unlock artist tools.')}catch(_){}
+ try{window.ALU_SHOW_ARTIST_REGISTRATION_V101?.()}catch(_){}
+},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',syncAccessUI,{once:true});else syncAccessUI();
+window.addEventListener('pageshow',syncAccessUI);
 })();
 </script>

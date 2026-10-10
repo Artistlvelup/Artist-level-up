@@ -6132,6 +6132,8 @@ function getState(){return (typeof state!=='undefined'&&state)?state:null}
 function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(_){}}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
 function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
 function client(){return window.ALU_SUPABASE_CLIENT||null}
+/* V101 auth fix: never send email confirmation/login links back to a temporary localhost preview. Use the stable public app URL so the callback can open on the user's phone. */
+function memberAuthRedirectUrl(){return 'https://artist-level-up.onrender.com/'}
 function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 async function resumeCloudMember(){
   var c=client(),s=getState();if(!c||!c.auth||!s)return false;
@@ -6176,7 +6178,7 @@ async function createMemberAccount(email,name){
     password:makeEphemeralPassword(),
     options:{
       data:{display_name:name,member_access_v101:true},
-      emailRedirectTo:location.origin+location.pathname
+      emailRedirectTo:memberAuthRedirectUrl()
     }
   });
   if(r.error)throw r.error;
@@ -6187,7 +6189,7 @@ async function createMemberAccount(email,name){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:memberAuthRedirectUrl()}});
   if(r.error)throw r.error;
 }
 function ensureGate(){

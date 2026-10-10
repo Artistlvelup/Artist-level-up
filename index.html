@@ -5828,7 +5828,13 @@ function listenerRegistered(){
   return false;
 }
 function requestListenerRegistration(songId,title,song){
-  pendingRegistrationDownload=null;
+  // Preserve the exact selected song while the member gate is open so the
+  // download can resume after registration/login without losing its identity.
+  pendingRegistrationDownload={
+    id:String(songId||song?.id||''),
+    title:String(title||song?.title||'this song'),
+    song:song||getSong(songId)
+  };
   try{
     if(window.ALU_MEMBER_GATE_V101&&typeof window.ALU_MEMBER_GATE_V101.open==='function'){
       window.ALU_MEMBER_GATE_V101.open();

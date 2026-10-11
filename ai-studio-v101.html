@@ -27,7 +27,7 @@
 </section>
 <section class="card"><div class="section-head"><div class="num">4</div><div><h2>Review your project</h2><p>We will show the full price and production steps before any paid processing begins.</p></div></div>
 <div class="notice">No hidden charges. Final pricing must account for the real AI processing cost, revisions, storage, payment fees and support. We will not display a made-up price.</div>
-<button class="btn primary" id="checkBtn">Check my project brief</button><button class="btn secondary" id="clearBtn">Clear selected files and brief</button><div class="result" id="result" role="status" aria-live="polite"></div>
+<button class="btn primary" id="generateBtn">✨ Generate My Track with AI</button><button class="btn secondary" id="clearBtn">Clear selected files and brief</button><div class="result" id="result" role="status" aria-live="polite"></div>
 </section>
 <footer class="footer">Artist Level Up AI Producer · Prototype only · Do not upload confidential or unreleased audio here yet.</footer>
 </main>
@@ -36,12 +36,13 @@
  const $=id=>document.getElementById(id);
  [['vocal','vocalName'],['beat','beatName']].forEach(([input,label])=>$(input).addEventListener('change',()=>{$(label).textContent=$(input).files&&$(input).files[0]?$(input).files[0].name+' · '+(($(input).files[0].size/1048576).toFixed(1))+' MB':'No file selected';}));
  document.querySelectorAll('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>{const t=$('prompt');t.value=(t.value.trim()?t.value.trim()+' ':'')+btn.dataset.prompt;t.focus();}));
- $('checkBtn').addEventListener('click',()=>{
+ $('generateBtn').addEventListener('click',()=>{
   const missing=[]; if(!$('vocal').files.length)missing.push('your vocal recording');if(!$('beat').files.length)missing.push('your beat');if(!$('prompt').value.trim())missing.push('your production instructions');
   const r=$('result');r.style.display='block';
-  if(missing.length){r.textContent='Before we can prepare this project, please add '+missing.join(', ')+'. Your files stay on this device in this prototype.';return;}
+  if(missing.length){r.textContent='Ready when you are: please add '+missing.join(', ')+'. Then press Generate My Track with AI again. Your files remain on this device in this prototype.';r.scrollIntoView({behavior:'smooth',block:'nearest'});return;}
   const v=$('vocal').files[0],b=$('beat').files[0],total=v.size+b.size;
-  r.textContent='Project brief checked: '+($('songName').value.trim()||'Untitled project')+' · '+$('genre').value+'. Vocal: '+v.name+'. Beat: '+b.name+'. Production: '+$('tuning').value+' tuning, '+$('layers').value+', '+$('mix').value+' mix, '+$('master').value+' master. Total selected files: '+(total/1048576).toFixed(1)+' MB. Next build step: connect secure server-side audio processing, a real price quote and payment verification. No audio was uploaded and no payment was taken.';
+  r.textContent='Your project brief is ready, but AI audio generation is not connected yet. No song has been generated, and your files have not been uploaded. Project: '+($('songName').value.trim()||'Untitled project')+' · '+$('genre').value+'. Vocal: '+v.name+'. Beat: '+b.name+'. Settings: '+$('tuning').value+' tuning, '+$('layers').value+', '+$('mix').value+' mix, '+$('master').value+' master. Selected files: '+(total/1048576).toFixed(1)+' MB. The next required step is to connect and test a secure audio-generation service before this button can produce a real track.';
+  r.scrollIntoView({behavior:'smooth',block:'nearest'});
  });
  $('clearBtn').addEventListener('click',()=>{['vocal','beat','songName','prompt'].forEach(id=>$(id).value='');$('vocalName').textContent='No vocal selected';$('beatName').textContent='No beat selected';$('result').style.display='none';});
 })();

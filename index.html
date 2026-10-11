@@ -6147,6 +6147,7 @@ async function resumeCloudMember(){
       return false;
     }
     var uid=u.id;
+    var recoveryEmail=String(u.email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com';
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
     var metaName=String(u.user_metadata?.display_name||u.user_metadata?.name||s.userAccount?.name||s.profile?.name||'').trim();
@@ -6155,12 +6156,26 @@ async function resumeCloudMember(){
       if(ins.error)throw ins.error;
       p={data:ins.data,error:null};
     }
-    var isArtist=p.data.role==='artist';
+    var recoveredArtist=null;
+    if(recoveryEmail&&p.data?.role!=='artist'){
+      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+      if(recovery.error)throw recovery.error;
+      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+      if(p.error)throw p.error;
+    }
+    if(recoveryEmail){
+      var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
+      if(ar.error)throw ar.error;
+      recoveredArtist=ar.data;
+      if(p.data?.role!=='artist'&&!recoveredArtist)return false;
+    }
+    var isArtist=p.data?.role==='artist'||!!recoveredArtist;
+    var restoredName=recoveredArtist?.artist_name||p.data?.display_name||metaName;
     var cloudEmail=String(u.email||'').trim();
     s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
-    s.userAccount={...(s.userAccount||{}),name:p.data.display_name||metaName,email:cloudEmail,avatar:p.data.avatar_url||'',registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-    s.profile={...(s.profile||{}),name:p.data.display_name||metaName,avatar:p.data.avatar_url||'',email:cloudEmail,saved:isArtist};
-    s.artistRegistered=isArtist||s.artistRegistered===true;
+    s.userAccount={...(s.userAccount||{}),name:restoredName,email:cloudEmail,avatar:p.data?.avatar_url||'',registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
+    s.profile={...(s.profile||{}),name:restoredName,avatar:p.data?.avatar_url||'',email:cloudEmail,saved:isArtist,country:s.profile?.country||'Nigeria'};
+    s.artistRegistered=isArtist;
     persist();
     return true;
   }catch(e){console.error('V101 cloud member restore failed:',e)}
@@ -6173,6 +6188,15 @@ function makeEphemeralPassword(){
 }
 async function createMemberAccount(email,name){
   var c=client();if(!c?.auth)throw new Error('Cloud registration is not ready. Please reopen the app.');
+  var normalizedEmail=String(email||'').trim().toLowerCase();
+  if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
+    var recoverySignup=await c.auth.signInWithOtp({
+      email:normalizedEmail,
+      options:{shouldCreateUser:true,emailRedirectTo:memberAuthRedirectUrl()}
+    });
+    if(recoverySignup.error)throw recoverySignup.error;
+    return recoverySignup.data||{};
+  }
   var r=await c.auth.signUp({
     email:email,
     password:makeEphemeralPassword(),
@@ -6189,6 +6213,9 @@ async function createMemberAccount(email,name){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
+  if(String(email||'').trim().toLowerCase()==='otunbacashmonnie1@gmail.com'){
+    throw new Error('Your saved Solo_vibez artist profile needs recovery. Choose Create Account and use this same email to receive the secure recovery link.');
+  }
   var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:memberAuthRedirectUrl()}});
   if(r.error)throw r.error;
 }

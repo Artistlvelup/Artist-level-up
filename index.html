@@ -2394,7 +2394,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
         if(!pr.error && pr.data){
           state.profile=state.profile||{};
           if(!state.profile.name && pr.data.display_name) state.profile.name=pr.data.display_name;
-          if(!state.profile.avatar && pr.data.avatar_url) state.profile.avatar=pr.data.avatar_url;
+          if(pr.data.avatar_url){const cloudAvatar=String(pr.data.avatar_url).trim();const localAvatar=String(state.profile.avatar||state.userAccount?.avatar||'').trim();if(cloudAvatar&&(!localAvatar||/^https?:\/\//i.test(localAvatar))){state.profile.avatar=cloudAvatar;state.userAccount=state.userAccount||{};state.userAccount.avatar=cloudAvatar;}}
           if(pr.data.role==='artist') state.artistRegistered=true;
         }
       }

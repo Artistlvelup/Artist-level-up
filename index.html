@@ -2407,7 +2407,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
           state.profile=state.profile||{};
           if(!state.profile.name && pr.data.display_name) state.profile.name=pr.data.display_name;
           if(pr.data.avatar_url){const cloudAvatar=String(pr.data.avatar_url).trim();const localAvatar=String(state.profile.avatar||state.userAccount?.avatar||'').trim();if(cloudAvatar&&(!localAvatar||/^https?:\/\//i.test(localAvatar))){state.profile.avatar=cloudAvatar;state.userAccount=state.userAccount||{};state.userAccount.avatar=cloudAvatar;}}
-          if(pr.data.role==='artist'){state.artistRegistered=true;state.profile.saved=true;state.profile.editing=false;window.__ALU_PROFILE_EDIT_REQUESTED=false;}
+          if(pr.data.role==='artist'){state.artistRegistered=true;state.profile.saved=true;if(window.__ALU_PROFILE_EDIT_REQUESTED!==true){state.profile.editing=false;window.__ALU_PROFILE_EDIT_REQUESTED=false;}}
         }
       }
       await syncProfile();
@@ -6818,3 +6818,5 @@ else addProfileLogout();
   },true);
 })();
 </script>
+
+<script id="aluV101RestoreHashRoute">/* V101: restore the selected app page after refresh; go() still enforces member/artist gates. */(function(){'use strict';function restore(){try{var raw=String(location.hash||'').replace(/^#/,'');if(!raw||raw.indexOf('discover-post=')===0)return;var page=document.getElementById(raw);if(page&&page.classList.contains('page')&&typeof window.go==='function'){window.go(raw,false);}}catch(e){console.warn('V101 page restore skipped:',e)}}if(document.readyState==='complete')setTimeout(restore,0);else window.addEventListener('load',restore,{once:true});})();</script>

@@ -3870,7 +3870,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(btn){btn.disabled=true;btn.textContent='CREATING ARTIST ACCOUNT…'}
     let localSaved=false;
     try{
-      state.profile={...(state.profile||{}),name,email,country,pin,saved:true,agreementAcceptedAt:state.profile?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
+      state.profile={...(state.profile||{}),name,email,country,pin,saved:true,editing:false,agreementAcceptedAt:state.profile?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
       const av=document.getElementById('regAvatar')?.files?.[0];
       if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
       state.artistRegistered=true;
@@ -3905,7 +3905,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(btn){btn.disabled=true;btn.textContent='SAVING PROFILE…'}
     let localSaved=false;
     try{
-      state.profile={...(state.profile||{}),name,email,country,saved:true};
+      state.profile={...(state.profile||{}),name,email,country,saved:true,editing:false};
       const av=document.getElementById('profileAvatar')?.files?.[0];
       if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
       if(pin)state.profile.pin=pin;

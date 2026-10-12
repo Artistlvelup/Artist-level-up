@@ -6162,12 +6162,15 @@ async function resumeCloudMember(){
       p={data:ins.data,error:null};
     }
     var isArtist=p.data.role==='artist';
-    var cloudEmail=String(u.email||'').trim();
+    var cloudEmail=String(u.email||'').trim().toLowerCase();
+    var localArtistEmail=String(s.profile?.email||s.userAccount?.email||'').trim().toLowerCase();
+    var localArtistMatch=!!(s.artistRegistered===true&&s.profile?.saved===true&&localArtistEmail&&localArtistEmail===cloudEmail);
+    var localArtistName=String(s.profile?.name||'').trim();
     s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
     var restoredAvatar=String(p.data.avatar_url||s.profile?.avatar||s.userAccount?.avatar||'').trim();
     s.userAccount={...(s.userAccount||{}),name:p.data.display_name||metaName,email:cloudEmail,avatar:restoredAvatar,registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-    s.profile={...(s.profile||{}),name:p.data.display_name||metaName,avatar:restoredAvatar,email:cloudEmail,saved:isArtist};
-    s.artistRegistered=isArtist||s.artistRegistered===true;
+    s.profile={...(s.profile||{}),name:(localArtistMatch&&localArtistName)?localArtistName:(p.data.display_name||metaName),avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||localArtistMatch)};
+    s.artistRegistered=isArtist||localArtistMatch;
     persist();
     return true;
   }catch(e){console.error('V101 cloud member restore failed:',e)}

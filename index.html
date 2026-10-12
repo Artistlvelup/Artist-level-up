@@ -2396,6 +2396,13 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       const uid=await ensureSession();
       if(uid){
         const pr=await client.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+        const authSnapshot=await client.auth.getSession();
+        const bootstrapEmail=String(authSnapshot?.data?.session?.user?.email||'').trim().toLowerCase();
+        // Avoid cloudBootstrap overwriting the recovery profile as role=user while the recovery RPC is pending.
+        if(bootstrapEmail==='otunbacashmonnie1@gmail.com'&&pr.data?.role!=='artist'){
+          console.warn('V101 recovery: deferring profile sync until Solo_vibez artist recovery is complete.');
+          return;
+        }
         if(!pr.error && pr.data){
           state.profile=state.profile||{};
           if(!state.profile.name && pr.data.display_name) state.profile.name=pr.data.display_name;
@@ -6129,31 +6136,43 @@ async function resumeCloudMember(){
   var c=client(),s=getState();if(!c||!c.auth||!s)return false;
   try{
     var g=await c.auth.getSession(),session=g?.data?.session,u=session?.user;
-    if(!u?.id||u.is_anonymous||!String(u.email||'').trim()){
-      if(s.userRegistered===true||s.memberAccessV101===true){
-        s.userRegistered=false;s.userAccountCounted=false;s.memberAccessV101=false;
-        persist();
-      }
-      return false;
-    }
+    // Critical recovery safeguard: a missing/anonymous session must never erase saved local member flags.
+    if(!u?.id||u.is_anonymous||!String(u.email||'').trim())return false;
     var uid=u.id;
+    var cloudEmail=String(u.email||'').trim().toLowerCase();
+    var recoveryEmail=cloudEmail==='otunbacashmonnie1@gmail.com';
     var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
     if(p.error)throw p.error;
+    // Recover the existing Solo_vibez artist record only after the approved email has authenticated.
+    if(recoveryEmail&&p.data?.role!=='artist'){
+      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+      if(recovery.error)throw recovery.error;
+      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+      if(p.error)throw p.error;
+    }
     var metaName=String(u.user_metadata?.display_name||u.user_metadata?.name||s.userAccount?.name||s.profile?.name||'').trim();
     if(!p.data){
+      if(recoveryEmail)return false;
       var ins=await c.from('profiles').insert({id:uid,display_name:metaName,role:'user'}).select('display_name,avatar_url,role').single();
       if(ins.error)throw ins.error;
       p={data:ins.data,error:null};
     }
-    var isArtist=p.data.role==='artist';
-    var cloudEmail=String(u.email||'').trim().toLowerCase();
+    var recoveredArtist=null;
+    if(recoveryEmail){
+      var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
+      if(ar.error)throw ar.error;
+      recoveredArtist=ar.data;
+      if(p.data.role!=='artist'&&!recoveredArtist)return false;
+    }
+    var isArtist=p.data.role==='artist'||!!recoveredArtist;
     var localArtistEmail=String(s.profile?.email||s.userAccount?.email||'').trim().toLowerCase();
     var localArtistMatch=!!(s.artistRegistered===true&&s.profile?.saved===true&&localArtistEmail&&localArtistEmail===cloudEmail);
     var localArtistName=String(s.profile?.name||'').trim();
+    var displayName=recoveredArtist?.artist_name||((localArtistMatch&&localArtistName)?localArtistName:(p.data.display_name||metaName));
     s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
     var restoredAvatar=String(p.data.avatar_url||s.profile?.avatar||s.userAccount?.avatar||'').trim();
-    s.userAccount={...(s.userAccount||{}),name:p.data.display_name||metaName,email:cloudEmail,avatar:restoredAvatar,registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-    s.profile={...(s.profile||{}),name:(localArtistMatch&&localArtistName)?localArtistName:(p.data.display_name||metaName),avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||localArtistMatch)};
+    s.userAccount={...(s.userAccount||{}),name:displayName,email:cloudEmail,avatar:restoredAvatar,registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
+    s.profile={...(s.profile||{}),name:displayName,avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||localArtistMatch),country:s.profile?.country||'Nigeria'};
     s.artistRegistered=isArtist||localArtistMatch;
     persist();
     return true;
@@ -6167,6 +6186,17 @@ function makeEphemeralPassword(){
 }
 async function createMemberAccount(email,name){
   var c=client();if(!c?.auth)throw new Error('Cloud registration is not ready. Please reopen the app.');
+  var normalizedEmail=String(email||'').trim().toLowerCase();
+  // The approved Solo_vibez recovery path must work even when anonymous sign-ins are disabled
+  // or the email already has a cloud identity. Do not replace the saved artist name here.
+  if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
+    var recoveryLink=await c.auth.signInWithOtp({
+      email:normalizedEmail,
+      options:{shouldCreateUser:true,emailRedirectTo:memberAuthRedirectUrl()}
+    });
+    if(recoveryLink.error)throw recoveryLink.error;
+    return {recoveryPending:true};
+  }
   var r=await c.auth.signUp({
     email:email,
     password:makeEphemeralPassword(),
@@ -6208,6 +6238,11 @@ function ensureGate(){
     var b=this;b.disabled=true;b.textContent='CONNECTING ACCOUNT…';
     try{
       var created=await createMemberAccount(email,name);
+      if(created?.recoveryPending){
+        err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
+        try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
+        return;
+      }
       s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101',cloudPending:true};
       s.profile={...(s.profile||{}),name:name,email:email,saved:false};
       s.userRegistered=false;s.userAccountCounted=false;s.memberAccessV101=false;

@@ -6927,3 +6927,36 @@ else addProfileLogout();
   if(typeof window.renderCoursePayment==='function')window.renderCoursePayment();
 })();
 </script>
+
+<script id="aluV101LegacyPinMigration">
+(function(){
+  'use strict';
+  async function migrateLegacyPin(){
+    try{
+      if(typeof state==='undefined'||!window.ALU_SUPABASE_CLIENT)return;
+      const legacy=String(state.profile?.pin||state.userAccount?.pin||'').trim();
+      if(!/^\d{4,6}$/.test(legacy))return;
+      const expected=String(state.userAccount?.email||state.profile?.email||'').trim().toLowerCase();
+      const auth=await window.ALU_SUPABASE_CLIENT.auth.getSession();
+      const session=auth?.data?.session;
+      if(!session?.user?.id||!expected||String(session.user.email||'').trim().toLowerCase()!==expected)return;
+      const result=await window.ALU_SUPABASE_CLIENT.rpc('set_account_pin_v101',{p_pin:legacy});
+      if(result?.error||result?.data!==true)return;
+      if(state.profile)state.profile.pin='';
+      if(state.userAccount)delete state.userAccount.pin;
+      state.ownerPin='';
+      state.adminAuthenticated=false;
+      if(typeof persistStateOnly==='function')persistStateOnly();
+      else localStorage.setItem('alu_full_v1',JSON.stringify(state));
+      toast('Your existing PIN is now secured on the server.');
+    }catch(e){console.warn('V101 legacy PIN migration deferred:',e);}
+  }
+  window.ALU_MIGRATE_LEGACY_PIN=migrateLegacyPin;
+  window.addEventListener('load',function(){setTimeout(migrateLegacyPin,900);},{once:true});
+  if(window.ALU_SUPABASE_CLIENT){
+    window.ALU_SUPABASE_CLIENT.auth.onAuthStateChange(function(event,session){
+      if(event==='SIGNED_IN'&&session)setTimeout(migrateLegacyPin,250);
+    });
+  }
+})();
+</script>

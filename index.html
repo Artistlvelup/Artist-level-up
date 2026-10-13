@@ -6214,47 +6214,58 @@ async function resumeCloudMember(){
   var c=client(),s=getState();if(!c||!c.auth||!s)return false;
   try{
     var g=await c.auth.getSession(),session=g?.data?.session,u=session?.user;
-    // Critical recovery safeguard: a missing/anonymous session must never erase saved local member flags.
+    // Never clear local data when there is no verified cloud session.
     if(!u?.id||u.is_anonymous||!String(u.email||'').trim())return false;
-    var uid=u.id;
-    var cloudEmail=String(u.email||'').trim().toLowerCase();
+    var uid=u.id,cloudEmail=String(u.email||'').trim().toLowerCase();
     var recoveryEmail=cloudEmail==='otunbacashmonnie1@gmail.com';
-    var p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
-    if(p.error)throw p.error;
-    // Recover the existing Solo_vibez artist record only after the approved email has authenticated.
-    if(recoveryEmail&&p.data?.role!=='artist'){
-      var recovery=await c.rpc('recover_solo_vibez_profile_v101');
-      if(recovery.error)throw recovery.error;
-      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
-      if(p.error)throw p.error;
-    }
+    var localArtistEmail=String(s.profile?.email||s.userAccount?.email||'').trim().toLowerCase();
+    var localArtistMatch=!!(s.artistRegistered===true&&s.profile?.saved===true&&localArtistEmail===cloudEmail);
+    var localArtistName=String(s.profile?.name||'').trim();
     var metaName=String(u.user_metadata?.display_name||u.user_metadata?.name||s.userAccount?.name||s.profile?.name||'').trim();
+    var p={data:null,error:null};
+    try{
+      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+      if(p.error){console.warn('V101 profile lookup deferred; keeping verified member session:',p.error);p={data:null,error:p.error}}
+    }catch(profileReadError){console.warn('V101 profile lookup deferred:',profileReadError);p={data:null,error:profileReadError}}
+    // Artist recovery is best-effort: a missing recovery RPC must never trap an authenticated member on the login screen.
+    if(recoveryEmail&&p.data?.role!=='artist'){
+      try{
+        var recovery=await c.rpc('recover_solo_vibez_profile_v101');
+        if(recovery.error)console.warn('V101 artist recovery needs follow-up:',recovery.error);
+        else{
+          var refreshed=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
+          if(!refreshed.error&&refreshed.data)p=refreshed;
+          else if(refreshed.error)console.warn('V101 profile refresh deferred:',refreshed.error);
+        }
+      }catch(recoveryError){console.warn('V101 artist recovery deferred:',recoveryError)}
+    }
+    // Ensure a cloud profile exists where permitted, but do not block access if profile setup needs repair.
     if(!p.data){
-      if(recoveryEmail)return false;
-      var ins=await c.from('profiles').insert({id:uid,display_name:metaName,role:'user'}).select('display_name,avatar_url,role').single();
-      if(ins.error)throw ins.error;
-      p={data:ins.data,error:null};
+      try{
+        var ins=await c.from('profiles').insert({id:uid,display_name:metaName,role:localArtistMatch?'artist':'user'}).select('display_name,avatar_url,role').single();
+        if(!ins.error&&ins.data)p={data:ins.data,error:null};
+        else if(ins.error)console.warn('V101 profile setup deferred:',ins.error);
+      }catch(profileInsertError){console.warn('V101 profile setup deferred:',profileInsertError)}
     }
     var recoveredArtist=null;
     if(recoveryEmail){
-      var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
-      if(ar.error)throw ar.error;
-      recoveredArtist=ar.data;
-      if(p.data.role!=='artist'&&!recoveredArtist)return false;
+      try{
+        var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
+        if(ar.error)console.warn('V101 artist record lookup deferred:',ar.error);
+        else recoveredArtist=ar.data;
+      }catch(artistReadError){console.warn('V101 artist record lookup deferred:',artistReadError)}
     }
-    var isArtist=p.data.role==='artist'||!!recoveredArtist;
-    var localArtistEmail=String(s.profile?.email||s.userAccount?.email||'').trim().toLowerCase();
-    var localArtistMatch=!!(s.artistRegistered===true&&s.profile?.saved===true&&localArtistEmail&&localArtistEmail===cloudEmail);
-    var localArtistName=String(s.profile?.name||'').trim();
-    var displayName=recoveredArtist?.artist_name||((localArtistMatch&&localArtistName)?localArtistName:(p.data.display_name||metaName));
+    var profile=p.data||{display_name:metaName,avatar_url:'',role:localArtistMatch?'artist':'user'};
+    var isArtist=profile.role==='artist'||!!recoveredArtist||localArtistMatch;
+    var displayName=recoveredArtist?.artist_name||((localArtistMatch&&localArtistName)?localArtistName:(profile.display_name||metaName||localArtistName||'Artist Level Up Member'));
     s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
-    var restoredAvatar=String(p.data.avatar_url||s.profile?.avatar||s.userAccount?.avatar||'').trim();
+    var restoredAvatar=String(profile.avatar_url||s.profile?.avatar||s.userAccount?.avatar||'').trim();
     s.userAccount={...(s.userAccount||{}),name:displayName,email:cloudEmail,avatar:restoredAvatar,registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-    s.profile={...(s.profile||{}),name:displayName,avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||localArtistMatch),country:s.profile?.country||'Nigeria'};
-    s.artistRegistered=isArtist||localArtistMatch;
+    s.profile={...(s.profile||{}),name:displayName,avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||!!s.profile?.saved),country:s.profile?.country||'Nigeria'};
+    s.artistRegistered=isArtist;
     persist();
     return true;
-  }catch(e){console.error('V101 cloud member restore failed:',e)}
+  }catch(e){console.error('V101 verified member session restore failed:',e)}
   return false;
 }
 function makeEphemeralPassword(){
@@ -6362,14 +6373,35 @@ function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=Strin
 function close(){if(!registered()){var g=document.getElementById('aluMemberGateV101');if(g){g.classList.add('show');var card=g.querySelector('.alu-member-card');var note=g.querySelector('.alu-member-note');if(note)note.textContent='Create your member account or log in to continue. Your music discovery access will open after your cloud account is confirmed.';if(card){var title=card.querySelector('h1');if(title)title.textContent='Member access required';} }document.body.classList.add('alu-member-locked-v101');return false;}var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return true}
 window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login')},close:close,isRegistered:registered};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
+var memberRestoreInFlight=false;
+var memberRestoreDone=false;
+async function restoreMemberAfterAuth(){
+  if(memberRestoreInFlight||memberRestoreDone)return;
+  memberRestoreInFlight=true;
+  try{
+    await new Promise(function(resolve){setTimeout(resolve,180)});
+    if(await resumeCloudMember()){
+      memberRestoreDone=true;
+      close();
+      try{toast('Welcome back ✓')}catch(e){}
+    }
+  }catch(e){console.error('V101 magic-link callback restore failed:',e)}
+  finally{memberRestoreInFlight=false}
+}
 if(client()?.auth?.onAuthStateChange){
-  client().auth.onAuthStateChange(function(event){
-    if(event==='SIGNED_IN'||event==='USER_UPDATED'){
-      setTimeout(async function(){if(await resumeCloudMember()){close();try{toast('Welcome back ✓')}catch(e){} }},0);
+  client().auth.onAuthStateChange(function(event,session){
+    if(session?.user?.id&&(event==='INITIAL_SESSION'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED')){
+      restoreMemberAfterAuth();
     }
   });
 }
-async function boot(){if(await resumeCloudMember())return;open()}
+async function boot(){
+  await new Promise(function(resolve){setTimeout(resolve,250)});
+  if(await resumeCloudMember()){memberRestoreDone=true;return}
+  await new Promise(function(resolve){setTimeout(resolve,500)});
+  if(await resumeCloudMember()){memberRestoreDone=true;return}
+  open();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

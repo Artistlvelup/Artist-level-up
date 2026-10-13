@@ -3218,6 +3218,15 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const client=window.ALU_CLOUD?.client||null;
     const file=item.blob;if(!file)throw new Error('The saved video copy is missing from device storage.');
     if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='Supabase Free project limit is 50 MB.';await aluVideoQueuePut(item);return {blocked:true};}
+    /* Use the real Supabase session JWT for Storage and PostgREST. The anon API key
+       alone cannot insert artist_videos rows with a non-null artist_id under V101 RLS. */
+    if(typeof window.ALU_CLOUD?.ensureSession==='function') await window.ALU_CLOUD.ensureSession();
+    const sessionResult=client?.auth?.getSession?await client.auth.getSession():null;
+    const accessToken=String(sessionResult?.data?.session?.access_token||'');
+    if(!accessToken)throw new Error('Cloud sign-in is missing. Sign in to the registered Artist account, then retry.');
+    const authHeaders={apikey:apiKey,authorization:'Bearer '+accessToken};
+    const artistId=window.ALU_CLOUD?.artistId||await window.ALU_CLOUD?.ensureArtist?.();
+    if(!artistId)throw new Error('Cloud artist account is not ready. Please sign in to the registered Artist account and try again.');
     item.status='uploading';item.attempts=Number(item.attempts||0)+1;item.lastAttemptAt=new Date().toISOString();await aluVideoQueuePut(item);
     const ext=(item.filename?.split('.').pop()||'mp4').toLowerCase();const storagePath=item.storagePath||('videos/'+item.id+'.'+ext);item.storagePath=storagePath;
     const detectedType=item.mimeType||'video/mp4';
@@ -3228,14 +3237,12 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       const uploadRes=await fetch(storageUrl,{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
       if(!uploadRes.ok){let detail='';try{detail=await uploadRes.text()}catch(e){};throw new Error('Storage upload '+uploadRes.status+': '+(detail||uploadRes.statusText||'failed'));}
       item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      const artistId=window.ALU_CLOUD?.artistId||await window.ALU_CLOUD?.ensureArtist?.();
-      if(!artistId)throw new Error('Cloud artist account is not ready. Please sign in to the registered Artist account and try again.');
       const row={artist_id:artistId,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:null,status:'pending',tiktok_url:'',instagram_url:'',facebook_url:'',youtube_url:'',song_id:item.songId||null};
       let recordRes;
       if(item.remoteVideoId){
-        recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
+        recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{...authHeaders,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
       }else{
-        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
+        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{...authHeaders,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
       }
       if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}
       const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
@@ -3244,7 +3251,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
         /* Some Supabase/PostgREST responses can be empty/non-JSON even after a successful insert. Verify by the unique video URL before treating it as a failure. */
         if(!item.remoteVideoId){
           try{
-            const verify=await fetch(base+'/rest/v1/artist_videos?select=id,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&order=created_at.desc&limit=1',{headers:{apikey:apiKey,authorization:'Bearer '+apiKey}});
+            const verify=await fetch(base+'/rest/v1/artist_videos?select=id,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&order=created_at.desc&limit=1',{headers:authHeaders});
             const verifyText=await verify.text().catch(()=>''), verifyData=(()=>{try{return verifyText?JSON.parse(verifyText):[]}catch(_){return []}})();
             if(verify.ok&&Array.isArray(verifyData)&&verifyData[0]?.id)item.remoteVideoId=String(verifyData[0].id);
           }catch(_){ }

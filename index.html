@@ -1908,7 +1908,8 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){
-window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Secure payment connection is not ready.');const popup=window.open('about:blank','_blank');try{const r=await c.functions.invoke('upload-fee-checkout',{body:{upload_type:type}});if(r.error)throw new Error(r.error.message||'Could not check upload fee.');if(!r.data?.ok)throw new Error(r.data?.error||'Could not check upload fee.');if(r.data.paid){try{popup?.close()}catch(_){}return true;}if(!r.data.authorization_url)throw new Error('Paystack checkout link was not returned.');if(!popup){throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open without losing your selected audio file.');}popup.location.href=r.data.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
+window.ALUUploadFeeLabel='';
+window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Secure payment connection is not ready.');const popup=window.open('about:blank','_blank');window.ALUUploadFeeLabel='';try{const country=document.getElementById('profileCountry')?.value||state.profile?.country||'Nigeria';const r=await c.functions.invoke('upload-fee-checkout',{body:{upload_type:type,country}});if(r.error)throw new Error(r.error.message||'Could not check upload fee.');if(!r.data?.ok)throw new Error(r.data?.error||'Could not check upload fee.');window.ALUUploadFeeLabel=String(r.data.fee_display||'');if(r.data.paid){try{popup?.close()}catch(_){}return true;}if(!r.data.authorization_url)throw new Error('Secure payment checkout link was not returned.');if(!popup){throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open without losing your selected audio file.');}popup.location.href=r.data.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
     async function uploadMusicFromCreate(btn){
     const title=document.getElementById('songTitle')?.value.trim();
     const genre=document.getElementById('songGenre')?.value||'Music';
@@ -1921,7 +1922,7 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
     const oldText=btn.textContent;btn.disabled=true;btn.textContent='Uploading…';
     try{
       const feePaid=await window.ALUEnsureUploadFee('music');
-      if(!feePaid){toast('Complete the ₦15,000 upload-fee checkout in the new tab, return here, then tap Publish Song again.');return;}
+      if(!feePaid){toast('Complete the ${window.ALUUploadFeeLabel||'upload-fee'} checkout in the new tab, return here, then tap Publish Song again.');return;}
       const id='song_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
       const audioKey='audio_'+id;
       const audioUrl=URL.createObjectURL(audioFile);

@@ -41,7 +41,7 @@ button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padd
    <button class="active" data-table="artists">🎤 Artists</button><button data-table="songs">🎵 Music</button><button data-table="promotions">📣 Promotions</button><button data-table="marketplace_orders">🛒 Orders</button><button data-table="withdrawals">💸 Withdrawals</button><button data-table="profiles">👤 Profiles</button>
   </nav>
   <section class="panel"><div class="panel-head"><div><h3 id="tableTitle">Artist records</h3><p id="tableDesc" class="muted" style="font-size:12px;margin:5px 0 0">Artist records currently available to the authorised admin account.</p></div><div class="actions"><button class="quiet" id="exportBtn">Export CSV</button><button class="primary" id="loadBtn">Load records</button></div></div><div id="tableStatus" class="status" style="margin-top:14px">Waiting for data…</div><div class="table-wrap" id="tableWrap"><div class="empty">Loading your private workspace…</div></div></section>
-  <div class="notice">Security note: this app does not include service-role keys or bypass database permissions. Changes to payments, account status, or music approvals will only be enabled after the corresponding server-side admin rules are verified.</div>
+  <div class="notice">Security: PINs are hashed server-side and admin sessions are validated by the private Edge Function. Server credentials stay on the server and are not sent to this page. Orders and withdrawals are read-only here; the only enabled status actions are the listed artist, song, and promotion reviews.</div>
   <div class="foot">Artist Level Up · Separate owner dashboard · Built on V101 foundation</div>
  </div>
 </div>

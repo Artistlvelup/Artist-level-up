@@ -6284,7 +6284,15 @@ async function createMemberAccount(email,name){
 }
 async function sendLoginLink(email){
   var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  var r=await c.auth.signInWithOtp({email:email,options:{shouldCreateUser:false,emailRedirectTo:memberAuthRedirectUrl()}});
+  var normalizedEmail=String(email||'').trim().toLowerCase();
+  // V101 recovery fix: Solo_vibez may have used only a local PIN before an email identity existed.
+  // Allow Supabase to create/attach the email identity so the verified callback can recover the
+  // existing artist profile. All other login emails remain existing-account-only.
+  var recoveryEmail=normalizedEmail==='otunbacashmonnie1@gmail.com';
+  var r=await c.auth.signInWithOtp({
+    email:normalizedEmail,
+    options:{shouldCreateUser:recoveryEmail,emailRedirectTo:memberAuthRedirectUrl()}
+  });
   if(r.error)throw r.error;
 }
 function ensureGate(){

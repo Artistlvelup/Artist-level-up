@@ -3901,7 +3901,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
       const av=document.getElementById('regAvatar')?.files?.[0];
       if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
       state.artistRegistered=true;
-      state.userAccount={...(state.userAccount||{}),name,email,avatar:state.profile?.avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString()};
+      state.userAccount={...(state.userAccount||{}),name,email,avatar:state.profile?.avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString()};delete state.userAccount.pin;
       persistStateOnly();
       localSaved=true;
     }catch(e){console.error('Local artist registration save failed',e);toast('Artist account could not be saved on this device. Please try again.');}

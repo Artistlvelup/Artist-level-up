@@ -69,11 +69,30 @@ button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padd
    for(const [table,id] of checks){const {count,error}=await client.from(table).select('*',{count:'exact',head:true});$(id).textContent=error?'—':String(count??0)}
  }
  function prettyKey(k){return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+ function rowActions(row){
+   if(activeTable==='artists'&&row.status==='pending')return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="danger" data-admin-action="reject" data-id="'+esc(row.id)+'">Reject</button>';
+   if(activeTable==='songs'&&['draft','approved','published'].includes(row.status))return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="quiet" data-admin-action="archive" data-id="'+esc(row.id)+'">Archive</button>';
+   if(activeTable==='promotions'&&['pending','active'].includes(row.status))return (row.status==='pending'?'<button class="primary" data-admin-action="activate" data-id="'+esc(row.id)+'">Activate</button>':'')+'<button class="danger" data-admin-action="cancel" data-id="'+esc(row.id)+'">Cancel</button>';
+   return '<span class="muted">—</span>';
+ }
+ async function performAdminAction(action,id,button){
+   const config={
+    artists:{approve:{status:'approved',label:'approve this artist'},reject:{status:'rejected',label:'reject this artist'}},
+    songs:{approve:{status:'approved',label:'approve this track'},archive:{status:'archived',label:'archive this track'}},
+    promotions:{activate:{status:'active',label:'activate this campaign'},cancel:{status:'cancelled',label:'cancel this campaign'}}
+   };
+   const choice=config[activeTable]?.[action];if(!choice||!id)return;
+   if(!confirm('Are you sure you want to '+choice.label+'?'))return;
+   button.disabled=true;
+   const {error}=await client.from(activeTable).update({status:choice.status,updated_at:new Date().toISOString()}).eq('id',id);
+   if(error){toast('Action failed: '+(error.message||'Permission denied'));button.disabled=false;return}
+   toast('Done — status updated');await loadTable(activeTable);await loadStats();
+ }
  function renderRows(rows){
    currentRows=rows||[];const wrap=$('tableWrap');
    if(!currentRows.length){wrap.innerHTML='<div class="empty">No records returned for this section, or the table is empty.</div>';return}
    const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))].slice(0,8);
-   wrap.innerHTML='<table><thead><tr>'+keys.map(k=>'<th>'+esc(prettyKey(k))+'</th>').join('')+'</tr></thead><tbody>'+currentRows.map(row=>'<tr>'+keys.map(k=>{let v=row[k];if(v&&typeof v==='object')v=JSON.stringify(v);if(typeof v==='string'&&v.length>180)v=v.slice(0,177)+'…';return '<td>'+esc(v===null?'—':v)+'</td>'}).join('')+'</tr>').join('')+'</tbody></table>';
+   wrap.innerHTML='<table><thead><tr>'+keys.map(k=>'<th>'+esc(prettyKey(k))+'</th>').join('')+'<th>Admin actions</th></tr></thead><tbody>'+currentRows.map(row=>'<tr>'+keys.map(k=>{let v=row[k];if(v&&typeof v==='object')v=JSON.stringify(v);if(typeof v==='string'&&v.length>180)v=v.slice(0,177)+'…';return '<td>'+esc(v===null?'—':v)+'</td>'}).join('')+'<td><div class="actions">'+rowActions(row)+'</div></td></tr>').join('')+'</tbody></table>';
  }
  async function loadTable(table){
    activeTable=table;$('tableTitle').textContent=labels[table][0];$('tableDesc').textContent=labels[table][1];$('tableStatus').textContent='Loading…';$('tableWrap').innerHTML='<div class="empty">Fetching records securely…</div>';
@@ -82,6 +101,7 @@ button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padd
    if(error){currentRows=[];$('tableStatus').textContent='Could not read this table with current database permissions.';$('tableWrap').innerHTML='<div class="empty">'+esc(error.message||'Access denied or table unavailable.')+'</div>';return}
    $('tableStatus').textContent=currentRows.length+' records loaded · Showing up to 100';renderRows(data||[]);$('tableStatus').textContent=(data||[]).length+' records loaded · Showing up to 100';
  }
+ $('tableWrap').addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b)performAdminAction(b.dataset.adminAction,b.dataset.id,b)});
  $('loadBtn').addEventListener('click',()=>loadTable(activeTable));
  $('refreshBtn').addEventListener('click',async()=>{await loadStats();await loadTable(activeTable);toast('Dashboard refreshed')});
  document.querySelectorAll('[data-table]').forEach(b=>b.addEventListener('click',()=>loadTable(b.dataset.table)));

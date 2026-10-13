@@ -1922,7 +1922,7 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
     const oldText=btn.textContent;btn.disabled=true;btn.textContent='Uploading…';
     try{
       const feePaid=await window.ALUEnsureUploadFee('music');
-      if(!feePaid){toast('Complete the ${window.ALUUploadFeeLabel||'upload-fee'} checkout in the new tab, return here, then tap Publish Song again.');return;}
+      if(!feePaid){toast("Complete the "+(window.ALUUploadFeeLabel||"upload-fee")+" checkout in the new tab, return here, then tap Publish Song again.");return;}
       const id='song_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
       const audioKey='audio_'+id;
       const audioUrl=URL.createObjectURL(audioFile);

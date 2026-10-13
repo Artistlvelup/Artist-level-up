@@ -3234,7 +3234,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     try{
       // Direct REST upload: this does not depend on the Supabase JS CDN loading in Chrome.
       const storageUrl=base+'/storage/v1/object/'+encodeURIComponent('music')+'/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      const uploadRes=await fetch(storageUrl,{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
+      const uploadRes=await fetch(storageUrl,{method:'POST',headers:{...authHeaders,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
       if(!uploadRes.ok){let detail='';try{detail=await uploadRes.text()}catch(e){};throw new Error('Storage upload '+uploadRes.status+': '+(detail||uploadRes.statusText||'failed'));}
       item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
       const row={artist_id:artistId,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:null,status:'pending',tiktok_url:'',instagram_url:'',facebook_url:'',youtube_url:'',song_id:item.songId||null};

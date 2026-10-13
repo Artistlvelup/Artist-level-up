@@ -935,6 +935,16 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 #studio.page.active .alu-vocal-clip{pointer-events:none!important}
 #studio.page.active .alu-vocal-header{z-index:12!important}
 </style>
+
+<style id="alu-separate-admin-control">
+/* V101 separation: owner moderation is handled by the separate Admin Control app. */
+#admin.page,
+#aluOwnerControlsCard,
+button[data-go="admin"],
+.nav button[data-go="admin"] {
+  display: none !important;
+}
+</style>
 </head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
@@ -7055,3 +7065,25 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 })();
 </script>
 
+
+<script id="alu-separate-admin-navigation-guard">
+(function(){
+  const originalGo = window.go;
+  if (typeof originalGo === "function") {
+    window.go = function(id) {
+      if (String(id) === "admin") {
+        if (typeof window.toast === "function") window.toast("Owner controls are managed in the separate Admin Control app.");
+        return false;
+      }
+      return originalGo.apply(this, arguments);
+    };
+  }
+  document.addEventListener("click", function(event) {
+    const button = event.target && event.target.closest ? event.target.closest('[data-go="admin"]') : null;
+    if (button) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+})();
+</script>

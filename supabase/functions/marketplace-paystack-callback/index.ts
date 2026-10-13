@@ -24,8 +24,26 @@ Deno.serve(async(req:Request)=>{
   const payEmail=String(pay.data?.customer?.email||"").trim().toLowerCase();
   const patch:any={status:"paid",paid_at:order.paid_at||new Date().toISOString(),updated_at:new Date().toISOString()};
   if(!order.customer_email&&payEmail)patch.customer_email=payEmail;
-  const {data:finalOrder,error:updateError}=await admin.from("marketplace_orders").update(patch).eq("id",order.id).select("id,beat_title,producer_name,license,amount_ngn,currency,status,paystack_reference,paid_at,customer_email,receipt_email_sent_at,receipt_email_id").single();
-  if(updateError)return fail(updateError.message,500);
+  let finalOrder:any=order;
+  if(order.status==="pending_payment"){
+   const {data:updated,error:updateError}=await admin.from("marketplace_orders").update(patch)
+    .eq("id",order.id).eq("status","pending_payment")
+    .select("id,beat_title,producer_name,license,amount_ngn,currency,status,paystack_reference,paid_at,customer_email,receipt_email_sent_at,receipt_email_id")
+    .maybeSingle();
+   if(updateError)return fail("Could not safely confirm the order status.",500);
+   if(updated){
+    finalOrder=updated;
+   }else{
+    const {data:latest,error:latestError}=await admin.from("marketplace_orders")
+     .select("id,beat_title,producer_name,license,amount_ngn,currency,status,paystack_reference,paid_at,customer_email,receipt_email_sent_at,receipt_email_id")
+     .eq("id",order.id).maybeSingle();
+    if(latestError)return fail("Could not re-check the order status.",500);
+    if(!latest||latest.status!=="paid")return fail("Order status changed; payment was not applied to this order.",409);
+    finalOrder=latest;
+   }
+  }else if(order.status!=="paid"){
+   return fail("This order is not awaiting payment.",409);
+  }
   let emailNote="Receipt email not sent.";
   const recipient=String(finalOrder.customer_email||payEmail||"").trim().toLowerCase();
   if(!finalOrder.receipt_email_sent_at&&resendKey&&recipient){

@@ -6863,7 +6863,7 @@ else addProfileLogout();
     window.renderCourse=function(){
       baseRenderCourse();
       const first=document.querySelector('#courseModules [data-course-key="m0l0"]');
-      if(first&&window.state&&window.state.course&&window.state.course.videos&&window.state.course.videos.m0l0){
+      if(first&&typeof state!=='undefined'&&state.course&&state.course.videos&&state.course.videos.m0l0){
         first.disabled=false;first.dataset.courseLocked='0';first.textContent='▶ Watch Free';first.classList.add('primary');
       }
     };
@@ -6872,7 +6872,7 @@ else addProfileLogout();
   if(typeof baseAction==='function'){
     window.action=async function(a,el){
       if(a==='previewFreeLesson'){
-        const meta=window.state&&window.state.course&&window.state.course.videos&&window.state.course.videos.m0l0;
+        const meta=typeof state!=='undefined'&&state.course&&state.course.videos&&state.course.videos.m0l0;
         if(!meta){toast('The free preview video has not been uploaded yet.');return;}
         try{await playCourseVideo('m0l0');}catch(e){toast('Could not open the preview video on this device.');}
         return;

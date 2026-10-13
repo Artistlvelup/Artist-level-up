@@ -13,11 +13,19 @@ button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padd
 <body>
 <div id="loginView" class="login">
   <div class="brand"><div class="logo">♫</div><div><h1>ARTIST LEVEL UP</h1><p>PRIVATE OWNER ADMIN</p></div></div>
-  <h2>Owner sign-in 🔐</h2>
-  <p class="muted">This is the separate control room for the platform. Sign in with the owner email already authorised for Artist Level Up. Admin access is checked against the server before any records are shown.</p>
-  <form id="loginForm"><label for="email">Owner email</label><input id="email" type="email" autocomplete="email" required placeholder="Enter authorised owner email"><button class="primary full" id="sendLink">Send secure sign-in link</button></form>
-  <div id="loginMsg" class="notice" role="status">No password is needed for the email link. Never share your sign-in link or owner PIN.</div>
-  <p class="muted" style="font-size:12px;margin-top:18px">Private dashboard · Server-verified owner access · No public artist access</p>
+  <h2>Owner PIN 🔐</h2>
+  <p class="muted">Enter your private owner PIN to open the separate control room. No email link required.</p>
+  <form id="loginForm"><label for="pin">Owner PIN</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="current-password" required placeholder="Enter your 6–12 digit PIN"><button class="primary full" id="loginBtn">Login to Owner Admin</button></form>
+  <button class="quiet full" id="showSetupBtn" type="button">First time? Set up your owner PIN</button>
+  <form id="setupForm" class="hidden">
+    <label for="setupKey">One-time setup key</label><input id="setupKey" type="password" autocomplete="off" required placeholder="Enter the one-time setup key">
+    <label for="newPin">Create a new PIN (6–12 digits)</label><input id="newPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="new-password" required placeholder="Choose your private PIN">
+    <label for="confirmPin">Confirm your new PIN</label><input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]{6,12}" minlength="6" maxlength="12" autocomplete="new-password" required placeholder="Enter the same PIN again">
+    <button class="primary full" id="setupBtn">Set Owner PIN</button>
+    <button class="quiet full" id="cancelSetupBtn" type="button">Back to PIN login</button>
+  </form>
+  <div id="loginMsg" class="notice" role="status">Your PIN is checked securely on the server. Never share your PIN or one-time setup key.</div>
+  <p class="muted" style="font-size:12px;margin-top:18px">Private dashboard · PIN-only sign-in · Sessions expire after 8 hours</p>
 </div>
 <div id="appView" class="hidden">
  <div class="shell">
@@ -38,82 +46,34 @@ button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padd
  </div>
 </div>
 <div id="toast" class="toast hidden" role="status"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
- const SUPABASE_URL='https://wmtddmaxwulypvhjjntz.supabase.co';
+ const API='https://wmtddmaxwulypvhjjntz.supabase.co/functions/v1/owner-pin-admin';
  const PUBLISHABLE_KEY='sb_publishable_Nyf4sJQHvTIQSBQXbV2Rtw_VSbZjia8';
- const client=window.supabase.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const $=id=>document.getElementById(id);
+ let sessionToken=sessionStorage.getItem('alu_owner_pin_session')||'', activeTable='artists', currentRows=[];
  const labels={artists:['Artist records','Artists registered on the platform'],songs:['Music submissions','Tracks submitted through Artist Level Up'],promotions:['Promotion campaigns','Campaigns and promotion records'],marketplace_orders:['Marketplace orders','Order and payment records'],withdrawals:['Withdrawal requests','Artist withdrawal records'],profiles:['Member profiles','Account profiles in the shared backend']};
- let activeTable='artists', currentRows=[];
  function toast(msg){$('toast').textContent=msg;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),3200)}
  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ async function api(action,body={}){const headers={'Content-Type':'application/json','apikey':PUBLISHABLE_KEY};if(sessionToken)headers.Authorization='Bearer '+sessionToken;const res=await fetch(API,{method:'POST',headers,body:JSON.stringify({action,...body})});let out;try{out=await res.json()}catch{throw new Error('Server response could not be read.')}if(!res.ok||!out.ok)throw new Error(out.error||'Request failed.');return out}
  function showLogin(msg){$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');if(msg)$('loginMsg').textContent=msg}
- function showApp(user){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('signedAs').textContent=user.email||'Authorised owner'}
- async function verifyAndStart(session){
-   if(!session||!session.user){showLogin();return}
-   $('loginMsg').textContent='Checking owner permissions…';
-   const {data,error}=await client.rpc('is_platform_admin_v101');
-   if(error||data!==true){await client.auth.signOut();showLogin('This account is not authorised for Owner Admin. Use the owner account that has been approved for the platform.');return}
-   showApp(session.user);await loadStats();await loadTable(activeTable);
- }
- $('loginForm').addEventListener('submit',async e=>{
-   e.preventDefault();const email=$('email').value.trim();const b=$('sendLink');b.disabled=true;b.textContent='Sending secure link…';
-   try{const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;$('loginMsg').textContent='If this email is registered, a secure sign-in link has been sent. Open it on this device to continue.';toast('Check your email for the sign-in link.')}
-   catch(err){$('loginMsg').textContent='Could not send sign-in link: '+(err.message||'Please try again.')}
-   finally{b.disabled=false;b.textContent='Send secure sign-in link'}
- });
- async function loadStats(){
-   const checks=[['artists','artistCount'],['songs','songCount'],['promotions','promoCount'],['marketplace_orders','orderCount']];
-   for(const [table,id] of checks){const {count,error}=await client.from(table).select('*',{count:'exact',head:true});$(id).textContent=error?'—':String(count??0)}
- }
+ function showApp(){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('signedAs').textContent='PIN verified owner'}
+ $('showSetupBtn').addEventListener('click',()=>{$('setupForm').classList.remove('hidden');$('loginForm').classList.add('hidden');$('showSetupBtn').classList.add('hidden');$('loginMsg').textContent='Use your one-time setup key to create the PIN. Setup can only be completed once.'});
+ $('cancelSetupBtn').addEventListener('click',()=>{$('setupForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('showSetupBtn').classList.remove('hidden');$('loginMsg').textContent='Enter your owner PIN to sign in. No email link required.'});
+ $('setupForm').addEventListener('submit',async e=>{e.preventDefault();const pin=$('newPin').value,confirmPin=$('confirmPin').value;if(pin!==confirmPin){$('loginMsg').textContent='The two PIN entries do not match.';return}const b=$('setupBtn');b.disabled=true;b.textContent='Setting up securely…';try{await api('setup',{setupKey:$('setupKey').value.trim(),pin});$('setupForm').reset();$('setupForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('showSetupBtn').classList.add('hidden');$('loginMsg').textContent='Owner PIN created successfully. Enter it above to log in.';toast('PIN setup complete')}catch(err){$('loginMsg').textContent=err.message||'Could not set up PIN.'}finally{b.disabled=false;b.textContent='Set Owner PIN'}});
+ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('loginBtn');b.disabled=true;b.textContent='Verifying PIN…';try{const out=await api('login',{pin:$('pin').value});sessionToken=out.token;sessionStorage.setItem('alu_owner_pin_session',sessionToken);$('pin').value='';showApp();await loadStats();await loadTable(activeTable)}catch(err){$('loginMsg').textContent=err.message||'PIN sign-in failed.'}finally{b.disabled=false;b.textContent='Login to Owner Admin'}});
+ async function loadStats(){const out=await api('stats');for(const [key,id] of [['artistCount','artistCount'],['songCount','songCount'],['promoCount','promoCount'],['orderCount','orderCount']])$(id).textContent=out.stats[key]===null?'—':String(out.stats[key]??0)}
  function prettyKey(k){return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
- function rowActions(row){
-   if(activeTable==='artists'&&row.status==='pending')return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="danger" data-admin-action="reject" data-id="'+esc(row.id)+'">Reject</button>';
-   if(activeTable==='songs'&&['draft','approved','published'].includes(row.status))return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="quiet" data-admin-action="archive" data-id="'+esc(row.id)+'">Archive</button>';
-   if(activeTable==='promotions'&&['pending','active'].includes(row.status))return (row.status==='pending'?'<button class="primary" data-admin-action="activate" data-id="'+esc(row.id)+'">Activate</button>':'')+'<button class="danger" data-admin-action="cancel" data-id="'+esc(row.id)+'">Cancel</button>';
-   return '<span class="muted">—</span>';
- }
- async function performAdminAction(action,id,button){
-   const config={
-    artists:{approve:{status:'approved',label:'approve this artist'},reject:{status:'rejected',label:'reject this artist'}},
-    songs:{approve:{status:'approved',label:'approve this track'},archive:{status:'archived',label:'archive this track'}},
-    promotions:{activate:{status:'active',label:'activate this campaign'},cancel:{status:'cancelled',label:'cancel this campaign'}}
-   };
-   const choice=config[activeTable]?.[action];if(!choice||!id)return;
-   if(!confirm('Are you sure you want to '+choice.label+'?'))return;
-   button.disabled=true;
-   const {error}=await client.from(activeTable).update({status:choice.status,updated_at:new Date().toISOString()}).eq('id',id);
-   if(error){toast('Action failed: '+(error.message||'Permission denied'));button.disabled=false;return}
-   toast('Done — status updated');await loadTable(activeTable);await loadStats();
- }
- function renderRows(rows){
-   currentRows=rows||[];const wrap=$('tableWrap');
-   if(!currentRows.length){wrap.innerHTML='<div class="empty">No records returned for this section, or the table is empty.</div>';return}
-   const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))].slice(0,8);
-   wrap.innerHTML='<table><thead><tr>'+keys.map(k=>'<th>'+esc(prettyKey(k))+'</th>').join('')+'<th>Admin actions</th></tr></thead><tbody>'+currentRows.map(row=>'<tr>'+keys.map(k=>{let v=row[k];if(v&&typeof v==='object')v=JSON.stringify(v);if(typeof v==='string'&&v.length>180)v=v.slice(0,177)+'…';return '<td>'+esc(v===null?'—':v)+'</td>'}).join('')+'<td><div class="actions">'+rowActions(row)+'</div></td></tr>').join('')+'</tbody></table>';
- }
- async function loadTable(table){
-   activeTable=table;$('tableTitle').textContent=labels[table][0];$('tableDesc').textContent=labels[table][1];$('tableStatus').textContent='Loading…';$('tableWrap').innerHTML='<div class="empty">Fetching records securely…</div>';
-   document.querySelectorAll('[data-table]').forEach(b=>b.classList.toggle('active',b.dataset.table===table));
-   const {data,error}=await client.from(table).select('*').limit(100);
-   if(error){currentRows=[];$('tableStatus').textContent='Could not read this table with current database permissions.';$('tableWrap').innerHTML='<div class="empty">'+esc(error.message||'Access denied or table unavailable.')+'</div>';return}
-   $('tableStatus').textContent=currentRows.length+' records loaded · Showing up to 100';renderRows(data||[]);$('tableStatus').textContent=(data||[]).length+' records loaded · Showing up to 100';
- }
+ function rowActions(row){if(activeTable==='artists'&&row.status==='pending')return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="danger" data-admin-action="reject" data-id="'+esc(row.id)+'">Reject</button>';if(activeTable==='songs'&&['draft','approved','published'].includes(row.status))return '<button class="primary" data-admin-action="approve" data-id="'+esc(row.id)+'">Approve</button><button class="quiet" data-admin-action="archive" data-id="'+esc(row.id)+'">Archive</button>';if(activeTable==='promotions'&&['pending','active'].includes(row.status))return (row.status==='pending'?'<button class="primary" data-admin-action="activate" data-id="'+esc(row.id)+'">Activate</button>':'')+'<button class="danger" data-admin-action="cancel" data-id="'+esc(row.id)+'">Cancel</button>';return '<span class="muted">—</span>'}
+ async function performAdminAction(operation,id,button){const config={artists:{approve:'approved',reject:'rejected'},songs:{approve:'approved',archive:'archived'},promotions:{activate:'active',cancel:'cancelled'}};const status=config[activeTable]?.[operation];if(!status||!id)return;if(!confirm('Confirm '+operation+' for this '+activeTable.slice(0,-1)+'?'))return;button.disabled=true;try{await api('update',{table:activeTable,id,operation,status});toast('Done — status updated');await loadTable(activeTable);await loadStats()}catch(err){toast(err.message||'Action failed');button.disabled=false}}
+ function renderRows(rows){currentRows=rows||[];const wrap=$('tableWrap');if(!currentRows.length){wrap.innerHTML='<div class="empty">No records returned for this section, or the table is empty.</div>';return}const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))].slice(0,8);wrap.innerHTML='<table><thead><tr>'+keys.map(k=>'<th>'+esc(prettyKey(k))+'</th>').join('')+'<th>Admin actions</th></tr></thead><tbody>'+currentRows.map(row=>'<tr>'+keys.map(k=>{let v=row[k];if(v&&typeof v==='object')v=JSON.stringify(v);if(typeof v==='string'&&v.length>180)v=v.slice(0,177)+'…';return '<td>'+esc(v===null?'—':v)+'</td>'}).join('')+'<td><div class="actions">'+rowActions(row)+'</div></td></tr>').join('')+'</tbody></table>'}
+ async function loadTable(table){activeTable=table;$('tableTitle').textContent=labels[table][0];$('tableDesc').textContent=labels[table][1];$('tableStatus').textContent='Loading…';$('tableWrap').innerHTML='<div class="empty">Fetching records securely…</div>';document.querySelectorAll('[data-table]').forEach(b=>b.classList.toggle('active',b.dataset.table===table));try{const out=await api('list',{table});renderRows(out.rows);$('tableStatus').textContent+='';
+ $('tableStatus').textContent=currentRows.length+' records loaded · Showing up to 100'}catch(err){currentRows=[];$('tableStatus').textContent='Could not load records.';$('tableWrap').innerHTML='<div class="empty">'+esc(err.message||'Request failed.')+'</div>'}}
  $('tableWrap').addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b)performAdminAction(b.dataset.adminAction,b.dataset.id,b)});
- $('loadBtn').addEventListener('click',()=>loadTable(activeTable));
- $('refreshBtn').addEventListener('click',async()=>{await loadStats();await loadTable(activeTable);toast('Dashboard refreshed')});
+ $('loadBtn').addEventListener('click',()=>loadTable(activeTable));$('refreshBtn').addEventListener('click',async()=>{try{await loadStats();await loadTable(activeTable);toast('Dashboard refreshed')}catch(err){toast(err.message||'Refresh failed')}});
  document.querySelectorAll('[data-table]').forEach(b=>b.addEventListener('click',()=>loadTable(b.dataset.table)));
- $('exportBtn').addEventListener('click',()=>{
-   if(!currentRows.length){toast('No records to export yet');return}
-   const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))];const cell=v=>'"'+String(v==null?'':typeof v==='object'?JSON.stringify(v):v).replace(/"/g,'""')+'"';
-   const csv=[keys.map(cell).join(','),...currentRows.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n');
-   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='artist-level-up-'+activeTable+'.csv';a.click();URL.revokeObjectURL(url);
- });
- $('signOutBtn').addEventListener('click',async()=>{await client.auth.signOut();showLogin('You have signed out of Owner Admin.')});
- client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')showLogin()});
- client.auth.getSession().then(({data})=>verifyAndStart(data.session));
-})();
-</script>
+ $('exportBtn').addEventListener('click',()=>{if(!currentRows.length){toast('No records to export yet');return}const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))];const cell=v=>'"'+String(v==null?'':typeof v==='object'?JSON.stringify(v):v).replace(/"/g,'""')+'"';const csv=[keys.map(cell).join(','),...currentRows.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='artist-level-up-'+activeTable+'.csv';a.click();URL.revokeObjectURL(url)});
+ $('signOutBtn').addEventListener('click',async()=>{try{await api('logout')}catch{}sessionToken='';sessionStorage.removeItem('alu_owner_pin_session');showLogin('You have signed out of Owner Admin.')});
+ if(sessionToken){api('stats').then(async()=>{showApp();await loadStats();await loadTable(activeTable)}).catch(()=>{sessionToken='';sessionStorage.removeItem('alu_owner_pin_session');showLogin('Your session expired. Enter your PIN to continue.')})}
+})();</script>
 </body></html>

@@ -936,6 +936,14 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 #studio.page.active .alu-vocal-clip{pointer-events:none!important}
 #studio.page.active .alu-vocal-header{z-index:12!important}
 </style>
+
+<style id="aluStreamingDistributionWorkflowV101">
+#creatorDistributionPanel #streamingSubmitButton{background:linear-gradient(135deg,#39d98a,#15803d);color:#07130b;font-weight:900}
+#creatorDistributionPanel #streamingMineList .card,#creatorDistributionPanel #streamingAdminQueue .card{overflow-wrap:anywhere}
+#creatorDistributionPanel #streamingAdminQueue input,#creatorDistributionPanel #streamingAdminQueue textarea,#creatorDistributionPanel #streamingAdminQueue select{margin:5px 0 9px}
+#creatorDistributionPanel #streamingAdminQueue a{color:#8ee8b7;text-decoration:underline}
+#creatorDistributionPanel #streamingAdminQueue .row,#creatorDistributionPanel #streamingMineList .row{align-items:flex-start;flex-wrap:wrap}
+</style>
 </head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">
@@ -2190,8 +2198,8 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
   });
   const streamingSubmitButton=document.getElementById('streamingSubmitButton');
   if(streamingSubmitButton)streamingSubmitButton.addEventListener('click',async()=>{try{await streamingUploadAndSubmit(getStreamingDraft(),streamingSubmitButton);}catch(e){const st=streamingStatus();if(st)st.textContent=e.message||'Could not submit the release. Your uploaded files may remain saved; retry submission.';}});
-  const streamingRefreshMine=document.getElementById('streamingRefreshMine');
-  if(streamingRefreshMine)streamingRefreshMine.addEventListener('click',streamingRefreshMineHandler);
+  const streamingRefreshMineButton=document.getElementById('streamingRefreshMine');
+  if(streamingRefreshMineButton)streamingRefreshMineButton.addEventListener('click',streamingRefreshMineHandler);
   async function streamingRefreshMineHandler(){await streamingRefreshMine();}
   const streamingAdminRefresh=document.getElementById('streamingAdminRefresh');
   if(streamingAdminRefresh)streamingAdminRefresh.addEventListener('click',streamingLoadAdmin);
@@ -7316,13 +7324,5 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
     });
   }
 })();
-
-<style id="aluStreamingDistributionWorkflowV101">
-#creatorDistributionPanel #streamingSubmitButton{background:linear-gradient(135deg,#39d98a,#15803d);color:#07130b;font-weight:900}
-#creatorDistributionPanel #streamingMineList .card,#creatorDistributionPanel #streamingAdminQueue .card{overflow-wrap:anywhere}
-#creatorDistributionPanel #streamingAdminQueue input,#creatorDistributionPanel #streamingAdminQueue textarea,#creatorDistributionPanel #streamingAdminQueue select{margin:5px 0 9px}
-#creatorDistributionPanel #streamingAdminQueue a{color:#8ee8b7;text-decoration:underline}
-#creatorDistributionPanel #streamingAdminQueue .row,#creatorDistributionPanel #streamingMineList .row{align-items:flex-start;flex-wrap:wrap}
-</style>
 </script>
 

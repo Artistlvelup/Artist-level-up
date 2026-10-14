@@ -5086,7 +5086,8 @@ function openCreatorTool(tool,e){
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
   document.querySelectorAll('#create .creator-tool-panel').forEach(function(el){el.style.display='none';});
-  var ids={music:'creatorMusicPanel',distribution:'creatorDistributionPanel',video:'creatorVideoPanel',picture:'creatorPicturePanel'};\n  var id=ids[tool]||'creatorMusicPanel';
+  var ids={music:'creatorMusicPanel',distribution:'creatorDistributionPanel',video:'creatorVideoPanel',picture:'creatorPicturePanel'};
+  var id=ids[tool]||'creatorMusicPanel';
   var panel=document.getElementById(id);
   if(panel) panel.style.display='block';
   if(tool==='video'&&typeof populateVideoSongPicker==='function')setTimeout(populateVideoSongPicker,40);

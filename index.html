@@ -1015,13 +1015,15 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
     <p class="tiny muted" style="margin:10px 0 0">A platform being selected does not mean the release has been delivered. Delivery requires an approved distributor/aggregator connection.</p><p class="tiny muted" id="distributionPlatformStatus" style="margin:6px 0 0">12 destinations selected.</p>
   </div>
   <div class="card" style="border:1px solid rgba(255,196,0,.35);margin-top:12px">
-    <h3 style="margin:0 0 6px">💳 Distribution fee</h3>
-    <p class="tiny muted" style="margin:0">Fee: <b>Admin quote required</b>. No payment will be taken in this draft step. The final fee and payment flow must be confirmed before launch.</p>
+    <h3 style="margin:0 0 6px">💳 Quote &amp; Secure Payment</h3>
+    <p class="tiny muted" style="margin:0">Submit your release and files securely. Admin will review the request and set the exact fee. Paystack checkout appears only after a quote is issued; payment is confirmed on the server before the request enters review.</p>
   </div>
   <label class="listrow" style="display:flex;align-items:flex-start;gap:10px;margin:12px 0"><input id="streamingRightsConfirm" type="checkbox" style="margin-top:4px"/><span>I confirm I have the rights or permission needed to distribute this recording and artwork.</span></label>
-  <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="streamingPreviewButton">Preview Request</button><button class="btn primary" type="button" id="streamingSaveDraftButton">Save Request Draft</button></div>
+  <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="streamingPreviewButton">Preview Request</button><button class="btn" type="button" id="streamingSaveDraftButton">Save Cloud Draft</button><button class="btn primary" type="button" id="streamingSubmitButton">Upload Files &amp; Submit to Admin</button></div>
   <div class="card" id="streamingRequestPreview" style="display:none;margin-top:12px;border:1px solid #38b78b"><h3 style="margin:0 0 8px">Request Preview</h3><div id="streamingRequestPreviewBody" class="tiny"></div></div>
-  <p class="tiny muted" id="streamingDraftStatus" role="status" style="margin-top:10px">Drafts are saved only in this browser. Admin review, cloud file upload, payment and platform delivery are not connected by this form yet.</p>
+  <div class="card" style="margin-top:12px"><div class="row between"><h3 style="margin:0">📦 My Distribution Requests</h3><button class="btn" type="button" id="streamingRefreshMine">Refresh</button></div><div id="streamingMineList" class="tiny muted" style="margin-top:10px">Sign in to view your saved requests and payment status.</div></div>
+  <div class="card" id="streamingAdminPanel" style="display:none;border:1px solid #ffd21c;margin-top:12px"><div class="row between"><div><span class="pill">OWNER / ADMIN</span><h3 style="margin:8px 0 0">Distribution Review Queue</h3></div><button class="btn" type="button" id="streamingAdminRefresh">Refresh queue</button></div><div id="streamingAdminQueue" class="tiny muted" style="margin-top:10px">Checking admin access…</div></div>
+  <p class="tiny muted" id="streamingDraftStatus" role="status" aria-live="polite" style="margin-top:10px">Your draft is stored securely in the cloud. Audio and artwork files upload when you submit. Platform delivery still requires an approved distributor/aggregator.</p>
 </div>
 <div class="card creator-tool-panel" id="creatorMusicPanel" style="display:none"><button class="btn" type="button" onclick="return showCreatorChoices(event)">← Back to Creator Room</button><h2>🎵 Artist Level Up Music Distributor</h2><p class="tiny muted">Upload your single, EP or album to Artist Level Up for review. Online streaming platform choices are managed in their own separate room.</p><label>Release type</label><select id="releaseType"><option value="Single">Single — one song</option><option value="EP">EP — multiple tracks</option><option value="Album">Album — multiple tracks</option></select><label id="releaseTitleLabel">Song title</label><input id="songTitle" placeholder="e.g. Bigger Dreams"/><p class="tiny muted" id="releaseTypeHelp">For a Single, choose one audio file. For an EP or Album, enter the project title and select all tracks together.</p><label>Genre</label><select id="songGenre"><option>Afrobeats</option><option>Amapiano</option><option>Hip-Hop</option><option>Gospel</option><option>Pop</option><option>R&amp;B</option><option>Latin</option><option>Highlife</option></select><label>Project / release cover art</label><div class="cover-art-size-note">Use square <b>1:1 artwork</b>. Recommended: <b>3000 × 3000 px</b>. One cover is applied to every track in this release.</div><div class="cover-upload-box" id="coverUploadBox"><div class="cover-upload-icon">🖼️</div><div><b>Upload release artwork</b><div class="tiny muted">Tap here to choose the cover image</div></div><input accept="image/*" aria-label="Upload release artwork" id="audioCoverFile" type="file"/></div><div class="art-preview" id="audioCoverPreview">🖼️<span class="tiny muted">No picture selected</span></div><label id="audioFilesLabel">Audio file</label><input accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" id="audioFile" type="file"/><p class="tiny muted" id="releaseTrackHelp">Choose one song file for a Single.</p><div class="card" id="releaseTrackPreview" style="display:none;margin:8px 0;padding:10px"><b>Selected tracks</b><ol id="releaseTrackList" style="margin:8px 0 0;padding-left:22px"></ol></div><button class="btn primary full" data-action="upload" type="button">Upload Release &amp; Submit for Review</button><p class="muted">Tracks are submitted for review individually and tagged with the release type and project title. Upload progress depends on your connection and available cloud storage.</p></div><div class="card creator-tool-panel" id="creatorPicturePanel" style="display:none"><button class="btn" type="button" onclick="return showCreatorChoices(event)">← Back to Creator Room</button><div class="row between"><div><span class="pill">🖼️ PICTURE &amp; ARTWORK</span><h2 style="margin:8px 0 4px">Picture &amp; Artwork Room</h2></div><span class="tiny muted">Separate room</span></div><p class="muted">This room is only for pictures, artwork and captions. Upload and manage your visual posts here.</p><label>Picture</label><input id="createPictureFile" accept="image/*" type="file"/><div id="createPicturePreview" class="card" style="display:none;padding:10px;margin:8px 0"><img id="createPicturePreviewImg" alt="Picture preview" style="width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:#08090c"/></div><label>Caption (optional)</label><textarea id="createPictureCaption" rows="3" placeholder="Write something about this picture..."></textarea><button class="btn primary full" type="button" data-action="createPictureUpload">🖼️ Upload Picture</button><p class="tiny muted" id="createPictureStatus"></p></div><div class="card creator-tool-panel" id="creatorVideoPanel" style="display:none"><button class="btn" type="button" onclick="showCreatorChoices()">← Back to Creator Room</button><h2>🎬 Upload a Video</h2><label>Artist name</label><input id="aluVideoArtistName" placeholder="Your artist name" readonly/><label>Video title</label><input id="aluVideoTitle" placeholder="e.g. My New Music Video"/><label>Video file</label><input id="aluVideoFile" accept="video/*" type="file"/><label>Attach the exact music you want this video to promote</label><select id="aluVideoSong"><option value="">Choose the song to promote</option></select><p class="tiny muted">When this video is published, viewers can tap 🎵 Music to open and stream the attached song.</p><div id="aluVideoFormatPreview" class="card" style="display:none;margin-top:10px;padding:10px"><video id="aluVideoUploadPreview" controls playsinline preload="metadata" style="width:100%;border-radius:12px;background:#050608;max-height:300px"></video></div><label>Description</label><textarea id="aluVideoDescription" rows="3" placeholder="Tell fans what this video is about"></textarea><label>Hashtags</label><input id="aluVideoHashtags" placeholder="#Afrobeats #NewMusic #ArtistLevelUp"/><button class="btn primary full" data-action="uploadArtistVideo" type="button">🎬 Upload Video</button><p class="tiny muted">New videos enter review first. Approved videos can appear in Discover.</p></div><div class="card" id="createUploadSummaryCard" style="display:none" style="border-color:#665b18;background:linear-gradient(135deg,#17180f,#15161c)"><div class="row between"><div><span class="pill">📦 ALL MY UPLOADS</span><h2 style="margin:8px 0 4px">Create Room</h2></div><span class="tiny muted">Music · Video · Picture</span></div><p class="muted">Everything you upload from this app is collected here in one place.</p><div id="createUploadSummary"></div></div><div class="card" style="display:none"><h2>My Catalogue</h2><div id="catalogue"></div></div></section>
 <section class="page" id="course"><span class="pill">🎓 ARTIST LEVEL UP ACADEMY</span><h1>Music Growth Course 🎥</h1><p class="muted">Watch the lessons, learn how to grow your music career, and continue from where you stopped.</p><div class="hero"><span class="pill">START LEARNING</span><h2 style="margin-top:10px">How to Blow &amp; Build Your Music Career</h2><p class="muted">15 practical lessons across 5 modules — from meaningful songwriting to promotion, branding and audience growth.</p><div class="grid3"><div class="stat"><span class="muted">Modules</span><b>5</b></div><div class="stat"><span class="muted">Lessons</span><b>15</b></div><div class="stat"><span class="muted">Format</span><b>Video</b></div></div></div><div class="card" id="courseFreePreviewCard" style="border:1px solid var(--gold);margin-bottom:12px"><span class="pill">🎬 FREE PREVIEW</span><h2 style="margin-top:8px">Module 1 · Lesson 1</h2><p class="muted">Try the first lesson free. The instructor must upload the lesson video before playback is available.</p><button type="button" class="btn primary full" data-action="previewFreeLesson">▶ Watch Free Preview</button><p class="tiny muted" style="margin-bottom:0">The remaining lessons require course access. Preview video hosting is currently device-local in this prototype.</p></div><div class="card" id="coursePurchaseCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#17180f,#15161c);margin-bottom:14px"><span class="pill">💳 FULL COURSE</span><h2 style="margin-top:10px">Full Course Access</h2><div style="font-size:30px;font-weight:900">₦15,000</div><p class="muted">One-time payment for all 15 video lessons across 5 modules. Pay once — unlock the entire course.</p><div class="tiny muted" id="courseAccessStatus" style="margin:8px 0"></div><div class="card" id="courseBankDetails" style="margin:10px 0;background:rgba(255,255,255,.03)"><b>🏦 Pay by bank transfer</b><div class="tiny muted" id="courseBankText" style="margin-top:6px">Owner bank details have not been set yet.</div></div><div id="coursePaymentForm"><label>Your name</label><input autocomplete="name" id="coursePayerName" placeholder="Full name"/><label>Your bank</label><input id="coursePayerBank" placeholder="Bank you paid from"/><label>Your account number</label><input id="coursePayerAccount" inputmode="numeric" placeholder="Account number"/><label>Payment reference (optional)</label><input id="coursePaymentRef" placeholder="Transfer reference / narration"/><button class="btn primary full" data-action="submitCoursePayment" type="button">💳 I Have Paid — Unlock Course</button></div></div><div class="card" id="coursePlayerCard" style="display:none"><div class="row between"><div class="grow"><span class="pill">NOW PLAYING</span><h2 id="coursePlayerTitle" style="margin-top:8px">Course lesson</h2></div><button class="iconbtn" data-action="closeCoursePlayer" type="button">✕</button></div><video controls="" id="courseVideoPlayer" playsinline="" preload="metadata" style="width:100%;margin-top:10px;border-radius:14px;background:#000;max-height:300px"></video><p class="tiny muted" id="coursePlayerMeta"></p></div><div class="card"><div class="row between"><div><span class="pill">INSTRUCTOR STUDIO</span><h2 style="margin-top:8px">Add Course Video</h2></div><span class="tiny muted">Owner tool</span></div><p class="muted">Upload a lesson video from your phone. The video is saved in this browser for testing and linked to the selected lesson.</p><label>Module</label><select id="courseModule"></select><label>Lesson</label><select id="courseLesson"></select><label>Video file</label><input accept="video/*" id="courseVideoFile" type="file"/><button class="btn primary full" data-action="uploadCourseVideo">🎥 Upload Course Video</button><p class="tiny muted">For the prototype, course videos stay on this device. Cloud video hosting will be connected before public launch.</p></div><div id="courseModules"></div></section><section class="page" id="pro"><span class="pill">💎 ARTIST PRO</span><h1>Artist Pro 💎</h1><div class="hero pro-v39-hero"><div class="row"><div class="grow"><span class="pill">₦2,500 / MONTH</span><h2 id="proHeadline">Tools built for your music career</h2><p class="muted">Get practical tools for promotion, analytics, releases and your artist profile — not just a Pro badge.</p></div><div style="font-size:34px">💎</div></div><span class="pill" id="proStatus">FREE PLAN</span><div class="tiny muted" id="proExpiryInfo" style="margin-top:8px"></div></div><div class="card" id="freeProComparison"><h2>Free vs Pro</h2><p class="muted">These are the intended plan differences. Features marked preview-only are not a promise of live audience data or paid promotion delivery.</p><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">Feature</th><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">Free</th><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">Pro</th></tr></thead><tbody><tr><td style="padding:9px;border-bottom:1px solid var(--line)">Artist profile</td><td style="padding:9px;border-bottom:1px solid var(--line)">✓ Basic</td><td style="padding:9px;border-bottom:1px solid var(--line)">✓ Enhanced profile tools</td></tr><tr><td style="padding:9px;border-bottom:1px solid var(--line)">Creator Room & Studio</td><td style="padding:9px;border-bottom:1px solid var(--line)">✓ Core tools</td><td style="padding:9px;border-bottom:1px solid var(--line)">✓ Pro workflow tools as available</td></tr><tr><td style="padding:9px;border-bottom:1px solid var(--line)">Analytics</td><td style="padding:9px;border-bottom:1px solid var(--line)">Basic activity</td><td style="padding:9px;border-bottom:1px solid var(--line)">Advanced analytics (prototype estimates)</td></tr><tr><td style="padding:9px;border-bottom:1px solid var(--line)">Promotion suite & release campaigns</td><td style="padding:9px;border-bottom:1px solid var(--line)">Basic access</td><td style="padding:9px;border-bottom:1px solid var(--line)">Pro tools; live delivery pending verification</td></tr><tr><td style="padding:9px">Subscription price</td><td style="padding:9px">₦0</td><td style="padding:9px">₦2,500/month · ₦25,000/year</td></tr></tbody></table></div><p class="tiny muted">Artist Pro payment is disabled in this preview. No charge should be taken until secure live payment verification is complete.</p></div><div class="grid"><div class="card"><h2>Monthly</h2><div class="pro-v39-price">₦2,500</div><p class="muted">30 days of Pro access</p><button type="button" class="btn primary full" data-action="upgradePro" data-plan="Monthly" data-price="2500" onclick="window.action('upgradePro',this);return false;">Upgrade to Pro</button></div><div class="card"><h2>Yearly</h2><div class="pro-v39-price">₦25,000</div><p class="muted">12 months · save ₦5,000</p><button type="button" class="btn primary full" data-action="upgradePro" data-plan="Yearly" data-price="25000" onclick="window.action('upgradePro',this);return false;">Upgrade Yearly</button></div></div><div class="card"><span class="pill">WHAT YOU GET</span><h2>Professional tools</h2><div class="pro-v39-check"><span>✓</span><div><b>Advanced Analytics</b><div class="muted">Review activity recorded inside Artist Level Up. External streaming statistics are not connected yet.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Promotion Suite</b><div class="muted">Create and manage music promotion campaigns from one place.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Release Campaigns</b><div class="muted">Prepare a focused promotion plan around a new song.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Pro Artist Profile</b><div class="muted">Present your artist identity with a dedicated Pro experience.</div></div></div><div class="pro-v39-check"><span>✓</span><div><b>Growth Resources</b><div class="muted">Access Pro-focused lessons and practical artist-growth guidance.</div></div></div></div><div class="pro-v39-grid"><div class="pro-v39-tool"><div class="pro-v39-icon">📊</div><h3>Analytics</h3><p class="muted">Review available in-app activity. Verified external play counts are not connected yet.</p><button type="button" class="btn blue" data-action="proTool" data-tool="analytics" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">🚀</div><h3>Promote</h3><p class="muted">Build a campaign for your music.</p><button type="button" class="btn green" data-action="proTool" data-tool="promote" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">🎯</div><h3>Release Campaign</h3><p class="muted">Get your next release ready for promotion.</p><button type="button" class="btn primary" data-action="proTool" data-tool="release" onclick="window.action('proTool',this);return false;">Open</button></div><div class="pro-v39-tool"><div class="pro-v39-icon">⭐</div><h3>Pro Profile</h3><p class="muted">Improve how your artist profile is presented.</p><button type="button" class="btn" data-action="proTool" data-tool="profile" onclick="window.action('proTool',this);return false;">Open</button></div></div><div class="card"><h2>Why Pro?</h2><div class="pro-v39-note"><b>Built around useful tools.</b><p class="muted" style="margin-bottom:0">Pro should help an artist do real work inside Artist Level Up. We will only promise features the platform can actually deliver.</p></div></div><div class="card"><p class="muted">Test mode: no real payment is taken yet. Payment processing and any live audience/analytics data will be connected and verified before public launch.</p></div></section><section class="page" id="dashboard"><span class="pill">ARTIST DASHBOARD</span><h1>Level Up Dashboard 📈</h1><p class="muted">Your artist control center — track your music, audience and growth from one place.</p><div class="grid3"><div class="stat"><span class="muted">Streams</span><b id="statStreams">0</b></div><div class="stat"><span class="muted">Followers</span><b id="statFollowers">0</b></div><div class="stat"><span class="muted">Earnings</span><b id="statEarn">₦0</b></div></div><div class="grid3"><div class="stat"><span class="muted">Likes</span><b id="statLikes">0</b></div><div class="stat"><span class="muted">Tracks</span><b id="statTracks">0</b></div><div class="stat"><span class="muted">Pro</span><b id="statPro">FREE</b></div></div><div class="card"><h2>📈 Growth</h2><p class="muted">Your performance snapshot updates as people interact with your catalogue.</p><div class="progress"><i id="growth"></i></div><p class="tiny muted" id="growthText">Keep sharing your music to grow.</p></div><div class="card dashboard-insights" id="dashboardInsightsCard"><div class="row between"><div><span class="pill">ARTIST INSIGHTS</span><h2 style="margin-top:8px">📊 Your Performance</h2></div><span class="tiny muted">Based on activity stored in the app</span></div><div class="grid3" style="margin-top:12px"><div class="stat"><span class="muted">Listeners*</span><b id="dashListeners">0</b></div><div class="stat"><span class="muted">Campaigns</span><b id="dashCampaigns">0</b></div><div class="stat"><span class="muted">Published</span><b id="dashPublished">0</b></div></div><div class="card" style="margin-top:12px;background:rgba(255,255,255,.025)"><div class="row between"><b>📈 Music activity</b><span class="tiny muted" id="dashActivityLabel">No activity yet</span></div><div id="dashActivityBars" style="margin-top:12px"></div></div><p class="tiny muted" style="margin:10px 0 0">*Listener count is an estimate for this prototype, based on available engagement data. Verified unique-listener analytics will be connected before public launch.</p></div><div class="card"><div class="row between"><div><h2>🔥 Top Songs</h2><p class="tiny muted">Your most-played tracks</p></div><span class="pill">TOP 5</span></div><div id="dashboardTopSongs"></div></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#17180f,#15161c)"><span class="pill">PROMOTE</span><h2 style="margin-top:10px">🚀 Promote Your Music</h2><p class="muted">Put your song in front of more listeners and create a campaign.</p><button class="btn primary full" data-go="promote">🚀 OPEN PROMOTE</button></div><div class="card"><h2>⚡ Quick Actions</h2><div class="grid"><button class="btn blue" data-go="promote">🚀 Promote</button><button class="btn primary" data-go="growthCenter">📈 Growth Center</button><button class="btn primary" data-go="videos">🎬 Upload Video</button><button class="btn" data-go="wallet">💰 Wallet</button><button class="btn" data-go="profile">👤 Profile</button><button class="btn" data-go="register">🎤 Register</button><button class="btn" data-go="create">🎵 Upload</button></div></div></section>
@@ -2051,83 +2053,180 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
   }
 
   const streamingDraftStoreKey='ALU_ONLINE_STREAMING_DRAFTS_V101';
+  const streamingCurrentDraftKey='ALU_STREAMING_CURRENT_DRAFT_V101';
   const streamingAudioInput=document.getElementById('streamingAudioFiles');
   const streamingArtworkInput=document.getElementById('streamingArtworkFile');
   const streamingArtworkPreview=document.getElementById('streamingArtworkPreview');
   const streamingArtworkImage=document.getElementById('streamingArtworkImage');
-  if(streamingAudioInput&&!streamingAudioInput.dataset.wired){
-    streamingAudioInput.dataset.wired='1';
-    streamingAudioInput.addEventListener('change',function(){
-      const files=Array.from(streamingAudioInput.files||[]);
-      const status=document.getElementById('streamingAudioStatus');
-      if(status)status.textContent=files.length?files.length+' audio file(s) selected: '+files.map(f=>f.name).join(', ')+'. Files are not uploaded by this draft form.':'Choose the final audio master(s). Selected files are not uploaded to a server by this draft form.';
-    });
-  }
-  if(streamingArtworkInput&&!streamingArtworkInput.dataset.wired){
-    streamingArtworkInput.dataset.wired='1';
-    streamingArtworkInput.addEventListener('change',function(){
-      const file=streamingArtworkInput.files&&streamingArtworkInput.files[0];
-      if(!file){if(streamingArtworkPreview)streamingArtworkPreview.style.display='none';return;}
-      if(!file.type||!file.type.startsWith('image/')){alert('Please choose an image file for the release artwork.');streamingArtworkInput.value='';return;}
-      if(streamingArtworkImage)streamingArtworkImage.src=URL.createObjectURL(file);
-      if(streamingArtworkPreview)streamingArtworkPreview.style.display='block';
-    });
+  const streamingStatus=()=>document.getElementById('streamingDraftStatus');
+  const streamingClient=()=>window.ALU_SUPABASE_CLIENT;
+  const streamSafe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  async function streamingInvoke(body){
+    const client=streamingClient();
+    if(!client)throw new Error('Secure connection is not ready. Refresh the page and sign in again.');
+    const {data,error}=await client.functions.invoke('streaming-distribution',{body});
+    if(error)throw new Error(error.message||'Could not connect to the secure distribution service.');
+    if(!data?.ok)throw new Error(data?.error||'The distribution service could not complete this step.');
+    return data;
   }
   function getStreamingDraft(){
     const platforms=Array.from(document.querySelectorAll('input[name="distributionPlatform"]:checked')).map(b=>b.value);
-    const audio=Array.from(document.getElementById('streamingAudioFiles')?.files||[]).map(f=>({name:f.name,size:f.size,type:f.type}));
-    const artwork=document.getElementById('streamingArtworkFile')?.files?.[0];
-    return {id:'streaming-'+Date.now(),createdAt:new Date().toISOString(),artistName:document.getElementById('streamingArtistName')?.value.trim()||'',releaseTitle:document.getElementById('streamingReleaseTitle')?.value.trim()||'',releaseType:document.getElementById('streamingReleaseType')?.value||'Single',genre:document.getElementById('streamingGenre')?.value||'Afrobeats',releaseDate:document.getElementById('streamingReleaseDate')?.value||'',audioFiles:audio,artwork:artwork?{name:artwork.name,size:artwork.size,type:artwork.type}:null,platforms,explicitContent:document.getElementById('streamingExplicitContent')?.value||'No',notes:document.getElementById('streamingNotes')?.value.trim()||'',rightsConfirmed:!!document.getElementById('streamingRightsConfirm')?.checked,feeStatus:'Admin quote required',status:'Draft — not submitted to admin'};
+    const audio=Array.from(streamingAudioInput?.files||[]).map(f=>({name:f.name,size:f.size,type:f.type||'audio/mpeg'}));
+    const artwork=streamingArtworkInput?.files?.[0];
+    return {artistName:document.getElementById('streamingArtistName')?.value.trim()||'',releaseTitle:document.getElementById('streamingReleaseTitle')?.value.trim()||'',releaseType:document.getElementById('streamingReleaseType')?.value||'Single',genre:document.getElementById('streamingGenre')?.value||'Afrobeats',releaseDate:document.getElementById('streamingReleaseDate')?.value||'',audioFiles:audio,artwork:artwork?{name:artwork.name,size:artwork.size,type:artwork.type||'image/jpeg'}:null,platforms,explicitContent:document.getElementById('streamingExplicitContent')?.value||'No',notes:document.getElementById('streamingNotes')?.value.trim()||'',rightsConfirmed:!!document.getElementById('streamingRightsConfirm')?.checked};
   }
-  function renderStreamingDraftPreview(draft){
-    const box=document.getElementById('streamingRequestPreview');
-    const body=document.getElementById('streamingRequestPreviewBody');
+  function renderStreamingDraftPreview(d){
+    const box=document.getElementById('streamingRequestPreview'),body=document.getElementById('streamingRequestPreviewBody');
     if(!box||!body)return;
-    const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    body.innerHTML='<p><b>Artist:</b> '+safe(draft.artistName||'Not entered')+'</p><p><b>Release:</b> '+safe(draft.releaseTitle||'Not entered')+' ('+safe(draft.releaseType)+')</p><p><b>Genre:</b> '+safe(draft.genre)+'</p><p><b>Preferred date:</b> '+safe(draft.releaseDate||'Not set')+'</p><p><b>Audio files:</b> '+safe(draft.audioFiles.map(f=>f.name).join(', ')||'None selected')+'</p><p><b>Artwork:</b> '+safe(draft.artwork?.name||'None selected')+'</p><p><b>Platforms:</b> '+safe(draft.platforms.join(', ')||'None selected')+'</p><p><b>Explicit content:</b> '+safe(draft.explicitContent)+'</p><p><b>Rights confirmed:</b> '+(draft.rightsConfirmed?'Yes':'No')+'</p><p><b>Fee:</b> Admin quote required</p><p><b>Notes:</b> '+safe(draft.notes||'None')+'</p><p><b>Status:</b> Draft only; not sent to admin.</p>';
+    body.innerHTML='<p><b>Artist:</b> '+streamSafe(d.artistName||'Not entered')+'</p><p><b>Release:</b> '+streamSafe(d.releaseTitle||'Not entered')+' ('+streamSafe(d.releaseType)+')</p><p><b>Genre:</b> '+streamSafe(d.genre)+'</p><p><b>Preferred date:</b> '+streamSafe(d.releaseDate||'Not set')+'</p><p><b>Audio:</b> '+streamSafe((d.audioFiles||[]).map(f=>f.name).join(', ')||'None selected')+'</p><p><b>Artwork:</b> '+streamSafe(d.artwork?.name||'None selected')+'</p><p><b>Platforms:</b> '+streamSafe((d.platforms||[]).join(', ')||'None selected')+'</p><p><b>Explicit content:</b> '+streamSafe(d.explicitContent)+'</p><p><b>Rights confirmed:</b> '+(d.rightsConfirmed?'Yes':'No')+'</p><p><b>Fee:</b> Set by admin after review</p><p><b>Notes:</b> '+streamSafe(d.notes||'None')+'</p>';
     box.style.display='block';
   }
+  function streamingFormCheck(d,needFiles=true){
+    if(!d.artistName||!d.releaseTitle)throw new Error('Enter the artist name and release title.');
+    if(!d.platforms.length)throw new Error('Choose at least one streaming platform.');
+    if(!d.rightsConfirmed)throw new Error('Confirm you have the rights to distribute this release.');
+    if(needFiles&&!d.audioFiles.length)throw new Error('Choose at least one audio master.');
+    if(d.releaseType==='Single'&&d.audioFiles.length!==1)throw new Error('A Single must contain exactly one audio track.');
+    if(['EP','Album'].includes(d.releaseType)&&d.audioFiles.length<2)throw new Error('An EP or Album must contain at least two audio tracks.');
+    if(needFiles&&!d.artwork)throw new Error('Choose your release artwork.');
+    if(d.audioFiles.some(f=>f.size<=0||f.size>262144000||!String(f.type).startsWith('audio/')))throw new Error('Each audio file must be a valid audio file no larger than 250 MB.');
+    if(d.artwork&&(d.artwork.size<=0||d.artwork.size>15728640||!String(d.artwork.type).startsWith('image/')))throw new Error('Artwork must be an image no larger than 15 MB.');
+  }
+  async function streamingGetUser(){
+    const c=streamingClient();if(!c)throw new Error('Secure connection is not ready.');
+    const {data,error}=await c.auth.getUser();if(error||!data?.user)throw new Error('Please sign in to Artist Level Up first.');
+    return data.user;
+  }
+  async function streamingCreateDraft(d){
+    const result=await streamingInvoke({operation:'create_draft',artist_name:d.artistName,release_title:d.releaseTitle,release_type:d.releaseType,genre:d.genre,preferred_release_date:d.releaseDate||null,explicit_content:d.explicitContent,notes:d.notes,platforms:d.platforms,audio_files:d.audioFiles,rights_confirmed:d.rightsConfirmed});
+    localStorage.setItem(streamingCurrentDraftKey,result.request.id);
+    return result.request.id;
+  }
+  async function streamingUploadAndSubmit(d,button){
+    streamingFormCheck(d,true);
+    const status=streamingStatus(),client=streamingClient(),user=await streamingGetUser();
+    button.disabled=true;const old=button.textContent;button.textContent='PREPARING SECURE UPLOAD…';
+    try{
+      let id=localStorage.getItem(streamingCurrentDraftKey)||'';
+      if(!id){
+        id=await streamingCreateDraft(d);
+      }else{
+        const {data:mine,error}=await client.functions.invoke('streaming-distribution',{body:{operation:'list_mine'}});
+        if(error||!mine?.ok||!(mine.requests||[]).some(r=>r.id===id&&r.status==='draft'))id=await streamingCreateDraft(d);
+      }
+      const bucket=client.storage.from('streaming-releases'),audioFiles=[];
+      for(let i=0;i<d.audioFiles.length;i++){
+        const file=streamingAudioInput.files[i],name=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||('track-'+(i+1)+'.mp3');
+        const path=user.id+'/'+id+'/audio/'+crypto.randomUUID()+'-'+name;
+        if(status)status.textContent='Uploading audio '+(i+1)+' of '+d.audioFiles.length+'… Keep this page open until upload finishes.';
+        const {error}=await bucket.upload(path,file,{upsert:false,contentType:file.type||'audio/mpeg',cacheControl:'3600'});
+        if(error)throw new Error('Audio upload failed ('+file.name+'): '+error.message);
+        audioFiles.push({path,name:file.name,size:file.size,type:file.type||'audio/mpeg'});
+      }
+      const art=streamingArtworkInput.files[0],artName=art.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||'cover.jpg';
+      const artworkPath=user.id+'/'+id+'/artwork/'+crypto.randomUUID()+'-'+artName;
+      if(status)status.textContent='Uploading release artwork…';
+      const {error:artError}=await bucket.upload(artworkPath,art,{upsert:false,contentType:art.type||'image/jpeg',cacheControl:'3600'});
+      if(artError)throw new Error('Artwork upload failed: '+artError.message);
+      if(status)status.textContent='Verifying uploaded files and submitting to admin…';
+      const submitted=await streamingInvoke({operation:'submit',request_id:id,audio_files:audioFiles,artwork_path:artworkPath});
+      localStorage.removeItem(streamingCurrentDraftKey);
+      if(status)status.textContent='Release submitted successfully. Your files are stored securely and the request is now in the admin review queue. The fee will be quoted before payment.';
+      await streamingRefreshMine();renderStreamingDraftPreview(d);
+      return submitted;
+    }finally{button.disabled=false;button.textContent=old;}
+  }
+  async function streamingRefreshMine(){
+    const box=document.getElementById('streamingMineList');if(!box)return;
+    box.textContent='Loading your distribution requests…';
+    try{
+      const result=await streamingInvoke({operation:'list_mine'}),rows=result.requests||[];
+      if(!rows.length){box.innerHTML='No cloud requests yet. Save a cloud draft or submit a release above.';return;}
+      box.innerHTML=rows.map(r=>{
+        const fee=r.quote_amount_minor&&r.quote_currency==='NGN'?'₦'+(Number(r.quote_amount_minor)/100).toLocaleString('en-NG',{maximumFractionDigits:2}):'Awaiting admin quote';
+        const statusLabel=String(r.status||'').replace(/_/g,' ');
+        let action='';
+        if(r.status==='quoted')action='<button class="btn primary full" data-streaming-pay="'+streamSafe(r.id)+'">Pay '+streamSafe(fee)+' securely</button>';
+        if(r.status==='draft')action='<p class="tiny muted">Draft saved. Select the files again above and submit to upload them.</p>';
+        return '<div class="card" style="margin:8px 0;padding:12px"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(statusLabel)+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Fee:</b> '+streamSafe(fee)+'</p>'+(r.admin_note?'<p class="tiny muted"><b>Admin note:</b> '+streamSafe(r.admin_note)+'</p>':'')+action+'</div>';
+      }).join('');
+    }catch(e){box.textContent=e.message||'Could not load your requests.';}
+  }
+  async function streamingPayRequest(id,button){
+    const status=streamingStatus();button.disabled=true;button.textContent='CONNECTING TO PAYSTACK…';
+    try{const r=await streamingInvoke({operation:'checkout',request_id:id});if(!r.authorization_url)throw new Error('Paystack did not return a checkout link.');if(status)status.textContent='Opening secure Paystack checkout…';window.location.href=r.authorization_url;}
+    catch(e){if(status)status.textContent=e.message||'Could not start payment.';button.disabled=false;button.textContent='Retry secure payment';}
+  }
+  async function streamingLoadAdmin(){
+    const panel=document.getElementById('streamingAdminPanel'),box=document.getElementById('streamingAdminQueue');
+    if(!panel||!box)return;
+    try{
+      const allowed=await window.ALU_REQUIRE_SERVER_ADMIN?.();
+      if(!allowed){panel.style.display='none';return;}
+      panel.style.display='block';box.textContent='Loading admin queue…';
+      const result=await streamingInvoke({operation:'admin_list'}),rows=result.requests||[];
+      if(!rows.length){box.innerHTML='No streaming distribution requests have been submitted yet.';return;}
+      box.innerHTML=rows.map(r=>{
+        const fee=r.quote_amount_minor&&r.quote_currency==='NGN'?'₦'+(Number(r.quote_amount_minor)/100).toLocaleString('en-NG',{maximumFractionDigits:2}):'Not quoted';
+        const files=Object.entries(r.signed_files||{}).map(([path,url])=>'<a href="'+streamSafe(url)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 8px 4px 0">'+(String(path).includes('/artwork/')?'Open artwork':'Open audio file')+'</a>').join('');
+        const quoteBox=['submitted','draft','quoted'].includes(r.status)?'<label>Distribution fee (NGN)</label><input type="number" min="100" max="10000000" step="1" id="streamingQuote-'+streamSafe(r.id)+'" value="'+(r.quote_amount_minor?Number(r.quote_amount_minor)/100:'')+'" placeholder="Enter fee in naira"/><label>Admin note</label><textarea id="streamingNote-'+streamSafe(r.id)+'" rows="2" placeholder="Explain the quote or next step">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn primary full" data-streaming-quote="'+streamSafe(r.id)+'">Send / Update Quote</button>':'';
+        const statusBox=['paid','in_review'].includes(r.status)?'<label>Review status</label><select id="streamingState-'+streamSafe(r.id)+'"><option value="in_review" '+(r.status==='in_review'?'selected':'')+'>In review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><label>Admin note</label><textarea id="streamingReviewNote-'+streamSafe(r.id)+'" rows="2">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn full" data-streaming-status="'+streamSafe(r.id)+'">Save review status</button>':'';
+        return '<div class="card" style="margin:10px 0;padding:12px;border-color:#3d624f"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(String(r.status).replace(/_/g,' '))+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe(r.genre)+' · '+streamSafe(r.user_id)+'</p><p><b>Platforms:</b> '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Explicit:</b> '+streamSafe(r.explicit_content)+' · <b>Preferred date:</b> '+streamSafe(r.preferred_release_date||'Not set')+'</p><p><b>Current fee:</b> '+streamSafe(fee)+'</p><p class="tiny">'+streamSafe(r.notes||'No release notes')+'</p><div>'+files+'</div>'+quoteBox+statusBox+'</div>';
+      }).join('');
+    }catch(e){panel.style.display='block';box.textContent=e.message||'Could not load the admin queue.';}
+  }
   const streamingPreviewButton=document.getElementById('streamingPreviewButton');
-  if(streamingPreviewButton&&!streamingPreviewButton.dataset.wired){streamingPreviewButton.dataset.wired='1';streamingPreviewButton.addEventListener('click',function(){renderStreamingDraftPreview(getStreamingDraft());});}
+  if(streamingPreviewButton)streamingPreviewButton.addEventListener('click',()=>renderStreamingDraftPreview(getStreamingDraft()));
   const streamingSaveDraftButton=document.getElementById('streamingSaveDraftButton');
-  if(streamingSaveDraftButton&&!streamingSaveDraftButton.dataset.wired){
-    streamingSaveDraftButton.dataset.wired='1';
-    streamingSaveDraftButton.addEventListener('click',function(){
-      const draft=getStreamingDraft();
-      const status=document.getElementById('streamingDraftStatus');
-      if(!draft.artistName||!draft.releaseTitle){if(status)status.textContent='Please enter the artist name and release title before saving the draft.';return;}
-      if(!draft.platforms.length){if(status)status.textContent='Choose at least one streaming platform before saving the draft.';return;}
-      if(!draft.rightsConfirmed){if(status)status.textContent='Please confirm you have the rights to distribute this recording and artwork.';return;}
-      try{
-        const old=JSON.parse(localStorage.getItem(streamingDraftStoreKey)||'[]');
-        const drafts=Array.isArray(old)?old:[];
-        drafts.unshift(draft);
-        localStorage.setItem(streamingDraftStoreKey,JSON.stringify(drafts.slice(0,25)));
-        if(status)status.textContent='Draft saved in this browser only. It has NOT been sent to admin and no audio/artwork file bytes were uploaded.';
-        renderStreamingDraftPreview(draft);
-      }catch(err){if(status)status.textContent='Could not save this browser draft. Please check available browser storage and try again.';}
-    });
-  }
-  const distributionSelectAll=document.getElementById('distributionSelectAll');
-  if(distributionSelectAll&&!distributionSelectAll.dataset.wired){
-    distributionSelectAll.dataset.wired='1';
-    distributionSelectAll.addEventListener('click',function(){
-      const boxes=Array.from(document.querySelectorAll('input[name="distributionPlatform"]'));
-      const selectAll=boxes.some(b=>!b.checked);
-      boxes.forEach(b=>b.checked=selectAll);
-      distributionSelectAll.textContent=selectAll?'Select none':'Select all';
-      const status=document.getElementById('distributionPlatformStatus');
-      if(status)status.textContent=boxes.filter(b=>b.checked).length+' destinations selected.';
-    });
-  }
-  document.querySelectorAll('input[name="distributionPlatform"]').forEach(function(box){
-    box.addEventListener('change',function(){
-      const boxes=Array.from(document.querySelectorAll('input[name="distributionPlatform"]'));
-      const status=document.getElementById('distributionPlatformStatus');
-      if(status)status.textContent=boxes.filter(b=>b.checked).length+' destinations selected.';
-      if(distributionSelectAll)distributionSelectAll.textContent=boxes.every(b=>b.checked)?'Select none':'Select all';
-    });
+  if(streamingSaveDraftButton)streamingSaveDraftButton.addEventListener('click',async()=>{
+    const d=getStreamingDraft(),status=streamingStatus(),button=streamingSaveDraftButton;
+    try{
+      streamingFormCheck(d,false);button.disabled=true;button.textContent='SAVING CLOUD DRAFT…';
+      const id=await streamingCreateDraft(d);
+      if(status)status.textContent='Cloud draft saved securely. No payment has been taken. Audio/artwork files upload when you submit the release.';
+      renderStreamingDraftPreview(d);await streamingRefreshMine();
+    }catch(e){if(status)status.textContent=e.message||'Could not save cloud draft.';}
+    finally{button.disabled=false;button.textContent='Save Cloud Draft';}
   });
+  const streamingSubmitButton=document.getElementById('streamingSubmitButton');
+  if(streamingSubmitButton)streamingSubmitButton.addEventListener('click',async()=>{try{await streamingUploadAndSubmit(getStreamingDraft(),streamingSubmitButton);}catch(e){const st=streamingStatus();if(st)st.textContent=e.message||'Could not submit the release. Your uploaded files may remain saved; retry submission.';}});
+  const streamingRefreshMine=document.getElementById('streamingRefreshMine');
+  if(streamingRefreshMine)streamingRefreshMine.addEventListener('click',streamingRefreshMineHandler);
+  async function streamingRefreshMineHandler(){await streamingRefreshMine();}
+  const streamingAdminRefresh=document.getElementById('streamingAdminRefresh');
+  if(streamingAdminRefresh)streamingAdminRefresh.addEventListener('click',streamingLoadAdmin);
+  document.addEventListener('click',function(e){
+    const pay=e.target.closest('[data-streaming-pay]');if(pay){e.preventDefault();streamingPayRequest(pay.dataset.streamingPay,pay);return;}
+    const quote=e.target.closest('[data-streaming-quote]');if(quote){e.preventDefault();(async()=>{const id=quote.dataset.streamingQuote,amount=Number(document.getElementById('streamingQuote-'+id)?.value),note=document.getElementById('streamingNote-'+id)?.value||'';quote.disabled=true;try{await streamingInvoke({operation:'quote',request_id:id,amount_ngn:amount,admin_note:note});await streamingLoadAdmin();await streamingRefreshMine();}catch(err){alert(err.message||'Could not send the quote.');quote.disabled=false;}})();return;}
+    const stateBtn=e.target.closest('[data-streaming-status]');if(stateBtn){e.preventDefault();(async()=>{const id=stateBtn.dataset.streamingStatus,status=document.getElementById('streamingState-'+id)?.value,note=document.getElementById('streamingReviewNote-'+id)?.value||'';stateBtn.disabled=true;try{await streamingInvoke({operation:'set_status',request_id:id,status,admin_note:note});await streamingLoadAdmin();await streamingRefreshMine();}catch(err){alert(err.message||'Could not update the review status.');stateBtn.disabled=false;}})();}
+  });
+  if(streamingAudioInput)streamingAudioInput.addEventListener('change',function(){
+    const files=Array.from(streamingAudioInput.files||[]),status=document.getElementById('streamingAudioStatus');
+    if(status)status.textContent=files.length?files.length+' audio file(s) selected. Files upload securely when you submit.':'Choose the final audio master(s).';
+  });
+  if(streamingArtworkInput)streamingArtworkInput.addEventListener('change',function(){
+    const file=streamingArtworkInput.files?.[0];if(!file){if(streamingArtworkPreview)streamingArtworkPreview.style.display='none';return;}
+    if(!file.type.startsWith('image/')){alert('Please choose an image file.');streamingArtworkInput.value='';return;}
+    if(streamingArtworkImage)streamingArtworkImage.src=URL.createObjectURL(file);if(streamingArtworkPreview)streamingArtworkPreview.style.display='block';
+  });
+  const distributionSelectAll=document.getElementById('distributionSelectAll');
+  if(distributionSelectAll)distributionSelectAll.addEventListener('click',function(){
+    const boxes=Array.from(document.querySelectorAll('input[name="distributionPlatform"]')),selectAll=boxes.some(b=>!b.checked);
+    boxes.forEach(b=>b.checked=selectAll);distributionSelectAll.textContent=selectAll?'Select none':'Select all';
+    const status=document.getElementById('distributionPlatformStatus');if(status)status.textContent=boxes.filter(b=>b.checked).length+' destinations selected.';
+  });
+  document.querySelectorAll('input[name="distributionPlatform"]').forEach(box=>box.addEventListener('change',function(){
+    const boxes=Array.from(document.querySelectorAll('input[name="distributionPlatform"]')),status=document.getElementById('distributionPlatformStatus');
+    if(status)status.textContent=boxes.filter(b=>b.checked).length+' destinations selected.';
+    if(distributionSelectAll)distributionSelectAll.textContent=boxes.every(b=>b.checked)?'Select none':'Select all';
+  }));
+  if(new URLSearchParams(location.search).get('streaming_payment')==='paid'){
+    const st=streamingStatus();if(st)st.textContent='Payment confirmed by the server. Your distribution request is marked PAID and ready for admin review.';
+    setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},900);
+  }else if(new URLSearchParams(location.search).get('streaming_payment')==='failed'){
+    const st=streamingStatus();if(st)st.textContent='Payment was not confirmed. Do not pay again until you refresh My Distribution Requests and check the status.';
+  }
+  setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},1200);
   const createUpload=document.querySelector('#create button[data-action="upload"]');
   if(createUpload){
     createUpload.addEventListener('click',function(e){
@@ -7217,5 +7316,13 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
     });
   }
 })();
+
+<style id="aluStreamingDistributionWorkflowV101">
+#creatorDistributionPanel #streamingSubmitButton{background:linear-gradient(135deg,#39d98a,#15803d);color:#07130b;font-weight:900}
+#creatorDistributionPanel #streamingMineList .card,#creatorDistributionPanel #streamingAdminQueue .card{overflow-wrap:anywhere}
+#creatorDistributionPanel #streamingAdminQueue input,#creatorDistributionPanel #streamingAdminQueue textarea,#creatorDistributionPanel #streamingAdminQueue select{margin:5px 0 9px}
+#creatorDistributionPanel #streamingAdminQueue a{color:#8ee8b7;text-decoration:underline}
+#creatorDistributionPanel #streamingAdminQueue .row,#creatorDistributionPanel #streamingMineList .row{align-items:flex-start;flex-wrap:wrap}
+</style>
 </script>
 

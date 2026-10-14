@@ -2072,6 +2072,21 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
   async function streamingInvoke(body){
     const client=streamingClient();
     if(!client)throw new Error('Secure connection is not ready. Refresh the page and sign in again.');
+    // V101 fix: require a real registered cloud identity, not the temporary
+    // anonymous session used for public browsing. Keep the server-side check.
+    try{
+      const sessionResult=await client.auth.getSession();
+      const session=sessionResult?.data?.session||null;
+      const member=session?.user&&!session.user.is_anonymous&&String(session.user.email||'').trim();
+      if(!member){
+        try{window.ALU_MEMBER_GATE_V101?.openLogin?.()}catch(_){}
+        throw new Error('Your browser is not signed in to a registered Artist Level Up account. The Log In window is open. Enter your registered email, open the secure link from your inbox, then return here and try again.');
+      }
+    }catch(sessionError){
+      if(sessionError instanceof Error && /not signed in to a registered Artist Level Up account/.test(sessionError.message))throw sessionError;
+      try{window.ALU_MEMBER_GATE_V101?.openLogin?.()}catch(_){}
+      throw new Error('We could not confirm your registered sign-in. Please log in with your registered email, open the secure link from your inbox, then retry.');
+    }
     const {data,error}=await client.functions.invoke('streaming-distribution',{body});
     if(error){let message=error.message||'Could not connect to the secure distribution service.';try{const detail=await error.context.json();if(detail?.error)message=detail.error;}catch(_){}throw new Error(message);}
     if(!data?.ok)throw new Error(data?.error||'The distribution service could not complete this step.');

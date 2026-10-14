@@ -1,0 +1,21 @@
+name: Package V101 Test File
+on:
+  push:
+    branches:
+      - V101-MEGA-STREAMING-3-ADS-BEAT-PRICE-TEST-2026-10-14
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v6
+      - name: Upload test HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: artist-level-up-v101-test
+          path: index.html
+          if-no-files-found: error
+          retention-days: 7

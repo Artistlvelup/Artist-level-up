@@ -2106,7 +2106,11 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
     return data.user;
   }
   async function streamingCreateDraft(d){
-    const result=await streamingInvoke({operation:'create_draft',artist_name:d.artistName,release_title:d.releaseTitle,release_type:d.releaseType,genre:d.genre,preferred_release_date:d.releaseDate||null,explicit_content:d.explicitContent,notes:d.notes,platforms:d.platforms,audio_files:d.audioFiles,rights_confirmed:d.rightsConfirmed});
+    const existing=localStorage.getItem(streamingCurrentDraftKey)||'';
+    const payload={operation:'create_draft',request_id:existing||undefined,artist_name:d.artistName,release_title:d.releaseTitle,release_type:d.releaseType,genre:d.genre,preferred_release_date:d.releaseDate||null,explicit_content:d.explicitContent,notes:d.notes,platforms:d.platforms,audio_files:d.audioFiles,rights_confirmed:d.rightsConfirmed};
+    let result;
+    try{result=await streamingInvoke(payload);}
+    catch(e){if(existing&&/not found|already been submitted|can no longer be edited/i.test(e.message||'')){localStorage.removeItem(streamingCurrentDraftKey);delete payload.request_id;result=await streamingInvoke(payload);}else throw e;}
     localStorage.setItem(streamingCurrentDraftKey,result.request.id);
     return result.request.id;
   }
@@ -2155,10 +2159,36 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
         const statusLabel=String(r.status||'').replace(/_/g,' ');
         let action='';
         if(r.status==='quoted')action='<button class="btn primary full" data-streaming-pay="'+streamSafe(r.id)+'">Pay '+streamSafe(fee)+' securely</button>';
-        if(r.status==='draft')action='<p class="tiny muted">Draft saved. Select the files again above and submit to upload them.</p>';
+        if(r.status==='draft')action='<button class="btn full" data-streaming-resume="'+streamSafe(r.id)+'">Continue this draft</button><p class="tiny muted">Select the audio and artwork files again before submitting.</p>';
         return '<div class="card" style="margin:8px 0;padding:12px"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(statusLabel)+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Fee:</b> '+streamSafe(fee)+'</p>'+(r.admin_note?'<p class="tiny muted"><b>Admin note:</b> '+streamSafe(r.admin_note)+'</p>':'')+action+'</div>';
       }).join('');
     }catch(e){box.textContent=e.message||'Could not load your requests.';}
+  }
+  async function streamingResumeDraft(id){
+    const status=streamingStatus();
+    try{
+      const result=await streamingInvoke({operation:'list_mine'}),r=(result.requests||[]).find(x=>x.id===id&&x.status==='draft');
+      if(!r)throw new Error('This draft is no longer available. Refresh My Distribution Requests.');
+      localStorage.setItem(streamingCurrentDraftKey,r.id);
+      document.getElementById('streamingArtistName').value=r.artist_name||'';
+      document.getElementById('streamingReleaseTitle').value=r.release_title||'';
+      document.getElementById('streamingReleaseType').value=r.release_type||'Single';
+      document.getElementById('streamingGenre').value=r.genre||'Afrobeats';
+      document.getElementById('streamingReleaseDate').value=r.preferred_release_date||'';
+      document.getElementById('streamingExplicitContent').value=r.explicit_content||'No';
+      document.getElementById('streamingNotes').value=r.notes||'';
+      const selected=new Set(r.platforms||[]);
+      document.querySelectorAll('input[name="distributionPlatform"]').forEach(b=>b.checked=selected.has(b.value));
+      if(streamingAudioInput)streamingAudioInput.value='';
+      if(streamingArtworkInput)streamingArtworkInput.value='';
+      if(streamingArtworkPreview)streamingArtworkPreview.style.display='none';
+      const count=Array.isArray(r.audio_files)?r.audio_files.length:0;
+      const audioStatus=document.getElementById('streamingAudioStatus');
+      if(audioStatus)audioStatus.textContent=count?'Saved draft remembers '+count+' track(s), but select the original audio files again to upload them.':'Select the audio master(s) to upload.';
+      if(status)status.textContent='Draft loaded. Your text and platform choices have been restored. Select the audio and artwork files again, then tap Upload Files & Submit to Admin.';
+      window.openCreatorTool?.('distribution');
+      setTimeout(()=>document.getElementById('creatorDistributionPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+    }catch(e){if(status)status.textContent=e.message||'Could not restore this draft.';}
   }
   async function streamingPayRequest(id,button){
     const status=streamingStatus();button.disabled=true;button.textContent='CONNECTING TO PAYSTACK…';
@@ -2181,7 +2211,7 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
         const files=Object.entries(r.signed_files||{}).map(([path,url])=>'<a href="'+streamSafe(url)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 8px 4px 0">'+(String(path).includes('/artwork/')?'Open artwork':'Open audio file')+'</a>').join('');
         const quoteBox=['submitted','quoted'].includes(r.status)?'<label>Distribution fee (NGN)</label><input type="number" min="100" max="10000000" step="1" id="streamingQuote-'+streamSafe(r.id)+'" value="'+(r.quote_amount_minor?Number(r.quote_amount_minor)/100:'')+'" placeholder="Enter fee in naira"/><label>Admin note</label><textarea id="streamingNote-'+streamSafe(r.id)+'" rows="2" placeholder="Explain the quote or next step">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn primary full" data-streaming-quote="'+streamSafe(r.id)+'">Send / Update Quote</button>':'';
         const statusBox=['paid','in_review'].includes(r.status)?'<label>Review status</label><select id="streamingState-'+streamSafe(r.id)+'"><option value="in_review" '+(r.status==='in_review'?'selected':'')+'>In review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><label>Admin note</label><textarea id="streamingReviewNote-'+streamSafe(r.id)+'" rows="2">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn full" data-streaming-status="'+streamSafe(r.id)+'">Save review status</button>':'';
-        return '<div class="card" style="margin:10px 0;padding:12px;border-color:#3d624f"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(String(r.status).replace(/_/g,' '))+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe(r.genre)+' · '+streamSafe(r.user_id)+'</p><p><b>Platforms:</b> '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Explicit:</b> '+streamSafe(r.explicit_content)+' · <b>Preferred date:</b> '+streamSafe(r.preferred_release_date||'Not set')+'</p><p><b>Current fee:</b> '+streamSafe(fee)+'</p><p class="tiny">'+streamSafe(r.notes||'No release notes')+'</p><div>'+files+'</div>'+quoteBox+statusBox+'</div>';
+        return '<div class="card" style="margin:10px 0;padding:12px;border-color:#3d624f"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(String(r.status).replace(/_/g,' '))+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe(r.genre)+' · '+streamSafe(r.contact_email||r.user_id)+'</p><p><b>Platforms:</b> '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Explicit:</b> '+streamSafe(r.explicit_content)+' · <b>Preferred date:</b> '+streamSafe(r.preferred_release_date||'Not set')+'</p><p><b>Current fee:</b> '+streamSafe(fee)+'</p><p class="tiny">'+streamSafe(r.notes||'No release notes')+'</p><div>'+files+'</div>'+quoteBox+statusBox+'</div>';
       }).join('');
     }catch(e){panel.style.display='block';box.textContent=e.message||'Could not load the admin queue.';}
   }
@@ -2206,6 +2236,7 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
   const streamingAdminRefresh=document.getElementById('streamingAdminRefresh');
   if(streamingAdminRefresh)streamingAdminRefresh.addEventListener('click',streamingLoadAdmin);
   document.addEventListener('click',function(e){
+    const resume=e.target.closest('[data-streaming-resume]');if(resume){e.preventDefault();streamingResumeDraft(resume.dataset.streamingResume);return;}
     const pay=e.target.closest('[data-streaming-pay]');if(pay){e.preventDefault();streamingPayRequest(pay.dataset.streamingPay,pay);return;}
     const quote=e.target.closest('[data-streaming-quote]');if(quote){e.preventDefault();(async()=>{const id=quote.dataset.streamingQuote,amount=Number(document.getElementById('streamingQuote-'+id)?.value),note=document.getElementById('streamingNote-'+id)?.value||'';quote.disabled=true;try{await streamingInvoke({operation:'quote',request_id:id,amount_ngn:amount,admin_note:note});await streamingLoadAdmin();await streamingRefreshMine();}catch(err){alert(err.message||'Could not send the quote.');quote.disabled=false;}})();return;}
     const stateBtn=e.target.closest('[data-streaming-status]');if(stateBtn){e.preventDefault();(async()=>{const id=stateBtn.dataset.streamingStatus,status=document.getElementById('streamingState-'+id)?.value,note=document.getElementById('streamingReviewNote-'+id)?.value||'';stateBtn.disabled=true;try{await streamingInvoke({operation:'set_status',request_id:id,status,admin_note:note});await streamingLoadAdmin();await streamingRefreshMine();}catch(err){alert(err.message||'Could not update the review status.');stateBtn.disabled=false;}})();}

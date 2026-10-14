@@ -2073,7 +2073,7 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
     const client=streamingClient();
     if(!client)throw new Error('Secure connection is not ready. Refresh the page and sign in again.');
     const {data,error}=await client.functions.invoke('streaming-distribution',{body});
-    if(error)throw new Error(error.message||'Could not connect to the secure distribution service.');
+    if(error){let message=error.message||'Could not connect to the secure distribution service.';try{const detail=await error.context.json();if(detail?.error)message=detail.error;}catch(_){}throw new Error(message);}
     if(!data?.ok)throw new Error(data?.error||'The distribution service could not complete this step.');
     return data;
   }
@@ -2125,16 +2125,16 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
       const bucket=client.storage.from('streaming-releases'),audioFiles=[];
       for(let i=0;i<d.audioFiles.length;i++){
         const file=streamingAudioInput.files[i],name=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||('track-'+(i+1)+'.mp3');
-        const path=user.id+'/'+id+'/audio/'+crypto.randomUUID()+'-'+name;
+        const path=user.id+'/'+id+'/audio/track-'+(i+1)+'-'+name;
         if(status)status.textContent='Uploading audio '+(i+1)+' of '+d.audioFiles.length+'… Keep this page open until upload finishes.';
-        const {error}=await bucket.upload(path,file,{upsert:false,contentType:file.type||'audio/mpeg',cacheControl:'3600'});
+        const {error}=await bucket.upload(path,file,{upsert:true,contentType:file.type||'audio/mpeg',cacheControl:'3600'});
         if(error)throw new Error('Audio upload failed ('+file.name+'): '+error.message);
         audioFiles.push({path,name:file.name,size:file.size,type:file.type||'audio/mpeg'});
       }
       const art=streamingArtworkInput.files[0],artName=art.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||'cover.jpg';
       const artworkPath=user.id+'/'+id+'/artwork/'+crypto.randomUUID()+'-'+artName;
       if(status)status.textContent='Uploading release artwork…';
-      const {error:artError}=await bucket.upload(artworkPath,art,{upsert:false,contentType:art.type||'image/jpeg',cacheControl:'3600'});
+      const {error:artError}=await bucket.upload(artworkPath,art,{upsert:true,contentType:art.type||'image/jpeg',cacheControl:'3600'});
       if(artError)throw new Error('Artwork upload failed: '+artError.message);
       if(status)status.textContent='Verifying uploaded files and submitting to admin…';
       const submitted=await streamingInvoke({operation:'submit',request_id:id,audio_files:audioFiles,artwork_path:artworkPath});

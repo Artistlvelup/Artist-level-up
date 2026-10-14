@@ -6155,7 +6155,7 @@ function bindGptListeners(){
 }
 function beginRewardedRequest(){
   if(!pending||requestBusy)return;
-  requestBusy=true;granted=false;rewardedReadyEvent=null;countedThisAttempt=false;
+  requestBusy=true;granted=false;rewardedReadyEvent=null;rewardedVideoCompleted=false;rewardedSlotClosed=false;countedThisAttempt=false;
   if(!window.googletag||!googletag.cmd){requestBusy=false;setStatus('Ad service is loading. Tap Try Again in a moment.');resetRetry();return;}
   setWatchButton('Starting Ad…',true,null);setStatus('Starting the rewarded ad…');
   googletag.cmd.push(function(){

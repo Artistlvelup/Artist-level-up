@@ -2284,6 +2284,16 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
     const st=streamingStatus();if(st)st.textContent='Payment was not confirmed. Do not pay again until you refresh My Distribution Requests and check the status.';
   }
   setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},1200);
+  // Retry any pending private-portal transfer immediately after a registered member signs in.
+  // The backend still verifies the user's real session before listing or retrying releases.
+  const streamingAuthClient=streamingClient();
+  if(streamingAuthClient?.auth?.onAuthStateChange){
+    streamingAuthClient.auth.onAuthStateChange((event,session)=>{
+      if(session?.user?.id && ['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event)){
+        setTimeout(()=>{streamingRefreshMine();},350);
+      }
+    });
+  }
   const createUpload=document.querySelector('#create button[data-action="upload"]');
   if(createUpload){
     createUpload.addEventListener('click',function(e){

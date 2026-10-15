@@ -1007,7 +1007,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
     <label for="streamingReleaseTitle">Release title</label><input id="streamingReleaseTitle" placeholder="Song, EP or album title"/>
     <label for="streamingReleaseType">Release type</label><select id="streamingReleaseType"><option value="Single">Single — one track</option><option value="EP">EP — multiple tracks</option><option value="Album">Album — multiple tracks</option></select>
     <label for="streamingGenre">Genre</label><select id="streamingGenre"><option>Afrobeats</option><option>Amapiano</option><option>Hip-Hop</option><option>Gospel</option><option>Highlife</option><option>R&amp;B</option><option>Pop</option><option>Other</option></select>
-    <label for="streamingReleaseDate">Preferred release date (optional)</label><div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap"><input id="streamingReleaseDate" type="date" aria-label="Preferred release date" style="flex:1;min-width:180px"/><button type="button" class="btn" id="streamingReleaseDatePickerButton" onclick='var d=document.getElementById("streamingReleaseDate");if(!d)return false;try{if(typeof d.showPicker==="function"){d.showPicker();return false;}}catch(e){}try{d.focus();d.click();}catch(e){}return false;' style="display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap">📅 Open calendar</button></div>
+    <label for="streamingReleaseDate">Preferred release date (optional)</label><div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap"><input id="streamingReleaseDate" type="date" aria-label="Preferred release date" style="flex:1;min-width:180px"/><button type="button" class="btn" id="streamingReleaseDatePickerButton" onclick='if(window.ALUOpenReleaseCalendar){window.ALUOpenReleaseCalendar();}return false;' style="display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap">📅 Open calendar</button></div>
     <label for="streamingAudioFiles">Audio track(s)</label><input id="streamingAudioFiles" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" multiple/>
     <p class="tiny muted" id="streamingAudioStatus">Choose the final audio master(s). Selected files are not uploaded to a server by this draft form.</p>
     <label for="streamingArtworkFile">Release artwork</label><p class="tiny muted" style="margin:0 0 6px">Use square 1:1 artwork, preferably 3000 × 3000 px. JPG, PNG or WebP only; maximum 15 MB.</p><input id="streamingArtworkFile" type="file" accept="image/jpeg,image/png,image/webp"/>
@@ -7467,3 +7467,95 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 })();
 </script>
 
+
+
+<style id="aluV101ReleaseCalendarDialogFix">
+#aluReleaseCalendarOverlay{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+#aluReleaseCalendarOverlay .alu-cal-card{width:min(100%,360px);background:#151923;color:#f8fafc;border:1px solid #596273;border-radius:18px;padding:16px;box-shadow:0 20px 70px #000b;font-family:inherit}
+#aluReleaseCalendarOverlay button{touch-action:manipulation;cursor:pointer}
+#aluReleaseCalendarOverlay .alu-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+#aluReleaseCalendarOverlay .alu-cal-nav{min-width:42px;min-height:42px;border:1px solid #525b6b;border-radius:10px;background:#252c39;color:#fff;font-size:20px}
+#aluReleaseCalendarOverlay .alu-cal-month{font-size:17px;font-weight:900;text-align:center}
+#aluReleaseCalendarOverlay .alu-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#aluReleaseCalendarOverlay .alu-cal-weekday{text-align:center;color:#b8c0ce;font-size:12px;padding:6px 0}
+#aluReleaseCalendarOverlay .alu-cal-day{min-width:0;min-height:40px;border:1px solid transparent;border-radius:9px;background:#242b37;color:#fff;font-size:14px}
+#aluReleaseCalendarOverlay .alu-cal-day:disabled{opacity:.25}
+#aluReleaseCalendarOverlay .alu-cal-day.is-selected{background:#ffd21c;color:#111;font-weight:900}
+#aluReleaseCalendarOverlay .alu-cal-day.is-today{border-color:#ffd21c}
+#aluReleaseCalendarOverlay .alu-cal-actions{display:flex;gap:8px;margin-top:14px}
+#aluReleaseCalendarOverlay .alu-cal-actions button{flex:1;min-height:44px;border-radius:10px;font-weight:800}
+#aluReleaseCalendarOverlay .alu-cal-today{background:#ffd21c;color:#111;border:0}
+#aluReleaseCalendarOverlay .alu-cal-close{background:#252c39;color:#fff;border:1px solid #525b6b}
+</style>
+<script id="aluV101ReleaseCalendarDialogFixScript">
+(function(){
+  'use strict';
+  var field,overlay,viewDate;
+  var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function iso(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+  function localToday(){var d=new Date();return iso(d.getFullYear(),d.getMonth(),d.getDate());}
+  function openCalendar(){
+    field=document.getElementById('streamingReleaseDate');
+    if(!field)return;
+    if(!overlay)buildCalendar();
+    var value=field.value;
+    var start=value&&/^\d{4}-\d{2}-\d{2}$/.test(value)?new Date(value+'T12:00:00'):new Date();
+    viewDate=new Date(start.getFullYear(),start.getMonth(),1);
+    drawCalendar();
+    overlay.style.display='flex';
+    document.body.style.overflow='hidden';
+  }
+  function closeCalendar(){
+    if(overlay)overlay.style.display='none';
+    document.body.style.overflow='';
+  }
+  function buildCalendar(){
+    overlay=document.createElement('div');
+    overlay.id='aluReleaseCalendarOverlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Choose preferred release date');
+    overlay.innerHTML='<div class="alu-cal-card"><div class="alu-cal-head"><button type="button" class="alu-cal-nav" data-cal-prev aria-label="Previous month">‹</button><div class="alu-cal-month" data-cal-month></div><button type="button" class="alu-cal-nav" data-cal-next aria-label="Next month">›</button></div><div class="alu-cal-grid" data-cal-grid></div><div class="alu-cal-actions"><button type="button" class="alu-cal-today" data-cal-today>Choose today</button><button type="button" class="alu-cal-close" data-cal-close>Cancel</button></div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click',function(e){
+      if(e.target===overlay){closeCalendar();return;}
+      var b=e.target.closest('button');if(!b)return;
+      if(b.hasAttribute('data-cal-prev')){viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()-1,1);drawCalendar();}
+      else if(b.hasAttribute('data-cal-next')){viewDate=new Date(viewDate.getFullYear(),viewDate.getMonth()+1,1);drawCalendar();}
+      else if(b.hasAttribute('data-cal-close'))closeCalendar();
+      else if(b.hasAttribute('data-cal-today'))chooseDate(localToday());
+      else if(b.hasAttribute('data-cal-date'))chooseDate(b.getAttribute('data-cal-date'));
+    });
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&overlay&&overlay.style.display==='flex')closeCalendar();});
+  }
+  function drawCalendar(){
+    var month=overlay.querySelector('[data-cal-month]'),grid=overlay.querySelector('[data-cal-grid]');
+    var y=viewDate.getFullYear(),m=viewDate.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),selected=field.value,today=localToday();
+    month.textContent=monthNames[m]+' '+y;
+    var html=['S','M','T','W','T','F','S'].map(function(w){return '<div class="alu-cal-weekday">'+w+'</div>';}).join('');
+    for(var blank=0;blank<first;blank++)html+='<div aria-hidden="true"></div>';
+    for(var d=1;d<=days;d++){
+      var value=iso(y,m,d),classes='alu-cal-day';
+      if(value===selected)classes+=' is-selected';
+      if(value===today)classes+=' is-today';
+      html+='<button type="button" class="'+classes+'" data-cal-date="'+value+'" aria-label="'+monthNames[m]+' '+d+', '+y+'" '+(value<today?'disabled':'')+'>'+d+'</button>';
+    }
+    grid.innerHTML=html;
+  }
+  function chooseDate(value){
+    if(!field)return;
+    field.value=value;
+    field.dispatchEvent(new Event('input',{bubbles:true}));
+    field.dispatchEvent(new Event('change',{bubbles:true}));
+    closeCalendar();
+  }
+  window.ALUOpenReleaseCalendar=openCalendar;
+  function bind(){
+    var button=document.getElementById('streamingReleaseDatePickerButton');
+    field=document.getElementById('streamingReleaseDate');
+    if(button)button.addEventListener('click',function(e){e.preventDefault();openCalendar();});
+    if(field)field.addEventListener('click',function(e){e.preventDefault();openCalendar();});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
+</script>

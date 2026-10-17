@@ -138,6 +138,45 @@ a{color:#83c7ff;font-weight:750}
  tbody td:before{font-size:11px}
 }
 
+
+/* Admin control room: grouped work areas instead of one long row of controls */
+.tabs.admin-room-layout{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+ align-items:stretch;padding:0;margin:16px 0 22px;border:0;background:transparent;
+ box-shadow:none;overflow:visible;position:static;
+}
+.admin-room-group{
+ min-width:0;padding:16px;border:1px solid #2b5683;border-radius:20px;
+ background:linear-gradient(155deg,#102746 0%,#09162a 78%);box-shadow:0 12px 28px #0003;
+}
+.admin-room-group-head{margin:0 0 13px;padding:0 0 12px;border-bottom:1px solid #24486d}
+.admin-room-group-head h4{margin:0;color:#f4f8ff;font-size:15px;font-weight:900;letter-spacing:.2px}
+.admin-room-group-head p{margin:5px 0 0;color:#a9c4e5;font-size:12px;line-height:1.45}
+.admin-room-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tabs.admin-room-layout .admin-room-buttons button{
+ display:flex;align-items:center;justify-content:flex-start;gap:7px;text-align:left;
+ min-width:0;min-height:54px;padding:11px 10px;white-space:normal;
+ overflow-wrap:anywhere;line-height:1.25;font-size:13px;border-radius:13px;
+ background:linear-gradient(145deg,#173455,#0b1c33);border:1px solid #2c5784;
+}
+.tabs.admin-room-layout .admin-room-buttons button.active{
+ background:linear-gradient(135deg,#ffe36c,#ffbd22);border-color:#ffe36c;color:#101b2c;
+}
+.tabs.admin-room-layout .admin-room-buttons button:focus-visible{outline:3px solid #73caff;outline-offset:2px}
+@media(max-width:1050px){
+ .tabs.admin-room-layout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .tabs.admin-room-layout{grid-template-columns:minmax(0,1fr);gap:12px;margin:14px 0 18px}
+ .admin-room-group{padding:14px;border-radius:17px}
+ .admin-room-group-head h4{font-size:15px}
+ .admin-room-buttons{gap:8px}
+ .tabs.admin-room-layout .admin-room-buttons button{min-height:50px;font-size:13px;padding:10px}
+}
+@media(max-width:350px){
+ .admin-room-buttons{grid-template-columns:minmax(0,1fr)}
+}
+
 </style>
 </head>
 <body>
@@ -263,4 +302,34 @@ a{color:#83c7ff;font-weight:750}
  $('signOutBtn').addEventListener('click',async()=>{try{await api('logout')}catch{}sessionToken='';sessionStorage.removeItem('alu_owner_pin_session');showLogin('You have signed out of Owner Admin.')});
  if(sessionToken){api('stats').then(async()=>{showApp();await loadStats();await loadTable(activeTable);await loadBankSettings()}).catch(()=>{sessionToken='';sessionStorage.removeItem('alu_owner_pin_session');showLogin('Your session expired. Enter your PIN to continue.')})}
 })();</script>
+
+<script id="aluAdminRoomGroups">
+(function(){
+ 'use strict';
+ var nav=document.querySelector('nav.tabs[aria-label="Admin sections"]');
+ if(!nav||nav.dataset.roomsReady==='1')return;
+ var groups=[
+  {title:'Artist & Accounts',desc:'Manage artist records, member profiles and community posts.',ids:['artists','profiles','picture_posts']},
+  {title:'Creative Library',desc:'Review music, video and beat submissions.',ids:['songs','artist_videos','marketplace_beats']},
+  {title:'Business & Finance',desc:'Oversee promotions, orders, withdrawals and receiving-bank settings.',ids:['promotions','marketplace_orders','withdrawals','bankSettingsBtn']}
+ ];
+ var buttons=Array.from(nav.children);
+ nav.classList.add('admin-room-layout');
+ groups.forEach(function(group){
+  var card=document.createElement('section');card.className='admin-room-group';
+  var head=document.createElement('div');head.className='admin-room-group-head';
+  var title=document.createElement('h4');title.textContent=group.title;
+  var desc=document.createElement('p');desc.textContent=group.desc;
+  head.appendChild(title);head.appendChild(desc);card.appendChild(head);
+  var area=document.createElement('div');area.className='admin-room-buttons';
+  group.ids.forEach(function(id){
+   var button=id==='bankSettingsBtn'?document.getElementById(id):nav.querySelector('[data-table="'+id+'"]');
+   if(button)area.appendChild(button);
+  });
+  card.appendChild(area);nav.appendChild(card);
+ });
+ nav.dataset.roomsReady='1';
+})();
+</script>
+
 </body></html>

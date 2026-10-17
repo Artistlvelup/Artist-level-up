@@ -526,7 +526,7 @@ body.g77-open{overflow:hidden}
 
 <style id="v101OwnerDashboardNavigationGuard">body:not(.alu-server-admin-verified) [data-go="ownerDashboard"]{display:none!important}</style>
 <style id="aluMainAppAdminSeparationV101">#ownerDashboard,#admin,#commissionEarningsPage,[data-go="ownerDashboard"],[data-go="admin"],[data-go="commissionEarningsPage"]{display:none!important}</style>
-<style id="ownerDashboardV101">
+<style id="ownerDashboardV101Styles">
 #ownerDashboard .owner-hero{border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);border-radius:18px;padding:16px;margin:10px 0 14px}
 #ownerDashboard .owner-stat{min-height:110px}
 #ownerDashboard .owner-stat b{font-size:25px;display:block;margin-top:5px}
@@ -1386,7 +1386,7 @@ function track(id){return S.tracks.find(t=>String(t.id)===String(id))}
 function aluMakeSatCurve(amount){let n=1024,k=Math.max(1,Number(amount||1))*80,curve=new Float32Array(n);for(let i=0;i<n;i++){let x=i*2/n-1;curve[i]=((1+k)*x)/(1+k*Math.abs(x))}return curve}
 function aluMakeImpulse(c,seconds){let len=Math.max(1,Math.floor(c.sampleRate*seconds)),b=c.createBuffer(2,len,c.sampleRate);for(let ch=0;ch<2;ch++){let d=b.getChannelData(ch);for(let i=0;i<len;i++){let t=i/len;d[i]=(Math.random()*2-1)*Math.pow(1-t,3.2)}}return b}
 function node(t){if(t.audio)return t.audio;let a=new Audio(URL.createObjectURL(t.blob));a.preload='auto';let c=ctx(),src=c.createMediaElementSource(a),g=c.createGain(),p=c.createStereoPanner(),eq=c.createBiquadFilter(),eqLow=c.createBiquadFilter(),eqMid=c.createBiquadFilter(),eqHigh=c.createBiquadFilter(),cp=c.createDynamicsCompressor(),lim=c.createDynamicsCompressor(),filter=c.createBiquadFilter(),gate=c.createDynamicsCompressor(),deess=c.createDynamicsCompressor(),sat=c.createWaveShaper(),dist=c.createWaveShaper(),vocal=c.createBiquadFilter(),dl=c.createDelay(2),wet=c.createGain(),delayFeedback=c.createGain(),rev=c.createConvolver(),revWet=c.createGain(),chorus=c.createDelay(.2),chorusWet=c.createGain(),flanger=c.createDelay(.2),flangerWet=c.createGain(),phaser=c.createBiquadFilter(),phaserWet=c.createGain(),widener=c.createStereoPanner(),widenerWet=c.createGain(),trem=c.createGain(),autoPan=c.createStereoPanner(),dry=c.createGain(),lfo=c.createOscillator(),lfoGain=c.createGain(),tremLfo=c.createOscillator(),tremDepth=c.createGain(),panLfo=c.createOscillator(),panDepth=c.createGain(),phaseLfo=c.createOscillator(),phaseDepth=c.createGain(),flangeLfo=c.createOscillator(),flangeDepth=c.createGain();eq.type='peaking';eq.frequency.value=2500;eq.Q.value=.7;eqLow.type='lowshelf';eqLow.frequency.value=140;eqMid.type='peaking';eqMid.frequency.value=1200;eqMid.Q.value=.9;eqHigh.type='highshelf';eqHigh.frequency.value=5000;eqHigh.Q.value=.7;cp.threshold.value=-18;cp.ratio.value=3;cp.attack.value=.01;cp.release.value=.15;lim.threshold.value=-1;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.08;filter.type='lowpass';filter.frequency.value=20000;gate.threshold.value=0;gate.ratio.value=1;gate.attack.value=.001;gate.release.value=.08;deess.threshold.value=0;deess.ratio.value=1;deess.attack.value=.001;deess.release.value=.08;vocal.type='peaking';vocal.frequency.value=3500;vocal.Q.value=.8;sat.curve=null;sat.oversample='2x';dist.curve=null;dist.oversample='2x';wet.gain.value=0;revWet.gain.value=0;chorusWet.gain.value=0;flangerWet.gain.value=0;phaserWet.gain.value=0;widenerWet.gain.value=0;dry.gain.value=1;trem.gain.value=1;autoPan.pan.value=0;widener.pan.value=.35;chorus.delayTime.value=.018;flanger.delayTime.value=.006;phaser.type='allpass';phaser.frequency.value=900;lfo.frequency.value=.8;lfoGain.gain.value=.006;lfo.connect(lfoGain).connect(chorus.delayTime);tremLfo.frequency.value=5;tremDepth.gain.value=0;tremLfo.connect(tremDepth).connect(trem.gain);panLfo.frequency.value=.25;panDepth.gain.value=0;panLfo.connect(panDepth).connect(autoPan.pan);phaseLfo.frequency.value=.35;phaseDepth.gain.value=0;phaseLfo.connect(phaseDepth).connect(phaser.frequency);flangeLfo.frequency.value=.25;flangeDepth.gain.value=0;flangeLfo.connect(flangeDepth).connect(flanger.delayTime);lfo.start();tremLfo.start();panLfo.start();phaseLfo.start();flangeLfo.start();rev.buffer=aluMakeImpulse(c,1.4);src.connect(g).connect(p).connect(eq).connect(eqLow).connect(eqMid).connect(eqHigh).connect(cp).connect(lim).connect(filter).connect(gate).connect(deess).connect(sat).connect(dist).connect(vocal).connect(trem).connect(autoPan).connect(dry).connect(c.destination);vocal.connect(dl).connect(wet).connect(c.destination);dl.connect(delayFeedback).connect(dl);vocal.connect(rev).connect(revWet).connect(c.destination);vocal.connect(chorus).connect(chorusWet).connect(c.destination);vocal.connect(flanger).connect(flangerWet).connect(c.destination);vocal.connect(phaser).connect(phaserWet).connect(c.destination);vocal.connect(widener).connect(widenerWet).connect(c.destination);t.nodes={g,p,eq,eqLow,eqMid,eqHigh,cp,lim,filter,gate,deess,sat,dist,vocal,dl,wet,delayFeedback,rev,revWet,chorus,chorusWet,flanger,flangerWet,phaser,phaserWet,widener,widenerWet,trem,autoPan,dry,lfo,lfoGain,tremLfo,tremDepth,panLfo,panDepth,phaseLfo,phaseDepth,flangeLfo,flangeDepth};t.audio=a;t.proFx=t.proFx||{};return a}
-function apply(t){let a=node(t),n=t.nodes,f=t.proFx||{},p=f.params||{},has=k=>Array.isArray(f.slots)&&f.slots.some(x=>x===k)&&(!f.active||f.active[k]!==false);a.volume=Math.max(0,Math.min(1,Number(S.master??.9)));a.playbackRate.value=Math.pow(2,Number((p.pitch||{}).semitones??0)/12);n.g.gain.value=Number(t.volume??1);n.p.pan.value=Number(t.pan??0);var eq=p.eq||{},fil=p.filter||{},me=p.multieq||{},ga=p.gate||{},de=p.deesser||{},cp=p.compressor||{},lim=p.limiter||{},sa=p.saturation||{},di=p.distortion||{},ch=p.chorus||{},tr=p.tremolo||{},ap=p.autopan||{},ph=p.phaser||{},fl=p.flanger||{},rv=p.reverb||{},dl=p.delay||{},wi=p.widener||{},ve=p.vocalenhancer||{};n.eq.gain.value=has('eq')?Number(eq.gain??2):0;n.eqLow.gain.value=has('multieq')?Number(me.low??0):0;n.eqMid.gain.value=has('multieq')?Number(me.mid??0):0;n.eqHigh.gain.value=has('multieq')?Number(me.high??0):0;n.cp.threshold.value=has('compressor')?(-6-(Number(cp.amount??50)*.34)):0;n.cp.ratio.value=has('compressor')?(2+(Number(cp.amount??50)*.12)):1;n.lim.threshold.value=has('limiter')?(-1-(Number(lim.amount??50)*.08)):-1;n.lim.ratio.value=has('limiter')?20:1;n.filter.type=has('filter')?'lowpass':'allpass';n.filter.frequency.value=has('filter')?Number(fil.freq??1000):22000;n.gate.threshold.value=has('gate')?(-60+(Number(ga.amount??35)*.38)):0;n.gate.ratio.value=has('gate')?20:1;n.deess.threshold.value=has('deesser')?(-24+(Number(de.amount??35)*.12)):0;n.deess.ratio.value=has('deesser')?6:1;n.sat.curve=has('saturation')?aluMakeSatCurve(Math.max(.1,Number(sa.amount??20)/20)):null;n.dist.curve=has('distortion')?aluMakeSatCurve(Math.max(.1,Number(di.amount??20)/6)):null;n.vocal.gain.value=has('vocalenhancer')?(Number(ve.amount??30)*.08):0;n.dl.delayTime.value=Math.max(.04,Math.min(1.2,Number(dl.time??240)/1000));n.delayFeedback.gain.value=has('delay')?Math.min(.8,Math.max(0,Number(dl.feedback??28)/100)):0;n.wet.gain.value=has('delay')?Number(dl.mix??25)/100:0;n.revWet.gain.value=has('reverb')?Number(rv.mix??35)/100:0;n.chorusWet.gain.value=has('chorus')?Number(ch.mix??25)/100:0;n.flangerWet.gain.value=has('flanger')?Number(fl.amount??25)/100:0;n.phaserWet.gain.value=has('phaser')?Number(ph.amount??25)/100:0;n.widenerWet.gain.value=has('widener')?Number(wi.amount??25)/100:0;n.trem.gain.value=1;n.tremDepth.gain.value=has('robot')?0.42:(has('tremolo')?Number(tr.amount??30)/200:0);n.tremLfo.frequency.value=has('robot')?30:5;n.autoPan.pan.value=0;n.panDepth.gain.value=has('autopan')?Math.min(.95,Number(ap.amount??30)/100):0;n.phaseDepth.gain.value=has('phaser')?Math.max(100,Number(ph.amount??25)*30):0;n.flangeDepth.gain.value=has('flanger')?Math.min(.02,Number(fl.amount??25)/5000):0;n.widener.pan.value=.35}
+function apply(t){let a=node(t),n=t.nodes,f=t.proFx||{},p=f.params||{},has=k=>!f.bypass&&Array.isArray(f.slots)&&f.slots.some(x=>x===k)&&(!f.active||f.active[k]!==false);a.volume=Math.max(0,Math.min(1,Number(S.master??.9)));a.playbackRate.value=Math.pow(2,Number((p.pitch||{}).semitones??0)/12);n.g.gain.value=Number(t.volume??1);n.p.pan.value=Number(t.pan??0);var eq=p.eq||{},fil=p.filter||{},me=p.multieq||{},ga=p.gate||{},de=p.deesser||{},cp=p.compressor||{},lim=p.limiter||{},sa=p.saturation||{},di=p.distortion||{},ch=p.chorus||{},tr=p.tremolo||{},ap=p.autopan||{},ph=p.phaser||{},fl=p.flanger||{},rv=p.reverb||{},dl=p.delay||{},wi=p.widener||{},ve=p.vocalenhancer||{};n.eq.gain.value=has('eq')?Number(eq.gain??2):0;n.eqLow.gain.value=has('multieq')?Number(me.low??0):0;n.eqMid.gain.value=has('multieq')?Number(me.mid??0):0;n.eqHigh.gain.value=has('multieq')?Number(me.high??0):0;n.cp.threshold.value=has('compressor')?(-6-(Number(cp.amount??50)*.34)):0;n.cp.ratio.value=has('compressor')?(2+(Number(cp.amount??50)*.12)):1;n.lim.threshold.value=has('limiter')?(-1-(Number(lim.amount??50)*.08)):-1;n.lim.ratio.value=has('limiter')?20:1;n.filter.type=has('filter')?'lowpass':'allpass';n.filter.frequency.value=has('filter')?Number(fil.freq??1000):22000;n.gate.threshold.value=has('gate')?(-60+(Number(ga.amount??35)*.38)):0;n.gate.ratio.value=has('gate')?20:1;n.deess.threshold.value=has('deesser')?(-24+(Number(de.amount??35)*.12)):0;n.deess.ratio.value=has('deesser')?6:1;n.sat.curve=has('saturation')?aluMakeSatCurve(Math.max(.1,Number(sa.amount??20)/20)):null;n.dist.curve=has('distortion')?aluMakeSatCurve(Math.max(.1,Number(di.amount??20)/6)):null;n.vocal.gain.value=has('vocalenhancer')?(Number(ve.amount??30)*.08):0;n.dl.delayTime.value=Math.max(.04,Math.min(1.2,Number(dl.time??240)/1000));n.delayFeedback.gain.value=has('delay')?Math.min(.8,Math.max(0,Number(dl.feedback??28)/100)):0;n.wet.gain.value=has('delay')?Number(dl.mix??25)/100:0;n.revWet.gain.value=has('reverb')?Number(rv.mix??35)/100:0;n.chorusWet.gain.value=has('chorus')?Number(ch.mix??25)/100:0;n.flangerWet.gain.value=has('flanger')?Number(fl.amount??25)/100:0;n.phaserWet.gain.value=has('phaser')?Number(ph.amount??25)/100:0;n.widenerWet.gain.value=has('widener')?Number(wi.amount??25)/100:0;n.trem.gain.value=1;n.tremDepth.gain.value=has('robot')?0.42:(has('tremolo')?Number(tr.amount??30)/200:0);n.tremLfo.frequency.value=has('robot')?30:5;n.autoPan.pan.value=0;n.panDepth.gain.value=has('autopan')?Math.min(.95,Number(ap.amount??30)/100):0;n.phaseDepth.gain.value=has('phaser')?Math.max(100,Number(ph.amount??25)*30):0;n.flangeDepth.gain.value=has('flanger')?Math.min(.02,Number(fl.amount??25)/5000):0;n.widener.pan.value=.35}
 function stop(){S.playing=false;S.tracks.forEach(t=>{if(t.audio){t.audio.pause();try{t.audio.currentTime=0}catch(e){}}if(t.playAudio){t.playAudio.pause();try{t.playAudio.currentTime=0}catch(e){}try{URL.revokeObjectURL(t.playAudio.src)}catch(e){}t.playAudio=null}if(t.__laneAudio){try{t.__laneAudio.pause();t.__laneAudio.currentTime=0}catch(e){}}});$('studioStatus').textContent='Stopped'}
 function setMaster(v){S.master=Math.max(0,Math.min(1,Number(v)||0));S.tracks.forEach(function(t){if(t.audio)t.audio.volume=S.master;if(t.playAudio)t.playAudio.volume=t.mute?0:S.master;if(t.__laneAudio)t.__laneAudio.volume=t.mute?0:Number(t.volume??1)*S.master})}
 async function play(){if(!S.tracks.length)return note('Add a beat or record a vocal first.');if(S.playing)return;let solo=S.tracks.some(t=>t.solo),total=Math.max(.1,...S.tracks.map(t=>Number(t.duration)||0)),start=performance.now(),active=[];S.playing=true;$('studioStatus').textContent=S.loop?'Playing mix · Loop on…':'Playing mix…';for(let t of S.tracks){if(t.mute||(solo&&!t.solo))continue;let a=null;try{await ctx().resume();a=node(t);apply(t);a.muted=false;t.playAudio=a;await a.play()}catch(err){console.warn('V101 WebAudio playback fallback:',err);try{a=t.playAudio||new Audio(URL.createObjectURL(t.blob));a.preload='auto';a.muted=false;t.playAudio=a;await a.play()}catch(fallbackErr){console.error('V101 direct playback error',fallbackErr)}}if(a&&(!a.paused||a.currentTime>0))active.push(a)}if(!active.length){S.playing=false;$('studioStatus').textContent='Playback error';note('No audio track could start.');return}let loop=()=>{if(!S.playing)return;let x=(performance.now()-start)/1000;$('studioClock').textContent=fmt(x);if(x>=total){if(S.loop){start=performance.now();active.forEach(a=>{try{a.currentTime=0;let p=a.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}})}else{stop();return}}requestAnimationFrame(loop)};loop()}
@@ -4851,7 +4851,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.addEventListener('pageshow',bind);
 })();
 </script>
-<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(typeof window.go==="function"){window.go("studio");return;}if(typeof window.ALU_MEMBER_GATE_V101?.open==="function"){window.ALU_MEMBER_GATE_V101.open();return;}},true);})();</script><style id="aluStudioEffectsRackV101">
+<script id="studioBottomNavV101">(function(){document.addEventListener("click",function(e){const b=e.target.closest?.('[data-action="openStudioV101"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(typeof window.go==="function"){window.go("studio");return;}if(typeof window.ALU_MEMBER_GATE_V101?.open==="function"){window.ALU_MEMBER_GATE_V101.open();return;}},true);})();</script><style id="aluStudioEffectsRackV101Styles">
 #studio .alu-fx-rack{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg,#151821,#0f1117)}
 #studio .alu-fx-rack-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 #studio .alu-fx-rack-head b{font-size:14px}#studio .alu-fx-rack-head small{display:block;color:#8e93a3;font-size:10px;margin-top:2px}
@@ -4913,7 +4913,7 @@ function boot(){
    return null;
  }
  function syncFromTrack(){
-   var t=selectedTrack(),f=t&&t.proFx||{};
+   var t=selectedTrack(),f=t&&t.proFx||{};chainBypass=!!f.bypass;
    state=allKeys.slice();active={};params={};
    allKeys.forEach(function(k){active[k]=false;params[k]=Object.assign({},defaults[k]||{})});
    if(Array.isArray(f.slots))f.slots.forEach(function(k){if(allKeys.indexOf(k)>=0)active[k]=f.active&&f.active[k]===false?false:true});
@@ -4922,7 +4922,7 @@ function boot(){
  }
  function apply(){
    var t=selectedTrack(),A=window.ALU_STUDIO_V101;if(!t||!A)return;
-   t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));
+   t.proFx=t.proFx||{};t.proFx.slots=state.slice();t.proFx.active=Object.assign({},active);t.proFx.params=JSON.parse(JSON.stringify(params));t.proFx.bypass=!!chainBypass;
    if(typeof A.apply==='function')A.apply(t);
  }
  function openEditor(key){
@@ -4955,7 +4955,7 @@ function boot(){
    });
    var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(k=>active[k]=false);apply();render();editor.classList.remove('show')};
    var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);
-   bypass.onclick=function(){chainBypass=!chainBypass;apply();render();if(!chainBypass)syncFromTrack()};
+   bypass.onclick=function(){chainBypass=!chainBypass;apply();render()};
  }
  syncFromTrack();render();
  window.ALU_FX_RACK_V101={sync:syncFromTrack,render:render,rack:rack,refresh:function(){render()}};
@@ -5019,7 +5019,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <!-- V101 STUDIO BUTTON REPAIR -->
 <script id="aluV101StudioLayoutAuthorityMarker">window.__ALU_STUDIO_LAYOUT_AUTHORITY_V101=true;</script>
-<style id="aluStudioCubaseLayoutV101">
+<style id="aluStudioCubaseLayoutV101Styles">
 /* V101 Studio — Cubase-inspired single Vocal Hub */
 #studio .studio-shell{max-width:1100px;margin:auto}
 #studio .studio-vocal-hub{
@@ -5068,115 +5068,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #studio #aluStudioEditBar button,
 #studio #aluStudioEditorPanel button{position:relative!important;z-index:10001!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important;-webkit-user-select:none!important;user-select:none!important}
 </style>
-<script id="aluStudioButtonRepairV101">
-(function(){
-'use strict';
-function boot(){
-  var A=window.ALU_STUDIO_V101;
-  if(!A){setTimeout(boot,100);return}
-  if(window.__ALU_STUDIO_BUTTON_REPAIR_V101_V2)return;
-  window.__ALU_STUDIO_BUTTON_REPAIR_V101_V2=true;
 
-  function root(){return document.getElementById('studio')}
-  function status(m){var x=document.getElementById('aluStudioStatus');if(x)x.textContent=m}
-  function selected(){return A.selected&&A.find?A.find(A.selected):null}
-  function selectClip(el){
-    if(!el)return;
-    var id=el.getAttribute('data-track');
-    if(id){A.selected=id;
-      var t=selected(),x=document.getElementById('aluEditorSelected');
-      if(x&&t)x.textContent='Selected: '+(t.name||'Track')+' · '+Number(t.duration||0).toFixed(2)+'s';
-      var y=document.getElementById('aluStudioStatus');
-      if(y&&t)y.textContent='Selected clip: '+(t.name||'Track')+' ✓';
-    }
-  }
-  function addReloadButton(){
-    var bar=document.getElementById('aluStudioEditBar');
-    if(bar&&!bar.querySelector('[data-st-edit="reload"]')){
-      var wrap=bar.querySelector('.grid');
-      if(wrap){
-        var b=document.createElement('button');
-        b.type='button';b.className='btn';b.setAttribute('data-st-edit','reload');b.textContent='↻ Reload';
-        wrap.appendChild(b);
-      }
-    }
-  }
-  function bindButton(b){
-    if(!b||b.__aluBoundV2)return;
-    b.__aluBoundV2=true;
-    b.addEventListener('click',async function(e){
-      e.preventDefault();e.stopPropagation();
-      var kind=b.getAttribute('data-st-edit')||b.getAttribute('data-proper-edit');
-      try{
-        if(kind==='loop'){
-          A.loop=!A.loop;A.setLoop&&A.setLoop(A.loop);
-          b.textContent='🔁 Loop: '+(A.loop?'On':'Off');status(A.loop?'Loop playback enabled ✓':'Loop playback disabled ✓');return;
-        }
-        if(kind==='countin'){
-          A.countIn=!A.countIn;A.setCountIn&&A.setCountIn(A.countIn);
-          b.textContent='⏱️ Count-in: '+(A.countIn?'On':'Off');status(A.countIn?'Count-in enabled ✓':'Count-in disabled ✓');return;
-        }
-        if(kind==='zoomin'||kind==='zoomout'){
-          A.zoom=Math.max(.5,Math.min(4,Number(A.zoom||1)+(kind==='zoomin'?.5:-.5)));
-          document.querySelectorAll('#studio .studio-clip').forEach(function(x){
-            x.style.transform='scaleX('+A.zoom+')';x.style.transformOrigin='left center';
-          });
-          status('Timeline zoom: '+A.zoom.toFixed(1)+'×');return;
-        }
-        if(kind==='reload'){
-          if(typeof A.render==='function')A.render();
-          setTimeout(function(){addReloadButton();bindAll();},0);
-          status('Studio timeline reloaded ✓');return;
-        }
-        var t=selected();
-        if(!t){status('Tap a waveform clip first.');return}
-        if(kind==='duplicate'){
-          if(A.duplicate)A.duplicate(t.id);
-          A.selected=t.id;
-          status('✓ Clip duplicated');return;
-        }
-        if(kind==='delete'){
-          if(A.remove)A.remove(t.id);
-          A.selected=null;
-          status('✓ Clip deleted');return;
-        }
-        if(kind==='rename'){
-          var n=prompt('Track name:',t.name||'Track');
-          if(n&&n.trim()&&A.rename)A.rename(t.id,n.trim());
-          return;
-        }
-        if(kind==='split'){
-          var inp=document.getElementById('aluEdStart');
-          var at=Number(inp&&inp.value)||Number(t.duration||0)/2;
-          if(A.split)await A.split(t.id,at);
-          status('✓ Clip split');return;
-        }
-        /* Apply Edits is intentionally left to the V101 Proper Editor handler. */
-      }catch(err){status('Studio control error: '+(err&&err.message||'try again'))}
-    },{passive:false});
-  }
-  function bindAll(){
-    addReloadButton();
-    document.querySelectorAll('#studio [data-st-edit],#studio [data-proper-edit]').forEach(bindButton);
-  }
-  document.addEventListener('pointerdown',function(e){
-    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
-    if(clip)selectClip(clip);
-  },true);
-  document.addEventListener('click',function(e){
-    var clip=e.target&&e.target.closest?e.target.closest('#studio .studio-clip'):null;
-    if(clip)selectClip(clip);
-  },true);
-  var mo=new MutationObserver(function(){bindAll()});
-  var r=root();
-  if(r)mo.observe(r,{childList:true,subtree:true});
-  bindAll();
-  setInterval(bindAll,500);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-</script>
-<style id="aluStudioButtonFixFinal">
+<style id="aluStudioButtonFixFinalStyles">
 #studio #aluStudioEditBar,#studio #aluStudioEditorPanel{position:relative!important;z-index:999999!important;pointer-events:auto!important;isolation:isolate}
 #studio #aluStudioEditBar button,#studio #aluStudioEditorPanel button{position:relative!important;z-index:1000000!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-user-select:none!important;user-select:none!important}
 #studio .studio-clip.is-selected{outline:3px solid #ffd21c!important;outline-offset:2px}
@@ -5282,7 +5175,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<style id="aluStudioVocalTimelineStackV101">
+<style id="aluStudioVocalTimelineStackV101Styles">
 /* V101 Vocal Timeline + Vocal Hub: one attached recording workspace */
 #studio .studio-vocal-stack{margin:14px 0;border:1px solid rgba(255,255,255,.12);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#11141b,#0d0f14);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 #studio .studio-vocal-stack>.studio-timeline-panel{margin:0!important;border:0!important;border-radius:0!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
@@ -5299,7 +5192,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (function(){'use strict';})();
 </script>
 
-<style id="aluStudioMixerHubV101">
+<style id="aluStudioMixerHubV101Styles">
 /* V101 Mixer Engine — attached to the Vocal workspace */
 #studio .studio-vocal-workspace{margin:0 0 14px}
 #studio .studio-vocal-workspace .studio-mixer{margin:0;border:0;border-top:1px solid rgba(255,255,255,.12);border-radius:0;background:#101218}
@@ -5440,7 +5333,7 @@ function openCreatorTool(tool,e){
 <!-- V101 STUDIO BUTTON REPAIR -->
 
 <!-- V101-PAGES-REDEPLOY-2026-10-03 -->
-<style id="aluStudioNoiseToolsV101">#studio .alu-noise-tools{border:1px solid #343744;background:linear-gradient(145deg,#171922,#0d0e13);border-radius:16px;padding:13px;margin-top:10px}#studio .alu-noise-tools h3{margin:0 0 4px;font-size:16px}#studio .alu-noise-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}#studio .alu-noise-control{background:#101219;border:1px solid #2b2e39;border-radius:12px;padding:9px}#studio .alu-noise-control label{display:flex;justify-content:space-between;font-size:11px;color:#b8bbc6}#studio .alu-noise-control input{margin:7px 0 0;width:100%;accent-color:#ffd21c}#studio .alu-noise-value{color:#ffd21c;font-weight:900}#studio .alu-noise-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}#studio .alu-noise-buttons .btn{margin:0;min-height:44px}@media(max-width:380px){#studio .alu-noise-grid,#studio .alu-noise-buttons{grid-template-columns:1fr}}</style>
+<style id="aluStudioNoiseToolsV101Styles">#studio .alu-noise-tools{border:1px solid #343744;background:linear-gradient(145deg,#171922,#0d0e13);border-radius:16px;padding:13px;margin-top:10px}#studio .alu-noise-tools h3{margin:0 0 4px;font-size:16px}#studio .alu-noise-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}#studio .alu-noise-control{background:#101219;border:1px solid #2b2e39;border-radius:12px;padding:9px}#studio .alu-noise-control label{display:flex;justify-content:space-between;font-size:11px;color:#b8bbc6}#studio .alu-noise-control input{margin:7px 0 0;width:100%;accent-color:#ffd21c}#studio .alu-noise-value{color:#ffd21c;font-weight:900}#studio .alu-noise-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}#studio .alu-noise-buttons .btn{margin:0;min-height:44px}@media(max-width:380px){#studio .alu-noise-grid,#studio .alu-noise-buttons{grid-template-columns:1fr}}</style>
 <script id="aluStudioNoiseToolsV101">(function(){'use strict';function boot(){if(!window.ALU_STUDIO_V101){setTimeout(boot,100);return}if(window.__ALU_STUDIO_NOISE_TOOLS_V101)return;window.__ALU_STUDIO_NOISE_TOOLS_V101=true;var A=window.ALU_STUDIO_V101;function root(){return document.getElementById('studio')}function sel(){return A.selected&&A.find?A.find(A.selected):null}function msg(s){var x=document.getElementById('aluNoiseStatus');if(x)x.textContent=s}function ensure(){var r=root();if(!r||document.getElementById('aluStudioNoiseTools'))return;var fx=r.querySelector('.studio-fx-grid'),c=document.createElement('div');c.id='aluStudioNoiseTools';c.className='alu-noise-tools';c.innerHTML='<h3>🧹 Noise Control</h3><p class="tiny muted">Clean a selected vocal clip. Noise Reduction learns the first 0.5s as the room-noise sample.</p><div class="alu-noise-grid"><div class="alu-noise-control"><label>Noise Reduction <span class="alu-noise-value" id="aluNRValue">60%</span></label><input id="aluNRStrength" type="range" min="0" max="100" step="5" value="60"></div><div class="alu-noise-control"><label>Noise Gate Threshold <span class="alu-noise-value" id="aluGateValue">-45 dB</span></label><input id="aluGateThreshold" type="range" min="-60" max="-20" step="1" value="-45"></div></div><div class="alu-noise-buttons"><button type="button" class="btn blue" data-noise-action="reduce">🧹 Apply Noise Reduction</button><button type="button" class="btn" data-noise-action="gate">🚪 Apply Noise Gate</button></div><p class="tiny muted" id="aluNoiseStatus">Select a waveform clip first.</p>';if(fx&&fx.parentNode)fx.parentNode.appendChild(c);else r.appendChild(c);document.getElementById('aluNRStrength').oninput=function(){aluNRValue.textContent=this.value+'%'};document.getElementById('aluGateThreshold').oninput=function(){aluGateValue.textContent=this.value+' dB'}}function wav(b){var ch=b.numberOfChannels,n=b.length,rate=b.sampleRate,o=new ArrayBuffer(44+n*ch*2),v=new DataView(o),w=function(p,s){for(var i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))};w(0,'RIFF');v.setUint32(4,36+n*ch*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*ch*2,true);var k=44;for(var i=0;i<n;i++)for(var c=0;c<ch;c++){var z=Math.max(-1,Math.min(1,b.getChannelData(c)[i]));v.setInt16(k,z<0?z*32768:z*32767,true);k+=2}return new Blob([o],{type:'audio/wav'})}
 function fft(r,m,inv){var n=r.length,j=0;for(var i=0;i<n;i++){if(i<j){var t=r[i];r[i]=r[j];r[j]=t;t=m[i];m[i]=m[j];m[j]=t}var q=n>>1;while(q&&j>=q){j-=q;q>>=1}j+=q}for(var l=2;l<=n;l<<=1){var a=(inv?-2:2)*Math.PI/l,cr=Math.cos(a),ci=Math.sin(a);for(var b=0;b<n;b+=l){var wr=1,wi=0,h=l>>1;for(var k=0;k<h;k++){var x=b+k,y=x+h,rr=r[y]*wr-m[y]*wi,ii=r[y]*wi+m[y]*wr;r[y]=r[x]-rr;m[y]=m[x]-ii;r[x]+=rr;m[x]+=ii;var nr=wr*cr-wi*ci;wi=wr*ci+wi*cr;wr=nr}}}if(inv)for(var i=0;i<n;i++){r[i]/=n;m[i]/=n}}
 async function reduce(b,str){var N=1024,H=256,L=b.length,R=b.sampleRate,C=b.numberOfChannels,O=new AudioBuffer({length:L,numberOfChannels:C,sampleRate:R}),F=Math.max(1,Math.ceil((L-N)/H)+1),NF=Math.max(1,Math.min(F,Math.ceil(R*.5/H)));for(var ch=0;ch<C;ch++){var s=b.getChannelData(ch),d=O.getChannelData(ch),no=new Float32Array(N/2+1),re=new Float32Array(N),im=new Float32Array(N),win=new Float32Array(N),wt=new Float32Array(L);for(var n=0;n<N;n++)win[n]=.5-.5*Math.cos(2*Math.PI*n/(N-1));for(var f=0;f<NF;f++){var st=f*H;for(var n=0;n<N;n++){var ix=st+n;re[n]=(ix<L?s[ix]:0)*win[n];im[n]=0}fft(re,im,0);for(var k=0;k<=N/2;k++)no[k]+=Math.hypot(re[k],im[k])}for(var k=0;k<no.length;k++)no[k]/=NF;for(var f=0;f<F;f++){var st=f*H;for(var n=0;n<N;n++){var ix=st+n;re[n]=(ix<L?s[ix]:0)*win[n];im[n]=0}fft(re,im,0);for(var k=0;k<=N/2;k++){var mag=Math.hypot(re[k],im[k]),ph=Math.atan2(im[k],re[k]),z=Math.max(no[k]*(.12+.28*(1-str)),mag-no[k]*str);re[k]=z*Math.cos(ph);im[k]=z*Math.sin(ph);if(k>0&&k<N/2){re[N-k]=re[k];im[N-k]=-im[k]}}fft(re,im,1);for(var n=0;n<N;n++){var ix=st+n;if(ix<L){d[ix]+=re[n]*win[n];wt[ix]+=win[n]*win[n]}}}for(var i=0;i<L;i++)d[i]=wt[i]>.00001?d[i]/wt[i]:s[i]}return O}
@@ -5661,7 +5554,7 @@ async function apply(kind){var t=sel();if(!t){msg('Tap a waveform clip first.');
   #studio .studio-effects-room-panel .alu-fx-list{grid-template-columns:1fr}
 }
 </style>
-<style id="aluStudioPersistentVocalLayersV101">
+<style id="aluStudioPersistentVocalLayersV101Styles">
 #studio .alu-vocal-layers{position:relative;z-index:99999;margin:0 0 14px;border:1px solid #2d303a;border-radius:16px;background:#0d0f14;padding:10px;overflow:hidden}
 #studio .alu-vocal-layers-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
 #studio .alu-vocal-layers-head b{font-size:13px}
@@ -6814,7 +6707,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<style id="aluStudioProfessionalTopBarV101">
+<style id="aluStudioProfessionalTopBarV101Styles">
 /* V101 Studio Professional Control Bar
    Inspired by the compact control-bar/timeline relationship used by professional DAWs.
    This is a UI/placement layer only; the existing V101 audio engine remains intact. */
@@ -7156,7 +7049,7 @@ function boot(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
-<style id="aluStudioRotaryControlsV101">
+<style id="aluStudioRotaryControlsV101Styles">
 #studio .alu-rotary-wrap{display:flex;align-items:center;justify-content:center;gap:4px;min-width:70px;touch-action:none;overscroll-behavior:contain;user-select:none;-webkit-user-select:none}
 #studio .alu-rotary{width:46px;height:46px;border-radius:50%;border:2px solid #454957;background:radial-gradient(circle at 35% 30%,#3b3f4b,#171922 65%,#0e0f14);box-shadow:inset 0 1px 3px rgba(255,255,255,.12),0 3px 8px rgba(0,0,0,.35);position:relative;cursor:grab;touch-action:none;overscroll-behavior:contain;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;padding:0;color:#fff;pointer-events:auto}
 #studio .alu-rotary:active,#studio .alu-rotary.is-dragging{cursor:grabbing}

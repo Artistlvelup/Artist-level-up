@@ -1393,32 +1393,30 @@ async function play(){if(!S.tracks.length)return note('Add a beat or record a vo
 async function record(){if(S.rec){S.rec.stop();return}try{let st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});S.stream=st;S.chunks=[];S.rec=new MediaRecorder(st);$('studioStatus').textContent='Recording…';$('studioRecordHint').textContent='Recording microphone… tap again to stop.';let an=ctx().createAnalyser(),src=ctx().createMediaStreamSource(st);src.connect(an);an.fftSize=256;let arr=new Uint8Array(256),meter=()=>{if(!S.rec)return;an.getByteTimeDomainData(arr);let sum=0;for(let v of arr){let z=(v-128)/128;sum+=z*z}let rms=Math.sqrt(sum/arr.length),d=20*Math.log10(Math.max(.00001,rms));$('studioMeterBar').style.width=Math.min(100,Math.max(0,(d+60)/60*100))+'%';$('studioMeterText').textContent=d<-59?'-∞ dB':d.toFixed(1)+' dB';requestAnimationFrame(meter)};meter();S.rec.ondataavailable=e=>e.data.size&&S.chunks.push(e.data);S.rec.onstop=async()=>{let b=new Blob(S.chunks,{type:S.rec.mimeType||'audio/webm'}),d=await duration(b),layer=Number(window.__ALU_VOCAL_LAYER_SELECTED||1),layerNames=['Lead / Normal Vocal','Chorus','Ad-lib','Backing Vocal','Harmony','Extra Vocal'],existing=S.tracks.find(t=>Number(t.vocalLayer||0)===layer);if(existing){S.undo.push(snap());S.redo=[];existing.blob=b;existing.duration=d;existing.name='Vocal Layer '+layer+' · '+(layerNames[layer-1]||'Vocal');existing.audio=null;existing.nodes=null;existing.playAudio=null;S.selected=existing.id;render()}else add({id:'t'+Date.now(),name:'Vocal Layer '+layer+' · '+(layerNames[layer-1]||'Vocal'),blob:b,volume:1,pan:0,mute:false,solo:false,duration:d,vocalLayer:layer});st.getTracks().forEach(x=>x.stop());S.stream=null;S.rec=null;$('studioStatus').textContent='Take captured ✓';$('studioRecordHint').textContent='Take saved. Record another layer or import a beat.'};S.rec.start(200);note('🎙️ Recording started')}catch(e){note('Microphone permission is required to record.')}}
 
 async function addV101DemoBeat(){
-  const sampleRate=22050,durationSeconds=30,total=sampleRate*durationSeconds,samples=new Float32Array(total);
-  for(let i=0;i<total;i++){
-    const t=i/sampleRate,quarter=t%0.5,eighth=t%0.25;
-    let v=0;
-    if(quarter<0.16){
-      const env=Math.exp(-quarter*24),freq=48+105*Math.exp(-quarter*28);
-      v+=0.72*env*Math.sin(2*Math.PI*freq*quarter);
-    }
-    const beat=Math.floor(t/0.5)%4;
-    if((beat===1||beat===3)&&quarter<0.13){
-      const raw=Math.sin(i*12.9898)*43758.5453,noise=(raw-Math.floor(raw))*2-1;
-      v+=0.22*noise*Math.exp(-quarter*32);
-    }
-    if(eighth<0.018){
-      const raw=Math.sin((i+19)*78.233)*12345.6789,noise=(raw-Math.floor(raw))*2-1;
-      v+=0.09*noise*Math.exp(-eighth*190);
-    }
-    samples[i]=Math.max(-0.95,Math.min(0.95,v));
+  const sampleRate=44100,durationSeconds=30,bpm=104,beat=60/bpm,bar=beat*4;
+  const Offline=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  if(!Offline)throw new Error('This browser does not support studio beat rendering');
+  const off=new Offline(2,Math.ceil(sampleRate*durationSeconds),sampleRate);
+  let seed=91731;const random=()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646};
+  const master=off.createGain();master.gain.value=.82;
+  const comp=off.createDynamicsCompressor();comp.threshold.value=-8;comp.knee.value=8;comp.ratio.value=3;comp.attack.value=.004;comp.release.value=.18;master.connect(comp).connect(off.destination);
+  const noiseBuffer=off.createBuffer(1,sampleRate,sampleRate),nd=noiseBuffer.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=random()*2-1;
+  function tone(freq,time,dur,type,vol,opts={}){if(time>=durationSeconds||time<0)return;const osc=off.createOscillator(),gain=off.createGain(),filter=off.createBiquadFilter(),pan=off.createStereoPanner();osc.type=type||'sine';osc.frequency.setValueAtTime(freq,time);if(opts.endFreq)osc.frequency.exponentialRampToValueAtTime(Math.max(1,opts.endFreq),time+Math.min(dur,.16));filter.type=opts.filterType||'lowpass';filter.frequency.setValueAtTime(opts.cutoff||12000,time);filter.Q.value=opts.q||.7;pan.pan.value=opts.pan||0;gain.gain.setValueAtTime(.0001,time);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),time+.008);gain.gain.exponentialRampToValueAtTime(.0001,time+Math.max(.025,dur));osc.connect(filter).connect(gain).connect(pan).connect(master);osc.start(time);osc.stop(time+dur+.035)}
+  function noise(time,dur,vol,cutoff,pan=0,kind='highpass'){if(time>=durationSeconds||time<0)return;const src=off.createBufferSource(),filter=off.createBiquadFilter(),gain=off.createGain(),p=off.createStereoPanner();src.buffer=noiseBuffer;filter.type=kind;filter.frequency.value=cutoff;filter.Q.value=.65;p.pan.value=pan;gain.gain.setValueAtTime(.0001,time);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,vol),time+.003);gain.gain.exponentialRampToValueAtTime(.0001,time+dur);src.connect(filter).connect(gain).connect(p).connect(master);src.start(time);src.stop(Math.min(durationSeconds,time+dur+.01))}
+  const roots=[55,43.65,49,41.2],chords=[[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66],[164.81,196,246.94]];
+  const melody=[440,392,329.63,392,523.25,440,392,329.63,392,493.88,440,392,329.63,293.66,329.63,392];
+  for(let step=0;step<Math.ceil(durationSeconds/beat);step++){const t=step*beat,phase=step%16,barNo=Math.floor(step/4),root=roots[Math.floor(barNo/2)%4];
+    if(step%4===0||(step%4===2&&random()>.55)){tone(145,t,.19,'sine',.52,{endFreq:43,cutoff:180});tone(72,t+.012,.12,'triangle',.17,{endFreq:38,cutoff:130})}
+    if(step%4===1||step%4===3){noise(t,.13,.19,1800,random()*.4-.2,'bandpass');tone(185,t,.09,'triangle',.085,{endFreq:125,cutoff:900});noise(t+.012,.085,.10,4200,random()*.5-.25,'highpass')}
+    for(let sub=0;sub<2;sub++){const ht=t+sub*beat/2+(sub?.018:0),accent=sub===0?.065:.045;noise(ht,.025,accent*(random()>.15?1:.55),7600,random()*.8-.4,'highpass');if(sub===1&&step%4===3&&random()>.35)noise(ht,.12,.045,5600,random()*.7-.35,'highpass')}
+    if(phase===0||phase===3||phase===6||phase===10||phase===13){const noteFreq=root*(phase===6?1.5:phase===13?1.25:1);tone(noteFreq,t,.22,'triangle',phase===0?.19:.13,{endFreq:noteFreq*.985,cutoff:320});if(phase===6||phase===13)tone(noteFreq*2,t,.12,'sine',.045,{endFreq:noteFreq*1.8,cutoff:700})}
+    if(phase===0||phase===6||phase===10||phase===14){const chord=chords[Math.floor(barNo/2)%4],ct=t+(phase===6?.025:0);chord.forEach((hz,j)=>tone(hz,ct,.26,'triangle',j===0?.047:.035,{cutoff:1400,pan:(j-1)*.28}))}
+    if([2,5,7,11,14].includes(phase)&&random()>.28){const idx=(barNo*3+phase)%melody.length;tone(melody[idx],t+beat*.12,.12,'triangle',.055,{cutoff:2800,pan:random()*.7-.35})}
   }
-  const bytes=new ArrayBuffer(44+samples.length*2),view=new DataView(bytes);
-  const write=(offset,str)=>{for(let i=0;i<str.length;i++)view.setUint8(offset+i,str.charCodeAt(i));};
-  write(0,'RIFF');view.setUint32(4,36+samples.length*2,true);write(8,'WAVE');write(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);write(36,'data');view.setUint32(40,samples.length*2,true);
-  for(let i=0,offset=44;i<samples.length;i++,offset+=2)view.setInt16(offset,Math.max(-1,Math.min(1,samples[i]))*(samples[i]<0?32768:32767),true);
-  const blob=new Blob([bytes],{type:'audio/wav'});
-  add({id:'demo'+Date.now(),name:'30-second Original Demo Beat',blob,volume:0.75,pan:0,mute:false,solo:false,duration:durationSeconds});
-  note('🥁 Demo beat added. Press Play or Record Vocal to begin.');
+  for(let t=0,barNo=0;t<durationSeconds;t+=bar,barNo++){if(barNo%4===3){for(let n=0;n<8;n++)noise(t+n*beat/2,.035,.025,9000,(n%2?-.35:.35),'highpass')}}
+  const rendered=await off.startRendering(),blob=wav(rendered);
+  add({id:'demo'+Date.now(),name:'Afro Groove Demo Beat · 104 BPM',blob,volume:.82,pan:0,mute:false,solo:false,duration:durationSeconds});
+  note('🥁 Afro Groove demo beat added · 104 BPM. Press Play to hear the full groove.');
 }
 async function importAudio(files){for(let f of files){let b=new Blob([f],{type:f.type||'audio/*'}),d=await duration(b);add({id:'t'+Date.now()+Math.random(),name:f.name.replace(/\.[^.]+$/,''),blob:b,volume:1,pan:0,mute:false,solo:false,duration:d})}note('🎵 Audio imported ✓')}
 function wav(buf){let ch=buf.numberOfChannels,rate=buf.sampleRate,n=buf.length,data=ch===2?(()=>{let a=buf.getChannelData(0),b=buf.getChannelData(1),o=new Float32Array(n*2);for(let i=0,j=0;i<n;i++){o[j++]=a[i];o[j++]=b[i]}return o})():buf.getChannelData(0),out=new ArrayBuffer(44+data.length*2),v=new DataView(out),ws=(p,s)=>{for(let i=0;i<s.length;i++)v.setUint8(p+i,s.charCodeAt(i))};ws(0,'RIFF');v.setUint32(4,36+data.length*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,ch,true);v.setUint32(24,rate,true);v.setUint32(28,rate*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,data.length*2,true);for(let i=0,o=44;i<data.length;i++,o+=2)v.setInt16(o,Math.max(-1,Math.min(1,data[i]))*(data[i]<0?32768:32767),true);return new Blob([out],{type:'audio/wav'})}

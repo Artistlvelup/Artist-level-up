@@ -6046,18 +6046,7 @@ function boot(){
    }
    if(!t)return;
    if(a==='play'){
-     try{
-       if(t.audio){var pp=t.audio.play();if(pp&&pp.catch)pp.catch(function(){})}
-       else if(t.playAudio){var pp2=t.playAudio.play();if(pp2&&pp2.catch)pp2.catch(function(){})}
-       else if(t.__laneAudio){var pp3=t.__laneAudio.play();if(pp3&&pp3.catch)pp3.catch(function(){})}
-       else if(t.blob){
-         t.__laneAudio=new Audio(URL.createObjectURL(t.blob));
-         t.__laneAudio.preload='auto';
-         t.__laneAudio.volume=t.mute?0:Number(t.volume??1);
-         t.__laneAudio.muted=!!t.mute;
-         var pp4=t.__laneAudio.play();if(pp4&&pp4.catch)pp4.catch(function(){});
-       }
-     }catch(_e){}
+     try{var engine=window.ALU_STUDIO_V101;if(engine&&typeof engine.playTrack==='function')engine.playTrack(t)}catch(_e){}
    }else if(a==='pause'){
      try{if(t.audio)t.audio.pause();if(t.playAudio)t.playAudio.pause();if(t.__laneAudio)t.__laneAudio.pause()}catch(_e){}
    }else if(a==='stop'){
@@ -6067,7 +6056,7 @@ function boot(){
        if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio.currentTime=0}
      }catch(_e){}
    }
-   else if(a==='mute'){t.mute=!t.mute;if(t.__laneAudio)t.__laneAudio.muted=!!t.mute;}
+   else if(a==='mute'){t.mute=!t.mute;[t.__laneAudio,t.playAudio,t.audio].forEach(function(x){if(x)x.muted=!!t.mute})}
    else if(a==='solo'){t.solo=!t.solo;}
    else if(a==='delete'){
      try{if(t.__laneAudio){t.__laneAudio.pause();t.__laneAudio.src='';t.__laneAudio=null;}}catch(_e){}
@@ -6084,7 +6073,7 @@ function boot(){
    }
    else if(a==='fxToggle'){
      t.proFx=t.proFx||{};t.proFx.slots=Array.isArray(t.proFx.slots)?t.proFx.slots:[];t.proFx.active=t.proFx.active||{};
-     var k=b.getAttribute('data-fx');if(t.proFx.slots.indexOf(k)<0)t.proFx.slots.push(k);t.proFx.active[k]=t.proFx.active[k]!==true;
+     var k=String(b.getAttribute('data-fx')||'').toLowerCase();if(t.proFx.slots.indexOf(k)<0)t.proFx.slots.push(k);t.proFx.active[k]=t.proFx.active[k]!==true;
      if(t.nodes&&window.ALU_STUDIO_V101.apply)try{window.ALU_STUDIO_V101.apply(t)}catch(_e){}
    }
    if(window.ALU_VOCAL_LAYERS_V101&&window.ALU_VOCAL_LAYERS_V101.refresh)window.ALU_VOCAL_LAYERS_V101.refresh();

@@ -2093,7 +2093,7 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){
-window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Secure payment connection is not ready.');const popup=window.open('about:blank','_blank');try{const r=await c.functions.invoke('upload-fee-checkout',{body:{upload_type:type}});if(r.error)throw new Error(await functionError(r.error,'Could not check upload fee.'));if(!r.data?.ok)throw new Error(r.data?.error||'Could not check upload fee.');if(r.data.paid){try{popup?.close()}catch(_){}return true;}if(!r.data.authorization_url)throw new Error('Paystack checkout link was not returned.');if(!popup){throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open without losing your selected audio file.');}popup.location.href=r.data.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
+window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Secure payment connection is not ready.');const popup=window.open('about:blank','_blank');try{const r=await c.functions.invoke('upload-fee-checkout',{body:{upload_type:type,return_url:location.href}});if(r.error)throw new Error(await functionError(r.error,'Could not check upload fee.'));if(!r.data?.ok)throw new Error(r.data?.error||'Could not check upload fee.');if(r.data.paid){try{popup?.close()}catch(_){}return true;}if(!r.data.authorization_url)throw new Error('Paystack checkout link was not returned.');if(!popup){throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open without losing your selected audio file.');}popup.location.href=r.data.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
     async function uploadMusicFromCreate(btn){
     const title=document.getElementById('songTitle')?.value.trim();
     const genre=document.getElementById('songGenre')?.value||'Music';
@@ -4461,7 +4461,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Starting secure checkout…';
     try{
       if(!window.ALU_CLOUD?.client)throw new Error('Supabase connection is not ready.');
-      const {data,error}=await window.ALU_CLOUD.client.functions.invoke(FN,{body:{beat_id:beat.id,license,email}});
+      const {data,error}=await window.ALU_CLOUD.client.functions.invoke(FN,{body:{beat_id:beat.id,license,email,return_url:location.href}});
       if(error){let detail=error.message||'Checkout request failed.';try{const body=await error.context.json();if(body?.error)detail=body.error}catch(_){}throw new Error(detail);}
       if(!data?.ok)throw new Error(data?.error||'Checkout could not be started.');
       if(status)status.textContent='Checkout ready. Opening secure payment…';

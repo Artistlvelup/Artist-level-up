@@ -4509,7 +4509,17 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
   }
   function init(){setEmail();const i=document.getElementById('marketplaceSearch');if(i&&!i.dataset.bound){i.dataset.bound='1';i.addEventListener('input',renderBeats)};loadBeats();}
   document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-market-download-reference]');if(!b)return;e.preventDefault();void fetchPurchasedBeat(b.dataset.marketDownloadReference)},true);
+  function handleUploadFeeReturn(){
+    const params=new URLSearchParams(location.search);
+    if(params.get('upload_fee')!=='paid')return;
+    const type=String(params.get('type')||'');
+    const page=type==='beat'?'producerDashboard':'create';
+    if(typeof window.go==='function')window.go(page);
+    try{history.replaceState({page},'',location.pathname+'#'+page)}catch(_){}
+    setTimeout(()=>{try{toast(type==='beat'?'Upload fee confirmed. Tap Publish Beat again to finish.':'Upload fee confirmed. Continue your upload.')}catch(_){}},120);
+  }
   setTimeout(handlePaymentReturn,250);
+  setTimeout(handleUploadFeeReturn,350);
   window.addEventListener('pageshow',handlePaymentReturn);
   // MARKETPLACE CLICK SAFETY: handle marketplace controls in capture phase so other
   // global click handlers cannot swallow the tap on mobile browsers.

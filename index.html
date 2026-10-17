@@ -7557,3 +7557,43 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 </script>
+
+
+<style id="aluV101EffectsRoomFunctionalLayoutFix">
+/* Rack lives in a body-level modal, so controls must not rely on #studio selectors. */
+.studio-effects-room{pointer-events:auto;z-index:2147483001}
+.studio-effects-room.show{pointer-events:auto}
+.studio-effects-room-panel{position:relative;isolation:isolate;width:min(96vw,760px);max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.studio-effects-room-head{position:sticky;top:0;z-index:10}
+.studio-effects-room-body{display:block;min-width:0}
+.studio-effects-room .alu-fx-rack{display:block!important;position:relative;width:100%;max-width:100%;min-width:0;margin:0;padding:12px;border:0;border-radius:0;background:linear-gradient(180deg,#0b1019,#080b11);color:#f4f7ff;pointer-events:auto}
+.studio-effects-room .alu-fx-rack *{pointer-events:auto}
+.studio-effects-room .alu-fx-rack-head{position:relative;top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px 12px;border-bottom:1px solid #30384a}
+.studio-effects-room .alu-fx-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.studio-effects-room .alu-fx-tools button{display:block;min-width:0;min-height:44px;border:1px solid #52627b;border-radius:12px;background:linear-gradient(135deg,#29374c,#172231);color:#fff;font-size:11px;font-weight:900;cursor:pointer;touch-action:manipulation}
+.studio-effects-room .alu-fx-tools button:first-child{background:linear-gradient(135deg,#a92f43,#64202d);border-color:#ed6b7e}
+.studio-effects-room .alu-fx-tools button:nth-child(2){background:linear-gradient(135deg,#315f9b,#22528e);border-color:#76c4ff}
+.studio-effects-room .alu-fx-groups{display:grid;grid-template-columns:1fr;gap:10px}
+.studio-effects-room .alu-fx-group{display:block;min-width:0;margin:0;padding:10px;border:1px solid #30394a;border-radius:14px;background:linear-gradient(180deg,#111722,#0d121a);overflow:visible}
+.studio-effects-room .alu-fx-group-title{display:block;margin:0 0 9px;padding:6px 8px;border-radius:8px;background:#171d28;color:#b9c9e4;font-size:11px;font-weight:900;letter-spacing:.6px}
+.studio-effects-room .alu-fx-list{display:grid;grid-template-columns:1fr;gap:8px}
+.studio-effects-room .alu-fx-row{display:grid;grid-template-columns:32px minmax(0,1fr) 58px;grid-template-rows:1fr;align-items:center;gap:9px;min-width:0;min-height:62px;padding:9px;border:1px solid #394355;border-radius:12px;background:linear-gradient(145deg,#1b2230,#111721);cursor:pointer}
+.studio-effects-room .alu-fx-no{grid-row:1;width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#222b3a;color:#c9d8ef;font-size:10px;font-weight:900}
+.studio-effects-room .alu-fx-row>div:nth-child(2){min-width:0}
+.studio-effects-room .alu-fx-name{font-size:12px;font-weight:900;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.studio-effects-room .alu-fx-state{font-size:10px;line-height:1.35;color:#a4aec0;margin-top:3px}
+.studio-effects-room .alu-fx-row button{display:block;width:58px;min-width:58px;height:36px;border:1px solid #59677e;border-radius:10px;background:#242d3b;color:#fff;font-size:11px;font-weight:900;cursor:pointer;touch-action:manipulation}
+.studio-effects-room .alu-fx-row button.on{background:linear-gradient(135deg,#42e0ca,#159e91);border-color:#62f0dc;color:#061513}
+.studio-effects-room .alu-fx-editor{display:none;margin-top:12px;padding:12px;border:1px solid #394355;border-radius:12px;background:#101722}
+.studio-effects-room .alu-fx-editor.show{display:block}
+.studio-effects-room .alu-fx-editor-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.studio-effects-room .alu-fx-editor-head b{font-size:13px}
+.studio-effects-room .alu-fx-editor-head small{font-size:10px;color:#a4aec0}
+.studio-effects-room .alu-fx-control{display:block;margin:12px 0}
+.studio-effects-room .alu-fx-control label{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px;font-size:11px;font-weight:800}
+.studio-effects-room .alu-fx-control input[type=range]{display:block;width:100%;min-height:30px;accent-color:#ffd21c;cursor:pointer;touch-action:pan-y}
+.studio-effects-room .alu-fx-note{font-size:10px;line-height:1.45;color:#a4aec0;margin-top:10px}
+.studio-effects-room .alu-fx-row:focus-within,.studio-effects-room .alu-fx-tools button:focus-visible{outline:2px solid #ffd21c;outline-offset:2px}
+@media(max-width:420px){.studio-effects-room{padding:7px}.studio-effects-room-panel{width:100%;max-height:calc(100dvh - 14px);border-radius:13px}.studio-effects-room .alu-fx-rack{padding:9px}.studio-effects-room .alu-fx-group{padding:8px}.studio-effects-room .alu-fx-row{grid-template-columns:28px minmax(0,1fr) 54px;gap:7px;padding:8px;min-height:60px}.studio-effects-room .alu-fx-row button{width:54px;min-width:54px}}
+</style>
+

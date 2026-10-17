@@ -4953,13 +4953,13 @@ function boot(){
        var key=item[1],row=document.createElement('div');row.className='alu-fx-row'+(active[key]?' active':'');
        row.innerHTML='<span class="alu-fx-no">'+(++n)+'</span><div><div class="alu-fx-name">'+item[0]+'</div><div class="alu-fx-state">'+(active[key]?'ACTIVE · tap name to adjust':'READY · tap to enable')+'</div></div><button type="button" class="'+(active[key]?'on':'')+'"><span>'+(active[key]?'ON':'OFF')+'</span></button>';
        var btn=row.querySelector('button');
-       btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];if(Object.prototype.hasOwnProperty.call(S.fx,key))S.fx[key]=active[key];apply();render();openEditor(key)});
+       btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();active[key]=!active[key];apply();render();openEditor(key)});
        row.addEventListener('click',function(e){if(e.target===btn)return;e.preventDefault();e.stopPropagation();openEditor(key)});
        list.appendChild(row);
      });
      wrap.appendChild(list);groups.appendChild(wrap);
    });
-   var off=rack.querySelector('[data-fx-all]');off.onclick=function(){allKeys.forEach(k=>{active[k]=false;if(Object.prototype.hasOwnProperty.call(S.fx,k))S.fx[k]=false});apply();render();editor.classList.remove('show')};
+   var off=rack.querySelector('[data-fx-all]');off.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}allKeys.forEach(function(k){active[k]=false});apply();render();editor.classList.remove('show');editor.setAttribute('aria-hidden','true')};
    var bypass=rack.querySelector('[data-fx-master]');bypass.classList.toggle('on',chainBypass);
    bypass.onclick=function(){chainBypass=!chainBypass;apply();render()};
  }

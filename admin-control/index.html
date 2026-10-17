@@ -177,6 +177,31 @@ a{color:#83c7ff;font-weight:750}
  .admin-room-buttons{grid-template-columns:minmax(0,1fr)}
 }
 
+
+/* Click-through admin rooms: landing page plus one room at a time */
+[hidden]{display:none!important}
+.admin-room-landing{padding:8px 0 22px}
+.admin-room-welcome{padding:18px 2px 12px}
+.admin-room-eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;border:1px solid #28766f;background:#08372f;color:#79f3d2;font-size:11px;font-weight:900;letter-spacing:1px}
+.admin-room-welcome h2{margin:13px 0 7px;font-size:clamp(27px,4vw,36px);font-weight:950;line-height:1.15}
+.admin-room-welcome p{margin:0;color:#b9cce5;max-width:700px}
+.admin-room-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.admin-room-entry{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:260px;padding:22px;border:1px solid #2b5683;border-radius:22px;background:linear-gradient(150deg,#12345a,#09172c 78%);box-shadow:0 14px 30px #0003}
+.admin-room-entry:nth-child(2){background:linear-gradient(150deg,#26366b,#101a37 78%);border-color:#555ea0}
+.admin-room-entry:nth-child(3){background:linear-gradient(150deg,#124b4c,#091e2d 78%);border-color:#277c79}
+.admin-room-entry-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:17px;background:#ffffff12;border:1px solid #ffffff20;font-size:29px}
+.admin-room-entry h3{margin:18px 0 8px;font-size:21px;font-weight:950;line-height:1.2}
+.admin-room-entry p{margin:0;color:#c0d3eb;font-size:14px;line-height:1.55;flex:1}
+.admin-room-entry-count{margin:16px 0 14px;color:#9ebbe0;font-size:12px;font-weight:850}
+.admin-room-enter{width:100%;min-height:48px;text-align:center}
+.admin-room-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:16px 0 10px;padding:14px;border:1px solid #234b76;border-radius:18px;background:#08172b}
+.admin-room-current{min-width:0;flex:1}
+.admin-room-current h2{margin:0;font-size:clamp(21px,3vw,28px);font-weight:950}
+.admin-room-current p{margin:4px 0 0;color:#b4c9e5;font-size:13px}
+.tabs.admin-room-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px;margin:10px 0 18px;border:1px solid #234b76;border-radius:18px;background:#07152a;box-shadow:none;overflow:visible;position:static}
+.tabs.admin-room-tabs button{min-width:0;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
+@media(max-width:900px){.admin-room-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs.admin-room-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.admin-room-card-grid{grid-template-columns:minmax(0,1fr);gap:12px}.admin-room-entry{min-height:0;padding:18px;border-radius:18px}.admin-room-entry h3{margin-top:13px;font-size:20px}.admin-room-entry-count{margin:12px 0}.admin-room-bar{align-items:stretch;flex-direction:column}.admin-room-bar>button{width:100%}.tabs.admin-room-tabs{grid-template-columns:repeat(2,minmax(0,1fr));padding:9px;gap:8px}.tabs.admin-room-tabs button{font-size:12px;padding:10px 7px}}
 </style>
 </head>
 <body>
@@ -307,28 +332,57 @@ a{color:#83c7ff;font-weight:750}
 (function(){
  'use strict';
  var nav=document.querySelector('nav.tabs[aria-label="Admin sections"]');
- if(!nav||nav.dataset.roomsReady==='1')return;
+ var app= document.getElementById('appView');
+ if(!nav||!app||nav.dataset.roomsReady==='1')return;
  var groups=[
-  {title:'Artist & Accounts',desc:'Manage artist records, member profiles and community posts.',ids:['artists','profiles','picture_posts']},
-  {title:'Creative Library',desc:'Review music, video and beat submissions.',ids:['songs','artist_videos','marketplace_beats']},
-  {title:'Business & Finance',desc:'Oversee promotions, orders, withdrawals and receiving-bank settings.',ids:['promotions','marketplace_orders','withdrawals','bankSettingsBtn']}
+  {id:'artists',icon:'🎤',title:'Artist & Accounts',desc:'A dedicated room for artist management, member profiles and community posts.',items:[['artists','🎤 Artists'],['profiles','👤 Profiles'],['picture_posts','🖼️ Posts / Widgets']]},
+  {id:'creative',icon:'🎨',title:'Creative Library',desc:'A dedicated room for reviewing music, videos and marketplace beats.',items:[['songs','🎵 Music'],['artist_videos','🎬 Videos'],['marketplace_beats','🎹 Beats']]},
+  {id:'business',icon:'💼',title:'Business & Finance',desc:'A dedicated room for promotions, orders, withdrawals and receiving-bank settings.',items:[['promotions','📣 Promotions'],['marketplace_orders','🛒 Orders'],['withdrawals','💸 Withdrawals'],['bankSettingsBtn','🏦 Receiving Bank']]}
  ];
- var buttons=Array.from(nav.children);
- nav.classList.add('admin-room-layout');
+ var landing=document.createElement('section');
+ landing.id='adminRoomLanding';landing.className='admin-room-landing';
+ landing.innerHTML='<div class="admin-room-welcome"><span class="admin-room-eyebrow">OWNER WORKSPACE</span><h2>Choose a control room</h2><p>Each part of your business has its own room. Open one to access its controls.</p></div><div class="admin-room-card-grid"></div>';
+ var cardGrid=landing.querySelector('.admin-room-card-grid');
  groups.forEach(function(group){
-  var card=document.createElement('section');card.className='admin-room-group';
-  var head=document.createElement('div');head.className='admin-room-group-head';
-  var title=document.createElement('h4');title.textContent=group.title;
+  var card=document.createElement('article');card.className='admin-room-entry';
+  var icon=document.createElement('div');icon.className='admin-room-entry-icon';icon.textContent=group.icon;
+  var title=document.createElement('h3');title.textContent=group.title;
   var desc=document.createElement('p');desc.textContent=group.desc;
-  head.appendChild(title);head.appendChild(desc);card.appendChild(head);
-  var area=document.createElement('div');area.className='admin-room-buttons';
-  group.ids.forEach(function(id){
-   var button=id==='bankSettingsBtn'?document.getElementById(id):nav.querySelector('[data-table="'+id+'"]');
-   if(button)area.appendChild(button);
-  });
-  card.appendChild(area);nav.appendChild(card);
+  var count=document.createElement('span');count.className='admin-room-entry-count';count.textContent=group.items.length+' control areas';
+  var button=document.createElement('button');button.type='button';button.className='primary admin-room-enter';button.textContent='Enter room  →';
+  button.addEventListener('click',function(){openRoom(group.id);});
+  card.append(icon,title,desc,count,button);cardGrid.appendChild(card);
  });
+ var roomBar=document.createElement('div');roomBar.id='adminRoomBar';roomBar.className='admin-room-bar hidden';
+ var back=document.createElement('button');back.type='button';back.className='quiet';back.textContent='← All control rooms';back.addEventListener('click',showLanding);
+ var roomTitle=document.createElement('div');roomTitle.className='admin-room-current';
+ var roomName=document.createElement('h2');roomName.id='adminRoomTitle';
+ var roomDesc=document.createElement('p');roomDesc.id='adminRoomDesc';
+ roomTitle.append(roomName,roomDesc);roomBar.append(back,roomTitle);
+ nav.parentNode.insertBefore(landing,nav);
+ nav.parentNode.insertBefore(roomBar,nav);
+ nav.classList.add('admin-room-tabs');
+ nav.classList.add('hidden');
+ groups.forEach(function(group){
+  group.items.forEach(function(item){var b=item[0]==='bankSettingsBtn'?document.getElementById(item[0]):nav.querySelector('[data-table="'+item[0]+'"]');if(b){b.dataset.room=group.id;b.hidden=true;}});
+ });
+ function showLanding(){
+  landing.classList.remove('hidden');roomBar.classList.add('hidden');nav.classList.add('hidden');
+  document.getElementById('recordsPanel').classList.add('hidden');
+  document.getElementById('bankSettingsPanel').classList.add('hidden');
+  document.querySelectorAll('[data-table]').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('bankSettingsBtn').classList.remove('active');
+ }
+ function openRoom(id){
+  var group=groups.find(function(g){return g.id===id;});if(!group)return;
+  landing.classList.add('hidden');roomBar.classList.remove('hidden');nav.classList.remove('hidden');
+  roomName.textContent=group.icon+' '+group.title;roomDesc.textContent=group.desc;
+  groups.forEach(function(g){g.items.forEach(function(item){var b=item[0]==='bankSettingsBtn'?document.getElementById(item[0]):nav.querySelector('[data-table="'+item[0]+'"]');if(b)b.hidden=g.id!==id;});});
+  var first=group.items[0],b=first[0]==='bankSettingsBtn'?document.getElementById(first[0]):nav.querySelector('[data-table="'+first[0]+'"]');
+  if(b)b.click();
+ }
  nav.dataset.roomsReady='1';
+ showLanding();
 })();
 </script>
 

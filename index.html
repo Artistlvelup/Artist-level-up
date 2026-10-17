@@ -4641,8 +4641,8 @@ window.addEventListener('pageshow',()=>{if(window.ALU_ACTIVE_PAGE==='producerDas
 const $g=id=>document.getElementById(id),BANK_FN='producer-global-bank-list';
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const branchCountries=new Set(['GH','TZ','RW','UG']);
-const sepaCountries=new Set(['AT','BE','CY','DE','DK','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PL','PT','SE','SI','SK']);
-const currencyMap={US:['USD'],GB:['GBP'],NG:['NGN','USD'],GH:['GHS'],KE:['KES'],UG:['UGX'],TZ:['TZS'],RW:['RWF'],ZA:['ZAR'],ZM:['ZMW'],MW:['MWK'],CM:['XAF'],CI:['XOF'],SN:['XOF'],SL:['SLL'],BF:['XOF'],ET:['ETB'],EG:['EGP']};
+const sepaCountries=new Set(['AT','BE','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PL','PT','SE','SI','SK']);
+const currencyMap={US:['USD'],GB:['GBP'],NG:['NGN','USD'],GH:['GHS'],KE:['KES'],UG:['UGX'],TZ:['TZS'],RW:['RWF'],ZA:['ZAR'],ZM:['ZMW'],MW:['MWK'],CM:['XAF'],CI:['XOF'],SN:['XOF'],SL:['SLL'],BF:['XOF'],ET:['ETB'],EG:['EGP'],CZ:['CZK'],DK:['DKK'],PL:['PLN'],SE:['SEK']};
 function gm(t){const e=$g('globalPayoutMessage');if(e)e.textContent=t}
 async function globalUser(){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Supabase connection is not ready.');const r=await c.auth.getUser();if(r.error||!r.data?.user)throw new Error('Please sign in to connect a global payout account.');return r.data.user}
 function setFieldVisibility(country){

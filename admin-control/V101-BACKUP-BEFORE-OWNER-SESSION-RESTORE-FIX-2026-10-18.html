@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Artist Level Up — Owner Admin</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{color-scheme:dark;--bg:#08090d;--panel:#151720;--panel2:#1d202b;--line:#2c3040;--text:#f7f8fc;--muted:#9da4b7;--gold:#ffd21c;--green:#44d69a;--red:#ff6878;--blue:#7cb8ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#171a27 0,#08090d 48%);color:var(--text);font:15px Inter,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:12px 15px;font-weight:800;background:var(--panel2);color:var(--text)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--gold);color:#111}.quiet{border:1px solid var(--line)}.danger{background:#411d28;color:#ffd7dd}.shell{max-width:1200px;margin:auto;padding:22px}.brand{display:flex;align-items:center;gap:12px}.logo{display:grid;place-items:center;width:46px;height:46px;background:var(--gold);color:#111;border-radius:14px;font-size:23px;font-weight:1000}.brand h1{font-size:18px;margin:0}.brand p{margin:4px 0 0;color:var(--muted);font-size:12px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:20px}.status{font-size:12px;color:var(--muted)}.status b{color:var(--green)}.login{max-width:460px;margin:10vh auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:0 22px 80px #0008}.login h2{font-size:25px;margin:18px 0 8px}.muted{color:var(--muted);line-height:1.55}.login label{display:block;font-size:12px;margin:18px 0 7px;color:var(--muted)}input{width:100%;background:#0b0c12;border:1px solid var(--line);border-radius:12px;padding:14px;color:white;outline:none}input:focus{border-color:var(--gold)}.full{width:100%;margin-top:12px}.notice{padding:12px 14px;border-radius:12px;background:#202332;color:#cdd5e7;font-size:12px;line-height:1.5;margin-top:16px}.hidden{display:none!important}.welcome{padding:24px 0}.welcome h2{font-size:30px;margin:10px 0}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.stat,.panel{background:linear-gradient(145deg,#181b26,#11131a);border:1px solid var(--line);border-radius:18px;padding:17px;min-width:0}.stat span{font-size:12px;color:var(--muted)}.stat strong{display:block;font-size:28px;margin:8px 0 2px;overflow-wrap:anywhere}.stat small{color:var(--muted)}.tabs{display:flex;gap:8px;overflow-x:auto;padding:5px 0 15px}.tabs button{white-space:nowrap;border:1px solid var(--line)}.tabs button.active{background:var(--gold);color:#111;border-color:var(--gold)}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.panel h3{margin:0;font-size:17px}.table-wrap{overflow:auto;margin-top:14px}table{border-collapse:collapse;width:100%;min-width:620px;font-size:13px}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:700}td{overflow-wrap:anywhere}.empty{padding:28px;text-align:center;color:var(--muted)}.foot{padding:22px 0;color:var(--muted);font-size:11px;text-align:center}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f4f4f4;color:#111;padding:12px 18px;border-radius:999px;font-weight:800;box-shadow:0 8px 30px #0008;max-width:90%;z-index:10}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#26362f;color:#9af0c5;font-size:11px;font-weight:800}.actions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:760px){.shell{padding:15px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stat strong{font-size:24px}.welcome h2{font-size:25px}.login{margin:5vh 15px;padding:21px}}@media(max-width:380px){.grid{gap:8px}.stat{padding:12px}.stat strong{font-size:21px}}
+@media(max-width:760px){.tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible!important;position:sticky;top:0;z-index:5;background:#0a0b11;padding:8px 0}.tabs button{white-space:normal;min-width:0;padding:10px 4px;font-size:12px}.table-wrap{overflow:visible!important}table,tbody,tr,td{display:block;width:100%}table{min-width:0!important;table-layout:fixed}thead{display:none}tbody{display:grid;gap:9px}tr{border:1px solid var(--line);border-radius:13px;padding:7px 10px;background:#0e1018}td{display:grid;grid-template-columns:minmax(86px,35%) minmax(0,1fr);gap:8px;padding:8px 2px;font-size:12px;overflow-wrap:anywhere;word-break:break-word}td:before{content:attr(data-label);color:var(--muted);font-size:11px;font-weight:700}td:last-child{border-bottom:0}.top .actions{display:flex;flex-wrap:wrap}.top .actions button{padding:9px;font-size:12px}}@media(max-width:1050px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:380px){.shell{padding:9px}.panel{padding:10px}.tabs button{font-size:11px}}\n
+
+/* Member profile photos: make account identity visible at a glance */
+.member-profile-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:3px}
+.member-profile-card{display:flex;align-items:center;gap:15px;min-width:0;padding:16px;border:1px solid #2b5683;border-radius:18px;background:linear-gradient(135deg,#102746,#09172b);box-shadow:0 9px 22px #0002}
+.member-avatar-wrap{position:relative;flex:0 0 70px;width:70px;height:70px}
+.member-avatar{display:block;width:70px;height:70px;object-fit:cover;border-radius:50%;border:3px solid #ffd65a;background:#152c48;box-shadow:0 0 0 4px #ffd65a1c}
+.member-avatar-fallback{display:none;place-items:center;width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#ffe36c,#ffb91c);color:#111b2c;font-size:23px;font-weight:950}
+.member-profile-info{min-width:0;flex:1}
+.member-profile-name{font-size:16px;font-weight:900;color:#fff;overflow-wrap:anywhere;line-height:1.3}
+.member-profile-role{display:inline-flex;margin-top:7px;padding:4px 9px;border-radius:999px;background:#123d43;border:1px solid #1aa88e;color:#8dffe1;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.4px}
+.member-profile-meta{margin-top:7px;color:#a9c4e5;font-size:11px;overflow-wrap:anywhere}
+.member-profile-meta a{color:#83c7ff}
+@media(max-width:430px){.member-profile-list{grid-template-columns:1fr}.member-profile-card{padding:13px}.member-avatar-wrap,.member-avatar,.member-avatar-fallback{width:62px;height:62px}.member-avatar-wrap{flex-basis:62px}}
+
+/* Owner dashboard visual polish — additive overrides, preserving existing behaviour */
+:root{--bg:#061021;--panel:#0b1a31;--panel2:#102440;--line:#21456b;--text:#f5f8ff;--muted:#b1c4df;--gold:#ffd65a;--green:#20dfa1;--red:#ff5277;--blue:#22a7ff}
+body{background:radial-gradient(ellipse at 12% 0%,#112b59 0%,#071326 43%,#030914 100%);font-size:16px;line-height:1.5}
+.shell{max-width:1240px;padding:22px}
+.top{padding:0 0 20px;border-color:#24486d}
+.logo{background:linear-gradient(135deg,#ffe889,#f5a900);box-shadow:0 7px 24px #ffc83b25;border-radius:16px}
+.brand h1{font-size:clamp(19px,2.5vw,25px);font-weight:900;letter-spacing:.2px}
+.brand p{font-size:14px;color:#c1d6f4}
+.status{font-size:13px}
+button{min-height:44px;border-radius:13px;padding:12px 16px;font-size:14px;transition:transform .15s ease,filter .15s ease,border-color .15s ease;box-shadow:0 4px 12px #0002}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}
+button:focus-visible{outline:3px solid #73caff;outline-offset:2px}
+.primary{background:linear-gradient(135deg,#ffd95d,#ffb91c);color:#172033}
+.quiet{background:linear-gradient(135deg,#102642,#0a1930);border:1px solid #2b5683}
+.danger{background:linear-gradient(135deg,#ff456b,#c91f51);color:white}
+.welcome{padding:26px 0 12px}
+.welcome .pill{padding:8px 13px;background:linear-gradient(90deg,#063b3b,#0d334a);border:1px solid #16d6b0;color:#71ffe0;font-size:12px;letter-spacing:.6px}
+.welcome h2{font-size:clamp(27px,4vw,36px);line-height:1.18;font-weight:900;letter-spacing:-.4px}
+.welcome .muted{max-width:760px;font-size:16px;color:#c1d1e7}
+.grid{gap:14px;margin:18px 0 22px}
+.stat{position:relative;overflow:hidden;padding:19px 20px;background:linear-gradient(145deg,#122b50,#0a1830 85%);border:1px solid #2b5888;border-radius:19px;box-shadow:0 10px 26px #0002}
+.stat:nth-child(1){background:linear-gradient(140deg,#3425a7,#111b52);border-color:#6e65ff}
+.stat:nth-child(2){background:linear-gradient(140deg,#087c61,#06372f);border-color:#12d69b}
+.stat:nth-child(3){background:linear-gradient(140deg,#a84c07,#502409);border-color:#ff9d21}
+.stat:nth-child(4){background:linear-gradient(140deg,#096bc7,#07376f);border-color:#219dff}
+.stat span{display:block;font-size:13px;color:#e1edff;font-weight:800;letter-spacing:.25px;text-transform:uppercase}
+.stat strong{font-size:clamp(31px,4vw,39px);font-weight:950;line-height:1.1;margin:10px 0 4px}
+.stat small{font-size:13px;color:#e0eaff}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px;margin:8px 0 20px;border:1px solid #234b76;border-radius:20px;background:#07152a;box-shadow:inset 0 1px #ffffff08}
+.tabs button{white-space:normal;min-width:0;min-height:58px;text-align:left;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:12px 13px;background:linear-gradient(135deg,#132a4a,#0a1a32);border:1px solid #244e7c;border-radius:14px;font-size:14px;font-weight:850;line-height:1.25}
+.tabs button.active{background:linear-gradient(135deg,#ffe36c,#ffbd22);border-color:#ffe36c;color:#101b2c;box-shadow:0 5px 18px #ffc72d24}
+.panel{padding:22px;background:linear-gradient(150deg,#0b1d37,#071327);border:1px solid #28537f;border-radius:22px;box-shadow:0 12px 32px #0003}
+.panel h3{font-size:clamp(20px,2.5vw,25px);font-weight:900;letter-spacing:-.2px}
+.panel-head .muted{font-size:14px!important;color:#b6cae5}
+#tableStatus{display:inline-flex;align-items:center;min-height:36px;padding:7px 12px;border:1px solid #234b75;border-radius:11px;background:#0a1a31;color:#d8e9ff;font-size:13px;font-weight:750}
+.table-wrap{margin-top:16px}
+table{font-size:14px;border-spacing:0 9px;border-collapse:separate;min-width:650px}
+thead th{padding:10px 13px;color:#a9c4e5;font-size:12px;text-transform:uppercase;letter-spacing:.55px;border:0}
+tbody tr{background:linear-gradient(115deg,#0d203b,#08162b);outline:1px solid #234b72;border-radius:15px;overflow:hidden}
+tbody td{padding:14px 13px;border-bottom:1px solid #1a3555;color:#e8f1ff;font-size:14px;line-height:1.45}
+tbody td:first-child{font-weight:850;color:#fff}
+tbody td:last-child{border-bottom:0}
+.actions{gap:8px}
+.actions button{min-height:42px;padding:10px 13px;font-size:13px}
+.notice{background:linear-gradient(110deg,#0b2342,#0a182d);border:1px solid #224a74;color:#d2e4fb;border-radius:15px;padding:15px 17px;font-size:13px}
+.foot{font-size:13px;color:#9eb7d8;padding:24px 0}
+.pill{font-size:12px}
+.status-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:#172a43;border:1px solid #385778;color:#e1edff;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.25px;white-space:nowrap}
+.status-chip:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.status-chip.is-approved,.status-chip.is-published,.status-chip.is-active{background:#063c31;border-color:#0f9e78;color:#65f3c0}
+.status-chip.is-rejected,.status-chip.is-archived,.status-chip.is-cancelled,.status-chip.is-hidden{background:#45172a;border-color:#b62a53;color:#ff9eb6}
+.status-chip.is-pending,.status-chip.is-draft{background:#422a0c;border-color:#b87516;color:#ffd88b}
+.state-chip{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:900;white-space:nowrap;border:1px solid}
+.state-chip.yes{background:#45172a;border-color:#b62a53;color:#ff9eb6}
+.state-chip.no{background:#073a31;border-color:#138c6e;color:#6cf1c3}
+a{color:#83c7ff;font-weight:750}
+.empty{border:1px dashed #315b85;border-radius:15px;background:#09182c;padding:30px 18px;color:#c0d3eb;font-size:15px}
+@media(min-width:761px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.tabs button{font-size:15px}tbody tr:hover{outline-color:#4d8ac1;box-shadow:0 5px 20px #0003}tbody td{max-width:280px}}
+@media(max-width:760px){
+ .shell{padding:14px}
+ .top{align-items:flex-start;gap:13px}
+ .top .brand{align-items:flex-start}
+ .top .brand h1{font-size:19px;line-height:1.25}
+ .top .brand p{font-size:13px}
+ .top .actions{width:100%;gap:7px}
+ .top .actions button{flex:1;padding:10px 8px;font-size:12px;min-height:42px}
+ #signedAs{width:100%;padding:5px 0;font-size:13px}
+ .welcome{padding:22px 0 10px}
+ .welcome h2{font-size:27px;margin:13px 0 8px}
+ .welcome .muted{font-size:15px}
+ .grid{gap:10px;margin:16px 0 19px}
+ .stat{padding:15px 13px;border-radius:16px}
+ .stat span{font-size:11px;line-height:1.35}
+ .stat strong{font-size:30px;margin:9px 0 3px}
+ .stat small{font-size:12px}
+ .tabs{grid-template-columns:repeat(3,minmax(0,1fr));padding:9px;gap:8px;border-radius:17px;position:relative}
+ .tabs button{min-height:58px;padding:9px 6px;text-align:center;justify-content:center;font-size:12px;line-height:1.25;border-radius:12px}
+ .panel{padding:15px 12px;border-radius:18px}
+ .panel-head{align-items:stretch}
+ .panel-head>div:first-child{width:100%}
+ .panel h3{font-size:22px}
+ .panel-head .actions{width:100%}
+ .panel-head .actions button{flex:1;min-width:0;padding:10px 8px;font-size:12px}
+ .table-wrap{overflow:visible!important;margin-top:12px}
+ table,tbody,tr,td{display:block;width:100%}
+ table{min-width:0!important;table-layout:fixed;border-spacing:0}
+ thead{display:none}
+ tbody{display:grid;gap:13px}
+ tbody tr{display:block;border:1px solid #28537f;outline:0;border-radius:17px;padding:8px 12px 11px;background:linear-gradient(145deg,#102746,#08162a);box-shadow:0 8px 20px #0002;position:relative}
+ tbody tr:before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:4px;border-radius:0 5px 5px 0;background:linear-gradient(#35caff,#8b68ff)}
+ tbody td{display:grid;grid-template-columns:minmax(100px,34%) minmax(0,1fr);align-items:start;gap:10px;padding:10px 2px;border-bottom:1px solid #1c3a5c;font-size:14px;overflow-wrap:anywhere;word-break:break-word}
+ tbody td:before{content:attr(data-label);color:#a9c3e3;font-size:12px;font-weight:850;letter-spacing:.2px;line-height:1.4}
+ tbody td:first-child{font-size:16px;font-weight:900}
+ tbody td:last-child{padding-top:13px;border-bottom:0}
+ tbody td:last-child:before{align-self:center}
+ tbody td:last-child .actions{display:flex;gap:7px;flex-wrap:wrap}
+ tbody td:last-child .actions button{flex:1;min-width:105px}
+ .status-chip,.state-chip{font-size:11px;padding:6px 8px;white-space:normal}
+ .notice{font-size:12px;padding:13px;border-radius:14px}
+ .foot{font-size:12px;padding:19px 0}
+}
+@media(max-width:390px){
+ .shell{padding:10px}
+ .grid{gap:8px}
+ .stat{padding:13px 10px}
+ .stat span{font-size:10px}
+ .stat strong{font-size:27px}
+ .tabs{gap:6px;padding:7px}
+ .tabs button{font-size:11px;min-height:54px;padding:8px 3px}
+ .panel{padding:12px 9px}
+ tbody tr{padding:7px 10px 10px}
+ tbody td{grid-template-columns:minmax(88px,32%) minmax(0,1fr);gap:8px;font-size:13px}
+ tbody td:before{font-size:11px}
+}
+
+
+/* Admin control room: grouped work areas instead of one long row of controls */
+.tabs.admin-room-layout{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+ align-items:stretch;padding:0;margin:16px 0 22px;border:0;background:transparent;
+ box-shadow:none;overflow:visible;position:static;
+}
+.admin-room-group{
+ min-width:0;padding:16px;border:1px solid #2b5683;border-radius:20px;
+ background:linear-gradient(155deg,#102746 0%,#09162a 78%);box-shadow:0 12px 28px #0003;
+}
+.admin-room-group-head{margin:0 0 13px;padding:0 0 12px;border-bottom:1px solid #24486d}
+.admin-room-group-head h4{margin:0;color:#f4f8ff;font-size:15px;font-weight:900;letter-spacing:.2px}
+.admin-room-group-head p{margin:5px 0 0;color:#a9c4e5;font-size:12px;line-height:1.45}
+.admin-room-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tabs.admin-room-layout .admin-room-buttons button{
+ display:flex;align-items:center;justify-content:flex-start;gap:7px;text-align:left;
+ min-width:0;min-height:54px;padding:11px 10px;white-space:normal;
+ overflow-wrap:anywhere;line-height:1.25;font-size:13px;border-radius:13px;
+ background:linear-gradient(145deg,#173455,#0b1c33);border:1px solid #2c5784;
+}
+.tabs.admin-room-layout .admin-room-buttons button.active{
+ background:linear-gradient(135deg,#ffe36c,#ffbd22);border-color:#ffe36c;color:#101b2c;
+}
+.tabs.admin-room-layout .admin-room-buttons button:focus-visible{outline:3px solid #73caff;outline-offset:2px}
+@media(max-width:1050px){
+ .tabs.admin-room-layout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .tabs.admin-room-layout{grid-template-columns:minmax(0,1fr);gap:12px;margin:14px 0 18px}
+ .admin-room-group{padding:14px;border-radius:17px}
+ .admin-room-group-head h4{font-size:15px}
+ .admin-room-buttons{gap:8px}
+ .tabs.admin-room-layout .admin-room-buttons button{min-height:50px;font-size:13px;padding:10px}
+}
+@media(max-width:350px){
+ .admin-room-buttons{grid-template-columns:minmax(0,1fr)}
+}
+
+
+/* Click-through admin rooms: landing page plus one room at a time */
+[hidden]{display:none!important}
+.admin-room-landing{padding:8px 0 22px}
+.admin-room-welcome{padding:18px 2px 12px}
+.admin-room-eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;border:1px solid #28766f;background:#08372f;color:#79f3d2;font-size:11px;font-weight:900;letter-spacing:1px}
+.admin-room-welcome h2{margin:13px 0 7px;font-size:clamp(27px,4vw,36px);font-weight:950;line-height:1.15}
+.admin-room-welcome p{margin:0;color:#b9cce5;max-width:700px}
+.admin-room-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.admin-room-entry{display:flex;flex-direction:column;align-items:flex-start;min-width:0;min-height:260px;padding:22px;border:1px solid #2b5683;border-radius:22px;background:linear-gradient(150deg,#12345a,#09172c 78%);box-shadow:0 14px 30px #0003}
+.admin-room-entry:nth-child(2){background:linear-gradient(150deg,#26366b,#101a37 78%);border-color:#555ea0}
+.admin-room-entry:nth-child(3){background:linear-gradient(150deg,#124b4c,#091e2d 78%);border-color:#277c79}
+.admin-room-entry-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:17px;background:#ffffff12;border:1px solid #ffffff20;font-size:29px}
+.admin-room-entry h3{margin:18px 0 8px;font-size:21px;font-weight:950;line-height:1.2}
+.admin-room-entry p{margin:0;color:#c0d3eb;font-size:14px;line-height:1.55;flex:1}
+.admin-room-entry-count{margin:16px 0 14px;color:#9ebbe0;font-size:12px;font-weight:850}
+.admin-room-enter{width:100%;min-height:48px;text-align:center}
+.admin-room-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:16px 0 10px;padding:14px;border:1px solid #234b76;border-radius:18px;background:#08172b}
+.admin-room-current{min-width:0;flex:1}
+.admin-room-current h2{margin:0;font-size:clamp(21px,3vw,28px);font-weight:950}
+.admin-room-current p{margin:4px 0 0;color:#b4c9e5;font-size:13px}
+.tabs.admin-room-tabs{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px;margin:10px 0 18px;border:1px solid #234b76;border-radius:18px;background:#07152a;box-shadow:none;overflow:visible;position:static}
+.tabs.admin-room-tabs button{min-width:0;white-space:normal;text-align:center;justify-content:center;line-height:1.25}
+@media(max-width:900px){.admin-room-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tabs.admin-room-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.admin-room-card-grid{grid-template-columns:minmax(0,1fr);gap:12px}.admin-room-entry{min-height:0;padding:18px;border-radius:18px}.admin-room-entry h3{margin-top:13px;font-size:20px}.admin-room-entry-count{margin:12px 0}.admin-room-bar{align-items:stretch;flex-direction:column}.admin-room-bar>button{width:100%}.tabs.admin-room-tabs{grid-template-columns:repeat(2,minmax(0,1fr));padding:9px;gap:8px}.tabs.admin-room-tabs button{font-size:12px;padding:10px 7px}}
+
+/* Clean owner workspace: room actions first, no explanatory filler */
+.brand p,.welcome,.grid,.foot,#tableDesc,#adminRoomDesc,.admin-room-welcome p,.admin-room-eyebrow,.admin-room-entry p,.admin-room-entry-count{display:none!important}
+.admin-room-landing{padding:0 0 110px!important}
+.admin-room-card-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.admin-room-entry{min-height:0;padding:18px 14px;align-items:center;text-align:center;gap:0}
+.admin-room-entry-icon{width:54px;height:54px}
+.admin-room-entry h3{margin:12px 0 14px;font-size:17px}
+.admin-room-enter{margin-top:0}
+.admin-room-bar{margin:10px 0;padding:10px;gap:10px}
+.admin-room-current h2{font-size:20px}
+.admin-room-current p{display:none!important}
+.admin-room-shortcuts{position:fixed;z-index:20;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px max(12px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:#061326f5;border-top:1px solid #28537f;backdrop-filter:blur(14px)}
+.admin-room-shortcut{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:58px;padding:7px 4px;border:1px solid #28537f;border-radius:13px;background:#102440;color:#f5f8ff;font-size:11px;line-height:1.2;box-shadow:none}
+.admin-room-shortcut span:first-child{font-size:21px}
+.admin-room-shortcut.active{background:linear-gradient(135deg,#ffe36c,#ffbd22);border-color:#ffe36c;color:#101b2c}
+#appView{padding-bottom:85px}
+@media(max-width:650px){.admin-room-card-grid{grid-template-columns:1fr;gap:10px}.admin-room-entry{display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;text-align:left;padding:13px;align-items:center}.admin-room-entry-icon{grid-row:1/3;width:48px;height:48px;font-size:24px}.admin-room-entry h3{margin:0 0 8px;font-size:16px}.admin-room-enter{grid-column:2;width:100%;min-height:42px}.admin-room-shortcut{font-size:10px}.admin-room-bar{align-items:center}}
+</style>
+</head>
+<body>
+<div id="loginView" class="login">
+  <div class="brand"><div class="logo">♫</div><div><h1>ARTIST LEVEL UP</h1><p>PRIVATE OWNER ADMIN</p></div></div>
+  <h2>Owner Admin 🔐</h2>
+  <p class="muted">Sign in with your authorized Gmail and password. This device can remember your secure session.</p>
+  <form id="loginForm"><label for="ownerEmail">Owner Gmail</label><input id="ownerEmail" type="email" autocomplete="username" value="Otunbacashmonnie1@gmail.com" readonly required><label for="ownerPassword">Password</label><input id="ownerPassword" type="password" autocomplete="current-password" minlength="10" required placeholder="Enter your password"><button class="primary full" id="loginBtn">Sign in securely</button></form>
+  <form id="resetForm" class="hidden">
+    <label for="resetPassword">New password (at least 10 characters)</label><input id="resetPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Create a new private password">
+    <label for="resetConfirmPassword">Confirm new password</label><input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Enter it again">
+    <button class="primary full" id="resetPasswordBtn">Save new password</button>
+  </form>
+  <button class="quiet full" id="showSetupBtn" type="button">First time? Create owner password</button>
+  <form id="setupForm" class="hidden">
+    <label for="setupEmail">Authorized Gmail</label><input id="setupEmail" type="email" value="Otunbacashmonnie1@gmail.com" readonly>
+    <label for="newPin">Create a strong password (at least 10 characters)</label><input id="newPin" type="password" autocomplete="new-password" minlength="10" required placeholder="Create your private password">
+    <label for="confirmPin">Confirm password</label><input id="confirmPin" type="password" autocomplete="new-password" minlength="10" required placeholder="Enter the same password again">
+    <button class="primary full" id="setupBtn">Create owner account</button>
+    <button class="quiet full" id="cancelSetupBtn" type="button">Back to sign in</button>
+  </form>
+  <button class="quiet full" id="forgotPasswordBtn" type="button">Forgot password? Email me a reset link</button>
+  <div id="loginMsg" class="notice" role="status">Only the authorized owner Gmail can access this Control Room. Never share your password.</div>
+  <p class="muted" style="font-size:12px;margin-top:18px">Secure owner access · Remembered session on this device · Sign out to lock this device</p>
+</div>
+<div id="appView" class="hidden">
+ <div class="shell">
+  <header class="top"><div class="brand"><div class="logo">♫</div><div><h1>ARTIST LEVEL UP <span style="color:var(--gold)">/ ADMIN</span></h1><p>Owner Control Room · V101 companion app</p></div></div><div class="actions"><span class="status" id="signedAs"></span><button class="quiet" id="changePinBtn">Change password</button><button class="quiet" id="refreshBtn">↻ Refresh</button><button class="danger" id="signOutBtn">Sign out</button></div></header>
+  <section class="welcome"><span class="pill">OWNER ACCESS VERIFIED</span><h2>Good to see you, Owner.</h2><p class="muted">Manage the platform from one private place. Records are loaded from the shared Artist Level Up backend.</p></section>
+  <div class="grid">
+   <div class="stat"><span>Artist records</span><strong id="artistCount">—</strong><small>Shared backend</small></div>
+   <div class="stat"><span>Music submissions</span><strong id="songCount">—</strong><small>Uploaded tracks</small></div>
+   <div class="stat"><span>Promotion records</span><strong id="promoCount">—</strong><small>Campaigns</small></div>
+   <div class="stat"><span>Marketplace orders</span><strong id="orderCount">—</strong><small>Payment records</small></div>
+  </div>
+  <nav class="tabs" aria-label="Admin sections">
+   <button class="active" data-table="artists">🎤 Artists</button><button data-table="songs">🎵 Music</button><button data-table="artist_videos">🎬 Videos</button><button data-table="marketplace_beats">🎹 Beats</button><button data-table="promotions">📣 Promotions</button><button data-table="marketplace_orders">🛒 Orders</button><button data-table="withdrawals">💸 Withdrawals</button><button data-table="picture_posts">🖼️ Picture Preview</button><button data-table="profiles">👤 Profiles</button><button id="bankSettingsBtn" type="button">🏦 Receiving Bank</button>
+  </nav>
+  <section class="panel" id="recordsPanel"><div class="panel-head"><div><h3 id="tableTitle">Artist records</h3><p id="tableDesc" class="muted" style="font-size:12px;margin:5px 0 0">Artist records currently available to the authorised admin account.</p></div><div class="actions"><button class="quiet" id="exportBtn">Export CSV</button><button class="primary" id="loadBtn">Load records</button></div></div><div id="tableStatus" class="status" style="margin-top:14px">Waiting for data…</div><div class="table-wrap" id="tableWrap"><div class="empty">Loading your private workspace…</div></div></section>
+  <section class="panel hidden" id="bankSettingsPanel" style="margin-top:14px">
+   <div class="panel-head"><div><h3>🏦 Receiving Bank Details</h3><p class="muted" style="font-size:12px;margin:5px 0 0">One secure setting powers the Academy course and campaign bank-transfer instructions in the main app.</p></div></div>
+   <div class="grid" style="margin-top:14px">
+    <label>Bank name<input id="ownerBankName" autocomplete="off" placeholder="e.g. Access Bank"></label>
+    <label>Account name<input id="ownerBankAccountName" autocomplete="off" placeholder="Name on the account"></label>
+    <label>10-digit account number<input id="ownerBankAccountNumber" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="0123456789"></label>
+   </div>
+   <div class="actions" style="margin-top:14px"><button class="primary" id="saveBankSettingsBtn" type="button">Save Receiving Bank</button><span id="bankSettingsStatus" class="status">Sign in to load the saved bank details.</span></div>
+   <div class="notice" id="paymentReadinessStatus" style="margin-top:12px">Checking Paystack configuration…</div>
+   <p class="muted" style="font-size:12px;margin-top:12px">Only an owner with a verified Admin Control PIN session can change these details. The public app can only read the receiving account for payment instructions. A live key alone does not prove a successful payment; run a small end-to-end transaction before launch.</p>
+  </section>
+  <div class="foot">Artist Level Up · Separate owner dashboard · Built on V101 foundation</div>
+ </div>
+</div>
+<div id="toast" class="toast hidden" role="status"></div>
+<script>
+(function(){
+ const API='https://wmtddmaxwulypvhjjntz.supabase.co/functions/v1/owner-pin-admin';
+ const PUBLISHABLE_KEY='sb_publishable_Nyf4sJQHvTIQSBQXbV2Rtw_VSbZjia8';
+ const $=id=>document.getElementById(id);
+ let sessionToken=localStorage.getItem('alu_owner_auth_access')||'', refreshToken=localStorage.getItem('alu_owner_auth_refresh')||'', activeTable='artists', currentRows=[];
+ const labels={artists:['Artist management','Review artists, suspend or restore access'],songs:['Music review & publishing','Preview tracks, approve, publish or archive music'],artist_videos:['Video review & publishing','Preview video submissions and approve or publish them'],marketplace_beats:['Marketplace beats','Preview beats and publish, hide or reject listings'],promotions:['Promotion campaigns','Manage music and video campaigns'],marketplace_orders:['Marketplace orders','Review order and payment records'],withdrawals:['Withdrawals','Review payout requests'],profiles:['Member profiles','Account profiles in the shared backend'],picture_posts:['Picture & widget posts','Preview posts and publish or hide them']};
+ function toast(msg){$('toast').textContent=msg;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),3200)}
+ function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ const AUTH='https://wmtddmaxwulypvhjjntz.supabase.co/auth/v1';
+ const OWNER_EMAIL='Otunbacashmonnie1@gmail.com';
+ function saveAuth(data){sessionToken=data.access_token||'';refreshToken=data.refresh_token||'';if(sessionToken)localStorage.setItem('alu_owner_auth_access',sessionToken);if(refreshToken)localStorage.setItem('alu_owner_auth_refresh',refreshToken)}
+ function clearAuth(){sessionToken='';refreshToken='';localStorage.removeItem('alu_owner_auth_access');localStorage.removeItem('alu_owner_auth_refresh')}
+ async function authRequest(path,body){const res=await fetch(AUTH+path,{method:'POST',headers:{'Content-Type':'application/json','apikey':PUBLISHABLE_KEY},body:JSON.stringify(body)});let out={};try{out=await res.json()}catch{}if(!res.ok)throw new Error(out.msg||out.message||out.error_description||out.error||'Authentication request failed.');return out}
+ function showResetForm(token){sessionToken=token||'';refreshToken='';localStorage.removeItem('alu_owner_auth_refresh');if(sessionToken)localStorage.setItem('alu_owner_auth_access',sessionToken);$('loginForm').classList.add('hidden');$('setupForm').classList.add('hidden');$('showSetupBtn').classList.add('hidden');$('forgotPasswordBtn').classList.add('hidden');$('resetForm').classList.remove('hidden');$('loginMsg').textContent='Create a new password for your owner account.'}
+ async function handleRecoveryLink(){const hp=new URLSearchParams(window.location.hash.replace(/^#/,'') );const qp=new URLSearchParams(window.location.search);const type=hp.get('type')||qp.get('type');let token=hp.get('access_token')||qp.get('access_token');if(type==='recovery'&&token){showResetForm(token);window.history.replaceState(null,'',window.location.pathname);return}const tokenHash=qp.get('token_hash');if(type==='recovery'&&tokenHash){try{const out=await authRequest('/verify',{token_hash:tokenHash,type:'recovery'});if(out.access_token){showResetForm(out.access_token);window.history.replaceState(null,'',window.location.pathname);return}}catch(err){$('loginMsg').textContent=err.message||'This reset link is invalid or expired. Request a new one.'}}}
+
+ async function refreshAuth(){if(!refreshToken)throw new Error('Please sign in again.');const out=await authRequest('/token?grant_type=refresh_token',{refresh_token:refreshToken});saveAuth(out);return out}
+ async function api(action,body={},retry=true){const headers={'Content-Type':'application/json','apikey':PUBLISHABLE_KEY};if(sessionToken)headers.Authorization='Bearer '+sessionToken;let res=await fetch(API,{method:'POST',headers,body:JSON.stringify({action,...body})});if(res.status===401&&retry&&refreshToken){await refreshAuth();return api(action,body,false)}let out;try{out=await res.json()}catch{throw new Error('Server response could not be read.')}if(!res.ok||!out.ok)throw new Error(out.error||'Request failed.');return out}
+ function showLogin(msg){$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');if(msg)$('loginMsg').textContent=msg}
+ function showApp(){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('signedAs').textContent='Gmail verified owner'}
+ handleRecoveryLink();
+ $('showSetupBtn').addEventListener('click',()=>{$('setupForm').classList.remove('hidden');$('loginForm').classList.add('hidden');$('showSetupBtn').classList.add('hidden');$('forgotPasswordBtn').classList.add('hidden');$('loginMsg').textContent='Create a password for the authorized Gmail. Check your Gmail for a verification link if requested.'});
+ $('cancelSetupBtn').addEventListener('click',()=>{$('setupForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('showSetupBtn').classList.remove('hidden');$('forgotPasswordBtn').classList.remove('hidden');$('loginMsg').textContent='Sign in with your authorized Gmail and password.'});
+ $('setupForm').addEventListener('submit',async e=>{e.preventDefault();const password=$('newPin').value,confirmPassword=$('confirmPin').value;if(password!==confirmPassword){$('loginMsg').textContent='The passwords do not match.';return}if(password.length<10){$('loginMsg').textContent='Use at least 10 characters.';return}const b=$('setupBtn');b.disabled=true;b.textContent='Creating secure account…';try{const out=await authRequest('/signup',{email:OWNER_EMAIL,password});if(out.access_token){saveAuth(out);showApp();await loadStats();await loadTable(activeTable);await loadBankSettings()}else{$('loginMsg').textContent='Account request received. Check '+OWNER_EMAIL+' for a verification email, then sign in.';$('setupForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('showSetupBtn').classList.remove('hidden');$('forgotPasswordBtn').classList.remove('hidden')}}catch(err){$('loginMsg').textContent=err.message||'Could not create owner account.'}finally{b.disabled=false;b.textContent='Create owner account'}});
+ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('loginBtn');b.disabled=true;b.textContent='Signing in securely…';try{const out=await authRequest('/token?grant_type=password',{email:OWNER_EMAIL,password:$('ownerPassword').value});saveAuth(out);$('ownerPassword').value='';showApp();await loadStats();await loadTable(activeTable);await loadBankSettings()}catch(err){$('loginMsg').textContent=err.message||'Sign-in failed.'}finally{b.disabled=false;b.textContent='Sign in securely'}});
+ $('resetForm').addEventListener('submit',async e=>{e.preventDefault();const password=$('resetPassword').value;if(password.length<10){$('loginMsg').textContent='Use at least 10 characters.';return}if(password!==$('resetConfirmPassword').value){$('loginMsg').textContent='The passwords do not match.';return}const b=$('resetPasswordBtn');b.disabled=true;b.textContent='Saving password…';try{if(!sessionToken)throw new Error('Reset session missing. Request a fresh reset link.');const res=await fetch(AUTH+'/user',{method:'PUT',headers:{'Content-Type':'application/json','apikey':PUBLISHABLE_KEY,'Authorization':'Bearer '+sessionToken},body:JSON.stringify({password})});let out={};try{out=await res.json()}catch{}if(!res.ok)throw new Error(out.msg||out.message||out.error_description||out.error||'Could not save the new password.');clearAuth();$('resetForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('forgotPasswordBtn').classList.remove('hidden');$('loginMsg').textContent='Password updated. Sign in with your new password.';$('resetPassword').value='';$('resetConfirmPassword').value=''}catch(err){$('loginMsg').textContent=err.message||'Could not update password.'}finally{b.disabled=false;b.textContent='Save new password'}});
+ $('forgotPasswordBtn').addEventListener('click',async()=>{const b=$('forgotPasswordBtn');b.disabled=true;b.textContent='Sending reset email…';$('loginMsg').textContent='Requesting a password reset for the authorized owner Gmail…';try{const redirectTo=window.location.origin+window.location.pathname;await authRequest('/recover?redirect_to='+encodeURIComponent(redirectTo),{email:OWNER_EMAIL});$('loginMsg').textContent='Reset request sent. Check '+OWNER_EMAIL+' Inbox and Spam. If no email arrives, check the Supabase Auth email/SMTP settings.'}catch(err){$('loginMsg').textContent='Reset request failed: '+(err.message||'Authentication service did not respond.')}finally{b.disabled=false;b.textContent='Forgot password? Email me a reset link'}});
+ async function loadStats(){const out=await api('stats');for(const [key,id] of [['artistCount','artistCount'],['songCount','songCount'],['promoCount','promoCount'],['orderCount','orderCount']])$(id).textContent=out.stats[key]===null?'—':String(out.stats[key]??0)}
+ async function loadPaymentReadiness(){try{const r=await fetch('https://wmtddmaxwulypvhjjntz.supabase.co/functions/v1/global-payments-health',{method:'POST',headers:{'Content-Type':'application/json','apikey':PUBLISHABLE_KEY},body:'{}'});const h=await r.json(),el=$('paymentReadinessStatus');if(!r.ok||!h.ok)throw new Error('Payment health check unavailable');el.textContent=h.paystack_mode==='live'?'Paystack: LIVE secret detected. A successful real transaction and webhook confirmation are still required before public launch.':h.paystack_mode==='test'?'Paystack: TEST key detected — live payments are not enabled yet.':h.paystack_mode==='missing'?'Paystack: secret key missing — checkout cannot initialize.':'Paystack: key is configured, but its mode could not be confirmed.';}catch(e){$('paymentReadinessStatus').textContent='Paystack status could not be checked. Do not assume live payments are ready.';}}
+ async function loadBankSettings(){const out=await api('get_bank_settings'),b=out.bankSettings||{};$('ownerBankName').value=b.bankName||'';$('ownerBankAccountName').value=b.accountName||'';$('ownerBankAccountNumber').value=b.accountNumber||'';$('bankSettingsStatus').textContent=(b.bankName&&b.accountName&&b.accountNumber)?'Saved bank details loaded ✓':'No receiving bank details saved yet.';await loadPaymentReadiness();}
+ $('bankSettingsBtn').addEventListener('click',async()=>{document.querySelectorAll('[data-table]').forEach(b=>b.classList.remove('active'));$('bankSettingsBtn').classList.add('active');$('recordsPanel').classList.add('hidden');$('bankSettingsPanel').classList.remove('hidden');try{await loadBankSettings()}catch(err){$('bankSettingsStatus').textContent=err.message||'Could not load bank details.'}});
+ $('saveBankSettingsBtn').addEventListener('click',async()=>{const bankName=$('ownerBankName').value.trim(),accountName=$('ownerBankAccountName').value.trim(),accountNumber=$('ownerBankAccountNumber').value.replace(/\D/g,'');if(!bankName||!accountName||!/^\d{10}$/.test(accountNumber)){$('bankSettingsStatus').textContent='Enter bank name, account name and exactly 10 digits.';return}const b=$('saveBankSettingsBtn');b.disabled=true;b.textContent='Saving securely…';try{const out=await api('save_bank_settings',{bankName,accountName,accountNumber});$('bankSettingsStatus').textContent=out.message||'Receiving bank details saved ✓';$('ownerBankAccountNumber').value=accountNumber;toast('Receiving bank details saved ✓')}catch(err){$('bankSettingsStatus').textContent=err.message||'Could not save bank details.'}finally{b.disabled=false;b.textContent='Save Receiving Bank'}});
+ function prettyKey(k){return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+ function actionBtn(op,id,label,kind='quiet'){return '<button class="'+kind+'" data-admin-action="'+op+'" data-id="'+esc(id)+'">'+label+'</button>'}
+ function rowActions(row){
+  if(activeTable==='artists'){let out='';if(row.status==='pending')out+=actionBtn('approve',row.id,'Approve','primary')+actionBtn('reject',row.id,'Reject','danger');out+=row.suspended?actionBtn('restore',row.id,'Restore','primary'):actionBtn('suspend',row.id,'Suspend','danger');return out}
+  if(activeTable==='songs'){let out='';if(['pending','draft','approved'].includes(row.status))out+=actionBtn('approve',row.id,'Approve','primary');if(row.status!=='published')out+=actionBtn('publish',row.id,'Publish','primary');if(row.status!=='archived')out+=actionBtn('archive',row.id,'Archive');return out}
+  if(activeTable==='artist_videos'){let out='';if(row.status==='pending')out+=actionBtn('approve',row.id,'Approve','primary');if(row.status!=='published')out+=actionBtn('publish',row.id,'Publish','primary');if(row.status!=='rejected')out+=actionBtn('reject',row.id,'Reject','danger');return out}
+  if(activeTable==='marketplace_beats'){let out='';if(row.status!=='published')out+=actionBtn('publish',row.id,'Publish','primary');if(row.status!=='hidden')out+=actionBtn('hide',row.id,'Hide');if(row.status!=='rejected')out+=actionBtn('reject',row.id,'Reject','danger');return out}
+  if(activeTable==='picture_posts')return row.status==='hidden'?actionBtn('publish',row.id,'Publish','primary'):actionBtn('hide',row.id,'Hide','danger');
+  if(activeTable==='promotions'&&['pending','active'].includes(row.status))return (row.status==='pending'?actionBtn('activate',row.id,'Activate','primary'):'')+actionBtn('cancel',row.id,'Cancel','danger');
+  if(activeTable==='withdrawals'&&row.status==='pending')return actionBtn('approve',row.id,'Approve','primary')+actionBtn('reject',row.id,'Reject','danger');
+  if(activeTable==='withdrawals'&&row.status==='approved')return actionBtn('paid',row.id,'Mark paid','primary');
+  return '<span class="muted">—</span>'}
+ async function performAdminAction(operation,id,button){const config={artists:{approve:'approved',reject:'rejected',suspend:'suspended',restore:'approved'},songs:{approve:'approved',publish:'published',archive:'archived'},artist_videos:{approve:'approved',publish:'published',reject:'rejected'},marketplace_beats:{publish:'published',hide:'hidden',reject:'rejected'},promotions:{activate:'active',cancel:'cancelled'},picture_posts:{publish:'published',hide:'hidden'},withdrawals:{approve:'approved',reject:'rejected',paid:'paid'}};const status=config[activeTable]?.[operation];if(!status||!id)return;if(!confirm('Confirm '+operation+' for this '+activeTable.slice(0,-1)+'?'))return;button.disabled=true;try{await api('update',{table:activeTable,id,operation,status});toast('Done — status updated');await loadTable(activeTable);await loadStats()}catch(err){toast(err.message||'Action failed');button.disabled=false}}
+ function renderCell(k,v){
+  if(v&&typeof v==='object')v=JSON.stringify(v);
+  if(k==='status'&&v!==null&&v!==undefined){const s=String(v).toLowerCase().replace(/[^a-z0-9_-]/g,'');return '<span class="status-chip is-'+esc(s)+'">'+esc(v)+'</span>'}
+  if(k==='suspended'){const yes=v===true||String(v).toLowerCase()==='true';return '<span class="state-chip '+(yes?'yes':'no')+'">'+(yes?'Suspended':'Active')+'</span>'}
+  if(typeof v==='string'&&(v.startsWith('https://')||v.startsWith('http://'))){
+   const safe=esc(v);
+   if(/audio|music|preview/i.test(k))return '<audio controls preload="none" style="width:180px;max-width:100%" src="'+safe+'"></audio><div><a target="_blank" rel="noopener" href="'+safe+'">Open audio</a></div>';
+   if(/video/i.test(k))return '<video controls preload="metadata" playsinline style="width:200px;max-width:100%;border-radius:8px" src="'+safe+'"></video><div><a target="_blank" rel="noopener" href="'+safe+'">Open video</a></div>';
+   if(activeTable==='picture_posts'&&/image|picture|photo|media|attachment|asset/i.test(k))return '<a target="_blank" rel="noopener" href="'+safe+'" aria-label="Open picture preview"><img src="'+safe+'" alt="Picture post preview" loading="lazy" style="width:220px;max-width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid #2c3040;background:#08090d" onerror="this.style.display=\\'none\\'"></a><div><a target="_blank" rel="noopener" href="'+safe+'">Open picture</a></div>';
+   if(/avatar|profile|photo|picture/i.test(k))return '<a target="_blank" rel="noopener" href="'+safe+'" aria-label="Open member profile photo"><img src="'+safe+'" alt="Member profile photo" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:3px solid #ffd65a;background:#152c48;box-shadow:0 0 0 4px #ffd65a1c" onerror="this.style.display=\'none\'"></a>';
+   if(/image|cover|thumbnail/i.test(k))return '<a target="_blank" rel="noopener" href="'+safe+'"><img src="'+safe+'" alt="" loading="lazy" style="width:56px;height:56px;object-fit:cover;border-radius:8px"></a><div><a target="_blank" rel="noopener" href="'+safe+'">Open media</a></div>';
+  }
+  return esc(v===null?'—':v)
+ }
+ function renderRows(rows){
+  currentRows=rows||[];const wrap=$('tableWrap');
+  if(!currentRows.length){wrap.innerHTML='<div class="empty">No records returned for this section, or the table is empty.</div>';return}
+  if(activeTable==='profiles'){
+   const pick=(row,patterns)=>{for(const pattern of patterns){const key=Object.keys(row).find(k=>pattern.test(k));if(key&&row[key]!==null&&row[key]!==undefined&&String(row[key]).trim()!=='')return row[key]}return ''};
+   const avatarFor=row=>{const key=Object.keys(row).find(k=>/avatar|profile.*(url|image|photo|picture)|photo_url|picture_url|image_url/i.test(k)&&typeof row[k]==='string'&&/^https?:\/\//i.test(row[k]));return key?row[key]:''};
+   wrap.innerHTML='<div class="member-profile-list">'+currentRows.map(row=>{
+    const name=pick(row,[/^display_name$/i,/^full_name$/i,/^artist_name$/i,/^username$/i,/^name$/i,/^handle$/i,/^email$/i])||'Unnamed member';
+    const role=pick(row,[/^role$/i,/^account_type$/i,/^user_type$/i,/^type$/i])||'member';
+    const id=pick(row,[/^id$/i,/^user_id$/i,/^profile_id$/i]);
+    const created=pick(row,[/^created_at$/i,/^updated_at$/i]);
+    const avatar=avatarFor(row);const safe=esc(avatar);const initial=esc(String(name).trim().charAt(0).toUpperCase()||'M');
+    const picture=avatar?'<a href="'+safe+'" target="_blank" rel="noopener" aria-label="Open '+esc(name)+' profile photo"><img class="member-avatar" src="'+safe+'" alt="'+esc(name)+' profile photo" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="member-avatar-fallback">'+initial+'</span></a>':'<span class="member-avatar-fallback" style="display:grid">'+initial+'</span>';
+    return '<article class="member-profile-card"><div class="member-avatar-wrap">'+picture+'</div><div class="member-profile-info"><div class="member-profile-name">'+esc(name)+'</div><span class="member-profile-role">'+esc(role)+'</span>'+(id?'<div class="member-profile-meta">ID: '+esc(id)+'</div>':'')+(created?'<div class="member-profile-meta">Updated/created: '+esc(created)+'</div>':'')+'</div></article>'
+   }).join('')+'</div>';
+   return;
+  }
+  const allKeys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))];const priority=['artist_name','title','status','suspended','audio_url','audio_preview_url','video_url','thumbnail_url','image_url','cover_url','price_ngn','amount_ngn','created_at','id'];const keys=[...priority.filter(k=>allKeys.includes(k)),...allKeys.filter(k=>!priority.includes(k))].slice(0,5);wrap.innerHTML='<table><thead><tr>'+keys.map(k=>'<th>'+esc(prettyKey(k))+'</th>').join('')+'<th>Admin actions</th></tr></thead><tbody>'+currentRows.map(row=>'<tr>'+keys.map(k=>{let v=row[k];if(v&&typeof v==='object')v=JSON.stringify(v);if(typeof v==='string'&&v.length>180)v=v.slice(0,177)+'…';return '<td data-label="'+esc(prettyKey(k))+'">'+renderCell(k,v)+'</td>'}).join('')+'<td data-label="Admin actions"><div class="actions">'+rowActions(row)+'</div></td></tr>').join('')+'</tbody></table>'
+ }
+ async function loadTable(table){activeTable=table;$('tableTitle').textContent=labels[table][0];$('tableDesc').textContent=labels[table][1];$('tableStatus').textContent='Loading…';$('tableWrap').innerHTML='<div class="empty">Fetching records securely…</div>';document.querySelectorAll('[data-table]').forEach(b=>b.classList.toggle('active',b.dataset.table===table));try{const out=await api('list',{table});renderRows(out.rows);$('tableStatus').textContent+='';
+ $('tableStatus').textContent=currentRows.length+' records loaded · Showing up to 100'}catch(err){currentRows=[];$('tableStatus').textContent='Could not load records.';$('tableWrap').innerHTML='<div class="empty">'+esc(err.message||'Request failed.')+'</div>'}}
+ $('tableWrap').addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b)performAdminAction(b.dataset.adminAction,b.dataset.id,b)});
+ $('loadBtn').addEventListener('click',()=>loadTable(activeTable));$('refreshBtn').addEventListener('click',async()=>{try{await loadStats();await loadTable(activeTable);toast('Dashboard refreshed')}catch(err){toast(err.message||'Refresh failed')}});
+ document.querySelectorAll('[data-table]').forEach(b=>b.addEventListener('click',()=>{ $('recordsPanel').classList.remove('hidden'); $('bankSettingsPanel').classList.add('hidden'); $('bankSettingsBtn').classList.remove('active'); b.classList.add('active'); loadTable(b.dataset.table); }));
+ $('exportBtn').addEventListener('click',()=>{if(!currentRows.length){toast('No records to export yet');return}const keys=[...new Set(currentRows.flatMap(r=>Object.keys(r)))];const cell=v=>'"'+String(v==null?'':typeof v==='object'?JSON.stringify(v):v).replace(/"/g,'""')+'"';const csv=[keys.map(cell).join(','),...currentRows.map(r=>keys.map(k=>cell(r[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='artist-level-up-'+activeTable+'.csv';a.click();URL.revokeObjectURL(url)});
+ $('changePinBtn').addEventListener('click',async()=>{const password=prompt('Enter a new password (at least 10 characters).');if(password===null)return;if(password.length<10){toast('Use at least 10 characters');return}const confirmPassword=prompt('Enter the new password again.');if(confirmPassword===null)return;if(password!==confirmPassword){toast('Passwords do not match');return}try{const res=await fetch(AUTH+'/user',{method:'PUT',headers:{'Content-Type':'application/json','apikey':PUBLISHABLE_KEY,Authorization:'Bearer '+sessionToken},body:JSON.stringify({password})});const out=await res.json();if(!res.ok)throw new Error(out.msg||out.message||'Password could not be changed');toast('Password changed successfully')}catch(err){toast(err.message||'Could not change password')}});
+ $('signOutBtn').addEventListener('click',async()=>{try{if(sessionToken)await fetch(AUTH+'/logout',{method:'POST',headers:{'apikey':PUBLISHABLE_KEY,Authorization:'Bearer '+sessionToken}})}catch{}clearAuth();showLogin('You have signed out of Owner Admin.')});
+ if(sessionToken){api('stats').then(async()=>{showApp();await loadStats();await loadTable(activeTable);await loadBankSettings()}).catch(()=>{clearAuth();showLogin('Your session expired. Sign in with your Gmail and password.')})}
+})();</script>
+
+<script id="aluAdminRoomGroups">
+(function(){
+ 'use strict';
+ var nav=document.querySelector('nav.tabs[aria-label="Admin sections"]');
+ var app=document.getElementById('appView');
+ if(!nav||!app||nav.dataset.roomsReady==='1')return;
+ var groups=[
+  {id:'artists',icon:'🎤',title:'Artist & Accounts',items:[['artists','🎤 Artists'],['profiles','👤 Profiles']]},
+  {id:'creative',icon:'🎨',title:'Creative Library',items:[['songs','🎵 Music'],['artist_videos','🎬 Videos'],['marketplace_beats','🎹 Beats'],['picture_posts','🖼️ Picture Preview']]},
+  {id:'business',icon:'💼',title:'Business & Finance',items:[['promotions','📣 Promotions'],['marketplace_orders','🛒 Orders'],['withdrawals','💸 Withdrawals'],['bankSettingsBtn','🏦 Receiving Bank']]}
+ ];
+ var landing=document.createElement('section');
+ landing.id='adminRoomLanding';landing.className='admin-room-landing';
+ landing.innerHTML='<div class="admin-room-card-grid"></div>';
+ var cardGrid=landing.querySelector('.admin-room-card-grid');
+ groups.forEach(function(group){
+  var card=document.createElement('article');card.className='admin-room-entry';
+  var icon=document.createElement('div');icon.className='admin-room-entry-icon';icon.textContent=group.icon;
+  var title=document.createElement('h3');title.textContent=group.title;
+  var button=document.createElement('button');button.type='button';button.className='primary admin-room-enter';button.textContent='Open room';
+  button.addEventListener('click',function(){openRoom(group.id);});
+  card.append(icon,title,button);cardGrid.appendChild(card);
+ });
+ var roomBar=document.createElement('div');roomBar.id='adminRoomBar';roomBar.className='admin-room-bar hidden';
+ var back=document.createElement('button');back.type='button';back.className='quiet';back.textContent='← Rooms';back.addEventListener('click',showLanding);
+ var roomTitle=document.createElement('div');roomTitle.className='admin-room-current';
+ var roomName=document.createElement('h2');roomName.id='adminRoomTitle';
+ roomTitle.append(roomName);roomBar.append(back,roomTitle);
+ var shortcuts=document.createElement('nav');shortcuts.className='admin-room-shortcuts';shortcuts.setAttribute('aria-label','Room shortcuts');
+ groups.forEach(function(group){
+  var b=document.createElement('button');b.type='button';b.className='admin-room-shortcut';b.dataset.shortcut=group.id;
+  b.innerHTML='<span>'+group.icon+'</span><span>'+group.title+'</span>';
+  b.addEventListener('click',function(){openRoom(group.id);});
+  shortcuts.appendChild(b);
+ });
+ nav.parentNode.insertBefore(landing,nav);
+ nav.parentNode.insertBefore(roomBar,nav);
+ document.body.appendChild(shortcuts);
+ nav.classList.add('admin-room-tabs','hidden');
+ groups.forEach(function(group){
+  group.items.forEach(function(item){var b=item[0]==='bankSettingsBtn'?document.getElementById(item[0]):nav.querySelector('[data-table="'+item[0]+'"]');if(b){b.dataset.room=group.id;b.hidden=true;}});
+ });
+ function showLanding(){
+  landing.classList.remove('hidden');roomBar.classList.add('hidden');nav.classList.add('hidden');
+  document.getElementById('recordsPanel').classList.add('hidden');
+  document.getElementById('bankSettingsPanel').classList.add('hidden');
+  document.querySelectorAll('[data-table]').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('bankSettingsBtn').classList.remove('active');
+  shortcuts.querySelectorAll('[data-shortcut]').forEach(function(b){b.classList.remove('active');});
+ }
+ function openRoom(id){
+  var group=groups.find(function(g){return g.id===id;});if(!group)return;
+  landing.classList.add('hidden');roomBar.classList.remove('hidden');nav.classList.remove('hidden');
+  roomName.textContent=group.icon+' '+group.title;
+  shortcuts.querySelectorAll('[data-shortcut]').forEach(function(b){b.classList.toggle('active',b.dataset.shortcut===id);});
+  groups.forEach(function(g){g.items.forEach(function(item){var b=item[0]==='bankSettingsBtn'?document.getElementById(item[0]):nav.querySelector('[data-table="'+item[0]+'"]');if(b)b.hidden=g.id!==id;});});
+  var first=group.items[0],b=first[0]==='bankSettingsBtn'?document.getElementById(first[0]):nav.querySelector('[data-table="'+first[0]+'"]');
+  if(b)b.click();
+ }
+ nav.dataset.roomsReady='1';
+ showLanding();
+})();
+</script>
+
+
+<style>
+/* V101 owner recovery: keep the button tappable on mobile */
+#loginView{position:relative;z-index:20}
+#forgotPasswordBtn{position:relative;z-index:21;pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:rgba(255,214,90,.25)}
+</style>
+<script id="aluOwnerRecoveryClickSafety">
+(function(){
+ 'use strict';
+ function wireRecovery(){
+  var button=document.getElementById('forgotPasswordBtn');
+  var message=document.getElementById('loginMsg');
+  if(!button||button.dataset.recoverySafety==='1')return;
+  button.dataset.recoverySafety='1';
+  button.addEventListener('click',async function(event){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   if(button.disabled)return;
+   button.disabled=true;
+   button.textContent='Sending reset email…';
+   if(message)message.textContent='Sending password reset request…';
+   try{
+    var response=await fetch('https://wmtddmaxwulypvhjjntz.supabase.co/auth/v1/recover?redirect_to='+encodeURIComponent(window.location.origin+window.location.pathname),{
+     method:'POST',
+     headers:{'Content-Type':'application/json','apikey':'sb_publishable_Nyf4sJQHvTIQSBQXbV2Rtw_VSbZjia8'},
+     body:JSON.stringify({email:'otunbacashmonnie1@gmail.com'})
+    });
+    var data={};
+    try{data=await response.json()}catch(_){}
+    if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||('Request failed (HTTP '+response.status+').'));
+    if(message)message.textContent='Reset request sent. Check your Gmail Inbox and Spam.';
+   }catch(error){
+    if(message)message.textContent='Reset failed: '+(error&&error.message?error.message:'Could not contact the sign-in service. Check your internet and try again.');
+   }finally{
+    button.disabled=false;
+    button.textContent='Forgot password? Email me a reset link';
+   }
+  },true);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wireRecovery,{once:true});else wireRecovery();
+})();
+</script>
+
+</body></html>

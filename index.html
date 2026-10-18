@@ -3105,24 +3105,28 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(!audioFile) throw new Error('Choose the audio file first.');
     const ok=(audioFile.type&&audioFile.type.startsWith('audio/'))||/\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|webm)$/i.test(audioFile.name||'');
     if(!ok) throw new Error('Please choose a valid audio file.');
+    const cloud=window.ALU_CLOUD;
+    if(!cloud?.client||typeof cloud.ensureSession!=='function'||typeof cloud.ensureArtist!=='function') throw new Error('Secure cloud upload is not ready. Refresh the website and sign in again.');
+    const uid=await cloud.ensureSession();
+    if(!uid) throw new Error('Your member account is not connected to a secure cloud session. Sign in again before uploading.');
+    const artistId=await cloud.ensureArtist();
+    if(!artistId) throw new Error('Your artist profile is not connected to the cloud. Save your Artist Profile and retry.');
     const id='song_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
     const audioKey='audio_'+id;
     const localUrl=URL.createObjectURL(audioFile);
-    aluAudioUrlCache.set(String(audioKey),localUrl);
     const remote=await aluPutAudio(audioKey,audioFile);
     const durableUrl=String(remote?.url||'').trim();
     const storagePath=String(remote?.path||'').trim();
-    if(remote?.remote && !/^https?:\/\//i.test(durableUrl)) throw new Error('Cloud audio URL was not returned after upload.');
+    if(!remote?.remote||!/^https?:\/\//i.test(durableUrl)) throw new Error('Audio was not uploaded to cloud storage. Please retry.');
     let coverArt='';
     if(coverFile){try{coverArt=await imageToDataURL(coverFile,800,.82)}catch(e){console.warn('Cover image skipped',e)}}
-    const song={id,title,genre:genre||'Music',releaseType:releaseType||'Single',releaseTitle:releaseTitle||title,trackNumber:Number(trackNumber)||1,trackCount:Number(trackCount)||1,artist:state.profile?.name||'Artist Level Up',country:state.profile?.country||'Nigeria',streams:0,plays:0,likes:0,liked:false,status:'Pending Review',local:true,audioKey,audioUrl:localUrl,audioRemoteUrl:durableUrl,audioStoragePath:storagePath,coverArt};
+    const cloudRow={artist_id:artistId,title,genre:genre||'Music',audio_url:durableUrl,cover_url:coverArt||null,duration_seconds:null,status:'pending'};
+    const saved=await cloud.client.from('songs').insert(cloudRow).select('id').single();
+    if(saved.error||!saved.data?.id) throw new Error('Audio uploaded, but the music review record could not be saved: '+(saved.error?.message||'No record ID returned.'));
+    const song={id,title,genre:genre||'Music',releaseType:releaseType||'Single',releaseTitle:releaseTitle||title,trackNumber:Number(trackNumber)||1,trackCount:Number(trackCount)||1,artist:state.profile?.name||'Artist Level Up',country:state.profile?.country||'Nigeria',streams:0,plays:0,likes:0,liked:false,status:'Pending Review',local:true,audioKey,audioUrl:localUrl,audioRemoteUrl:durableUrl,audioStoragePath:storagePath,coverArt,remoteSongId:saved.data.id,cloudSaved:true,cloudStatus:'pending'};
     state.songs=Array.isArray(state.songs)?state.songs:[];
     state.songs.unshift(song);
     try{save()}catch(e){console.warn('Local metadata save failed',e)}
-    if(remote?.remote && window.ALU_CLOUD?.syncSongs){
-      await window.ALU_CLOUD.syncSongs();
-      try{save()}catch(e){}
-    }
     if(typeof finish==='function') finish(song);
     return song;
   }

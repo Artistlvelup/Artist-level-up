@@ -3494,10 +3494,10 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       const src=mediaSrc(v),thumb=thumbSrc(v);
       const poster=thumb?` poster="${esc(thumb)}"`:'';
       const pending=['Pending Review','Pending'].includes(statusLabel(v));
-      const cloudPending=!!v.localOnly&&!v.cloudSaved;
+      const cloudPending=(!!v.localOnly&&!v.cloudSaved)||(['Pending Review','Pending'].includes(statusLabel(v))&&!v.remoteVideoId);
       let cloudText='';
       if(cloudPending){
-        cloudText=v.cloudStatus==='blocked_size'?'💾 Saved on this device · Cloud limit is 50 MB.':'💾 Saved on this device · Cloud will retry.';
+        cloudText=v.cloudStatus==='blocked_size'?'💾 Saved on this device · Cloud limit is 50 MB.':(!v.localOnly?'☁️ Cloud review record missing · Retry to reconnect this saved video':'💾 Saved on this device · Cloud will retry.');
       }else if(v.cloudSaved&&['Pending Review','Pending'].includes(statusLabel(v))){
         cloudText='☁️ Saved to cloud · Waiting for Admin review';
       }else if(statusLabel(v)==='Approved'){
@@ -3646,7 +3646,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     try{const items=await aluVideoQueueAll();for(const item of items.filter(aluVideoQueueIsRetryable)){try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Cloud sync complete ✓')}catch(e){console.warn('Video cloud retry failed:',e)}}await aluVideoQueueRenderLocals();}
     finally{aluVideoRetryRunning=false;}
   }
-  async function retryVideoCloud(id){const item=await aluVideoQueueGet(id);if(!item){toastMsg('Saved video copy was not found on this device.');return}if(item.status==='blocked_size'){toastMsg('This video is over the current 50 MB cloud limit. It remains saved on this device.');return}try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to cloud ✓')}catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual cloud retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120));}await aluVideoQueueRenderLocals();}
+  async function retryVideoCloud(id){const item=await aluVideoQueueGet(id);if(!item){toastMsg('Saved video copy was not found on this device.');return}if(item.status==='blocked_size'){toastMsg('This video is over the current 50 MB cloud limit. It remains saved on this device.');return}try{if(item.status==='cloud_synced'&&item.remoteVideoId){const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');const apiKey=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');const client=window.ALU_CLOUD?.client;if(typeof window.ALU_CLOUD?.ensureSession==='function')await window.ALU_CLOUD.ensureSession();const sessionResult=client?.auth?.getSession?await client.auth.getSession():null;const accessToken=String(sessionResult?.data?.session?.access_token||'');if(!base||!apiKey||!accessToken)throw new Error('Cloud sign-in is missing. Sign in and retry.');const check=await fetch(base+'/rest/v1/artist_videos?select=id,video_url&id=eq.'+encodeURIComponent(item.remoteVideoId)+'&limit=1',{headers:{apikey:apiKey,authorization:'Bearer '+accessToken}});if(!check.ok)throw new Error('Could not verify the existing cloud video record. Please retry.');const found=await check.json().catch(()=>[]);if(Array.isArray(found)&&found.length){toastMsg('This video already has a cloud record. Refresh My Uploads.');return;}item.remoteVideoId='';item.status='pending';item.cloudSaved=false;await aluVideoQueuePut(item);}await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to cloud ✓')}catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual cloud retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120));}await aluVideoQueueRenderLocals();}
   window.ALU_RETRY_VIDEO_CLOUD=retryVideoCloud;
   window.addEventListener('online',()=>{retryPendingVideoUploads();});
   setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);

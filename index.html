@@ -4138,7 +4138,7 @@ async function render77(){
     if(!client)return;
     try{
       const q=await Promise.race([
-        client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,created_at,artist_id,artist_name,song_id').in('status',['approved','published']).order('created_at',{ascending:false}).limit(50),
+        client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,created_at,artist_id,song_id').in('status',['approved','published']).order('created_at',{ascending:false}).limit(50),
         new Promise((_,rej)=>setTimeout(()=>rej(new Error('Global video query timed out')),3000))
       ]);
       if(q.error)throw q.error;

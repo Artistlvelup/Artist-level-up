@@ -2689,23 +2689,12 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
         }
       }
       if(!session){
-        // If this browser already contains a registered/member profile, do not
-        // silently create a different anonymous cloud identity when its session
-        // is missing. Fresh visitors can still receive an anonymous session.
-        let hasLocalMember=false;
-        try{
-          hasLocalMember=typeof state!=='undefined'&&!!state&&(
-            state.userRegistered===true||state.memberAccessV101===true||state.artistRegistered===true
-          );
-        }catch(_){}
-        if(hasLocalMember){
-          console.warn('V101: local member data exists but cloud session is missing; preserving local data instead of creating a new UID.');
-          window.ALU_CLOUD.ready=false;
-          window.ALU_CLOUD.userId=null;
-          return null;
-        }
+        // V101 member/artist registration is currently stored in the app profile.
+        // Music uploads still need a Supabase Auth identity for the artist/song
+        // row RLS policies. Create the separate anonymous cloud identity without
+        // clearing or replacing the user's local member profile.
         const r=await client.auth.signInAnonymously();
-        if(r.error) throw r.error;
+        if(r.error) throw new Error('Secure cloud sign-in failed: '+(r.error.message||String(r.error)));
         session=r.data?.session||null;
       }
       if(!session?.user?.id) throw new Error('No Supabase user session');

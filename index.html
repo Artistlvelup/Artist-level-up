@@ -1008,7 +1008,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 <div class="creator-room-choice" id="creatorRoomChoice" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:14px 0">
   <button class="creator-room-box" type="button" onclick="go('studio');return false" style="min-height:128px;text-align:left"><span class="creator-room-box-icon">🎛️</span><b>Studio Room</b><small>Record vocals, mix and export your song</small></button>
   <button class="creator-room-box creator-room-music" type="button" onclick="return openCreatorTool('music',event)" style="min-height:128px;text-align:left"><span class="creator-room-box-icon">🎵</span><b>Artist Level Up Music Distributor</b><small>Submit music to Artist Level Up for review</small></button>
-  <button class="creator-room-box" type="button" onclick="return openCreatorTool('distribution',event)" style="min-height:128px;text-align:left;border-color:#38b78b"><span class="creator-room-box-icon">🌍</span><b>Online Streaming Distributor</b><small>Choose external music streaming platforms</small></button>
+  <button class="creator-room-box" type="button" onclick="return openCreatorTool('distribution',event)" style="display:none;min-height:128px;text-align:left;border-color:#38b78b" aria-hidden="true"><span class="creator-room-box-icon">🌍</span><b>Online Streaming Distributor</b><small>Temporarily paused pending ISRC and platform approvals</small></button>
   <button class="creator-room-box creator-room-video" type="button" onclick="return openCreatorTool('video',event)" style="min-height:128px;text-align:left"><span class="creator-room-box-icon">🎬</span><b>Music Video Room</b><small>Upload a video and attach its song</small></button>
   <button class="creator-room-box creator-room-picture" type="button" onclick="return openCreatorTool('picture',event)" style="min-height:128px;text-align:left"><span class="creator-room-box-icon">🖼️</span><b>Picture &amp; Artwork Room</b><small>Share artwork and picture posts</small></button>
   <button class="creator-room-box" type="button" data-go="producerDashboard" style="min-height:128px;text-align:left;border-color:#d6b63b;background:linear-gradient(135deg,#211b05,#15161c)"><span class="creator-room-box-icon">🎹</span><b>Producer Center</b><small>Upload beats, connect payout bank and publish beats to the Beat Marketplace</small></button>
@@ -4750,6 +4750,7 @@ function showCreatorChoices(e){
 function openStreamingDestinations(e){return openCreatorTool('distribution',e);}
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  if(tool==='distribution'){var pausedPanel=document.getElementById('creatorDistributionPanel');if(pausedPanel)pausedPanel.style.display='none';if(typeof toast==='function')toast('Online streaming distribution is temporarily paused pending ISRC and platform approvals.');return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';
@@ -5375,6 +5376,7 @@ function showCreatorChoices(e){
 }
 function openCreatorTool(tool,e){
   if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();}
+  if(tool==='distribution'){var pausedPanel=document.getElementById('creatorDistributionPanel');if(pausedPanel)pausedPanel.style.display='none';if(typeof toast==='function')toast('Online streaming distribution is temporarily paused pending ISRC and platform approvals.');return false;}
   creatorRoomShowPage();
   var choice=document.getElementById('creatorRoomChoice');
   if(choice) choice.style.display='none';

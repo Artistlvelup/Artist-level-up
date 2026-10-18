@@ -428,4 +428,47 @@ a{color:#83c7ff;font-weight:750}
 })();
 </script>
 
+
+<style>
+/* V101 owner recovery: keep the button tappable on mobile */
+#loginView{position:relative;z-index:20}
+#forgotPasswordBtn{position:relative;z-index:21;pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:rgba(255,214,90,.25)}
+</style>
+<script id="aluOwnerRecoveryClickSafety">
+(function(){
+ 'use strict';
+ function wireRecovery(){
+  var button=document.getElementById('forgotPasswordBtn');
+  var message=document.getElementById('loginMsg');
+  if(!button||button.dataset.recoverySafety==='1')return;
+  button.dataset.recoverySafety='1';
+  button.addEventListener('click',async function(event){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   if(button.disabled)return;
+   button.disabled=true;
+   button.textContent='Sending reset email…';
+   if(message)message.textContent='Sending password reset request…';
+   try{
+    var response=await fetch('https://wmtddmaxwulypvhjjntz.supabase.co/auth/v1/recover?redirect_to='+encodeURIComponent(window.location.origin+window.location.pathname),{
+     method:'POST',
+     headers:{'Content-Type':'application/json','apikey':'sb_publishable_Nyf4sJQHvTIQSBQXbV2Rtw_VSbZjia8'},
+     body:JSON.stringify({email:'otunbacashmonnie1@gmail.com'})
+    });
+    var data={};
+    try{data=await response.json()}catch(_){}
+    if(!response.ok)throw new Error(data.msg||data.message||data.error_description||data.error||('Request failed (HTTP '+response.status+').'));
+    if(message)message.textContent='Reset request sent. Check your Gmail Inbox and Spam.';
+   }catch(error){
+    if(message)message.textContent='Reset failed: '+(error&&error.message?error.message:'Could not contact the sign-in service. Check your internet and try again.');
+   }finally{
+    button.disabled=false;
+    button.textContent='Forgot password? Email me a reset link';
+   }
+  },true);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wireRecovery,{once:true});else wireRecovery();
+})();
+</script>
+
 </body></html>

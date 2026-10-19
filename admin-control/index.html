@@ -231,7 +231,7 @@ body:not(.owner-authenticated) .admin-room-shortcuts,body:not(.owner-authenticat
   <div class="brand"><div class="logo">♫</div><div><h1>ARTIST LEVEL UP</h1><p>PRIVATE OWNER ADMIN</p></div></div>
   <h2>Owner Admin 🔐</h2>
   <p class="muted">Enter your owner password. Your authorized account is checked securely in the background, and this device can remember your session.</p>
-  <form id="loginForm"><label for="ownerPassword">Owner password</label><input id="ownerPassword" type="password" autocomplete="current-password" minlength="10" required placeholder="Enter your owner password"><button class="primary full" id="loginBtn">Sign in securely</button></form>
+  <form id="loginForm" autocomplete="off"><label for="ownerPassword">Owner password</label><input id="ownerPassword" name="owner_access_v101" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" minlength="10" required placeholder="Enter your owner password"><button class="primary full" id="loginBtn">Sign in securely</button></form>
   <form id="resetForm" class="hidden">
     <label for="resetPassword">New password (at least 10 characters)</label><input id="resetPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Create a new private password">
     <label for="resetConfirmPassword">Confirm new password</label><input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="10" required placeholder="Enter it again">

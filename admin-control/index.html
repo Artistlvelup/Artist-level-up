@@ -221,6 +221,10 @@ a{color:#83c7ff;font-weight:750}
 #appView{padding-bottom:85px}
 @media(max-width:650px){.admin-room-card-grid{grid-template-columns:1fr;gap:10px}.admin-room-entry{display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;text-align:left;padding:13px;align-items:center}.admin-room-entry-icon{grid-row:1/3;width:48px;height:48px;font-size:24px}.admin-room-entry h3{margin:0 0 8px;font-size:16px}.admin-room-enter{grid-column:2;width:100%;min-height:42px}.admin-room-shortcut{font-size:10px}.admin-room-bar{align-items:center}}
 </style>
+<style>
+/* Keep room shortcuts out of the login screen; reveal only after owner authentication */
+body:not(.owner-authenticated) .admin-room-shortcuts{display:none!important}
+</style>
 </head>
 <body>
 <div id="loginView" class="login">
@@ -293,8 +297,8 @@ a{color:#83c7ff;font-weight:750}
 
  async function refreshAuth(){if(!refreshToken)throw new Error('Please sign in again.');const out=await authRequest('/token?grant_type=refresh_token',{refresh_token:refreshToken});saveAuth(out);return out}
  async function api(action,body={},retry=true){const headers={'Content-Type':'application/json','apikey':PUBLISHABLE_KEY};if(sessionToken)headers.Authorization='Bearer '+sessionToken;let res=await fetch(API,{method:'POST',headers,body:JSON.stringify({action,...body})});if(res.status===401&&retry&&refreshToken){await refreshAuth();return api(action,body,false)}let out;try{out=await res.json()}catch{throw new Error('Server response could not be read.')}if(!res.ok||!out.ok)throw new Error(out.error||'Request failed.');return out}
- function showLogin(msg){$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');if(msg)$('loginMsg').textContent=msg}
- function showApp(){$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('signedAs').textContent='Gmail verified owner'}
+ function showLogin(msg){document.body.classList.remove('owner-authenticated');$('loginView').classList.remove('hidden');$('appView').classList.add('hidden');if(msg)$('loginMsg').textContent=msg}
+ function showApp(){document.body.classList.add('owner-authenticated');$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');$('signedAs').textContent='Gmail verified owner'}
  handleRecoveryLink();
  $('showSetupBtn').addEventListener('click',()=>{$('setupForm').classList.remove('hidden');$('loginForm').classList.add('hidden');$('showSetupBtn').classList.add('hidden');$('forgotPasswordBtn').classList.add('hidden');$('loginMsg').textContent='Create a password for the authorized Gmail. Check your Gmail for a verification link if requested.'});
  $('cancelSetupBtn').addEventListener('click',()=>{$('setupForm').classList.add('hidden');$('loginForm').classList.remove('hidden');$('showSetupBtn').classList.remove('hidden');$('forgotPasswordBtn').classList.remove('hidden');$('loginMsg').textContent='Sign in with your authorized Gmail and password.'});

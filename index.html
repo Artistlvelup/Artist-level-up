@@ -3594,6 +3594,21 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(!artistId)throw new Error('Cloud artist account is not ready. Please sign in to the registered Artist account and try again.');
     item.status='uploading';item.attempts=Number(item.attempts||0)+1;item.lastAttemptAt=new Date().toISOString();await aluVideoQueuePut(item);
     const ext=(item.filename?.split('.').pop()||'mp4').toLowerCase();const storagePath=item.storagePath||('videos/'+item.id+'.'+ext);item.storagePath=storagePath;
+    item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
+    /* A previous attempt may have uploaded the file and created its database row, but
+       the phone can lose the response before saving the returned row ID. Check for that
+       existing row first so retries do not keep showing a false local-only status. */
+    try{
+      const existingRes=await fetch(base+'/rest/v1/artist_videos?select=id,video_url,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&limit=1',{headers:authHeaders});
+      if(existingRes.ok){
+        const existingRows=await existingRes.json().catch(()=>[]);
+        if(Array.isArray(existingRows)&&existingRows[0]?.id){
+          item.remoteVideoId=String(existingRows[0].id);item.status='cloud_synced';item.cloudSaved=true;item.syncedAt=item.syncedAt||new Date().toISOString();item.lastError='';await aluVideoQueuePut(item);
+          const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,remoteVideoId:item.remoteVideoId,cloudSaved:true,localOnly:false,status:existingRows[0].status==='published'?'Published':existingRows[0].status==='approved'?'Approved':'Pending Review',cloudStatus:'cloud_synced',cloudError:''});saveState(st);renderVideos();
+          return {success:true,reconciled:true};
+        }
+      }
+    }catch(checkError){console.warn('Existing cloud video check skipped:',checkError)}
     const detectedType=item.mimeType||'video/mp4';
     const progressText=(done,total)=>{const pct=total?Math.round(done/total*100):0;toastMsg(`Cloud upload… ${pct}%`)};
     try{
@@ -3688,11 +3703,17 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function refreshVideos(){
     const st=getState()||{}; repairVideoDurableUrls(st); let remote=[];
     try{if(window.ALU_CLOUD?.client){const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').in('status',['pending','approved','published']).order('created_at',{ascending:false}).limit(20);if(!q.error)remote=q.data||[];else console.warn('Video feed sync failed:',q.error)}}catch(e){console.warn('Video feed sync skipped:',e)}
-    const locals=stateVideos(st); const remoteIds=new Set(remote.map(r=>String(r.id)));
-    const merged=remote.map(r=>{const existing=locals.find(v=>String(v.remoteVideoId||'')===String(r.id));return {...(existing||{}),id:existing?.id||'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||existing?.videoUrl||'',storagePath:existing?.storagePath||'',thumbnailUrl:r.thumbnail_url||existing?.thumbnailUrl||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,songId:r.song_id||existing?.songId||null,tiktok:r.tiktok_url||existing?.tiktok||'',instagram:r.instagram_url||existing?.instagram||'',facebook:r.facebook_url||existing?.facebook||'',youtube:r.youtube_url||existing?.youtube||'',createdAt:r.created_at||existing?.createdAt||''};});
-    // Cloud records are authoritative for uploaded videos. Do not keep stale local copies
-    // of a cloud video after Admin deletes it; only genuinely local/offline uploads survive.
-    const keepLocal=locals.filter(v=>!v.remoteVideoId); st.videos=merged.concat(keepLocal); repairVideoDurableUrls(st); saveState(st); renderVideos();
+    const locals=stateVideos(st);
+    function localMatchesCloud(v,r){
+      if(String(v.remoteVideoId||'')===String(r.id))return true;
+      if(v.videoUrl&&String(v.videoUrl)===String(r.video_url||''))return true;
+      return !!(v.id&&String(r.video_url||'').includes('/videos/'+String(v.id)+'.'));
+    }
+    const merged=remote.map(r=>{const existing=locals.find(v=>localMatchesCloud(v,r));return {...(existing||{}),id:existing?.id||'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||existing?.videoUrl||'',storagePath:existing?.storagePath||'',thumbnailUrl:r.thumbnail_url||existing?.thumbnailUrl||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,songId:r.song_id||existing?.songId||null,tiktok:r.tiktok_url||existing?.tiktok||'',instagram:r.instagram_url||existing?.instagram||'',facebook:r.facebook_url||existing?.facebook||'',youtube:r.youtube_url||existing?.youtube||'',createdAt:r.created_at||existing?.createdAt||'',cloudSaved:true,localOnly:false,cloudStatus:'cloud_synced',cloudError:''};});
+    // Match by cloud row ID, exact URL, or the unique video filename. This removes stale
+    // device-only cards when the upload already reached Storage and artist_videos.
+    const keepLocal=locals.filter(v=>!remote.some(r=>localMatchesCloud(v,r))&&!v.remoteVideoId);
+    st.videos=merged.concat(keepLocal); repairVideoDurableUrls(st); saveState(st); renderVideos();
   }
   async function refreshAdminVideos(){
     const st=getState()||{};let remote=[];

@@ -6597,6 +6597,7 @@ document.addEventListener('click',function(e){
 #aluMemberGateV101 .alu-member-help-actions button:disabled{opacity:.55}
 #aluMemberGateV101 .alu-member-primary{width:100%;min-height:49px;border:0;border-radius:12px;background:var(--gold);color:#111;font-size:14px;font-weight:950;cursor:pointer;margin-top:5px}
 #aluMemberGateV101 .alu-member-primary:disabled{opacity:.55;cursor:wait}
+#aluMemberGateV101 .alu-member-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;margin-top:9px;padding:12px 14px;border:1px solid #d7dbe3;border-radius:12px;background:#fff;color:#202124;font:700 14px/1.2 inherit;cursor:pointer;touch-action:manipulation}#aluMemberGateV101 .alu-member-google span{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font:bold 16px Arial,sans-serif;color:#4285f4;background:#f1f3f4}#aluMemberGateV101 .alu-member-google:disabled{opacity:.65;cursor:wait}
 #aluMemberGateV101 .alu-member-security{display:flex;gap:8px;align-items:flex-start;color:#9fa2ad;font-size:11px;line-height:1.45;margin-top:16px}
 #aluMemberGateV101 .alu-member-security span{color:var(--gold);font-size:14px}
 body.alu-member-locked-v101{overflow:hidden}
@@ -6726,12 +6727,30 @@ function ensureGate(){
   '<h1 id="aluMemberGateTitle">Your next chapter starts here.</h1>'+
   '<p class="alu-member-intro">One secure account for your Artist Level Up journey. Create an account or sign in to continue.</p>'+
   '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log in</button></div>'+
-  '<div id="aluMemberCreateForm" class="alu-member-form active"><label for="aluMemberName">Full name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Enter your name"><label for="aluMemberEmail">Email address</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="alu-member-primary">Create account</button><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckCreateBtn">I confirmed my email</button><button type="button" id="aluMemberResendCreateBtn">Resend confirmation</button></div></div>'+
-  '<div id="aluMemberLoginForm" class="alu-member-form"><label for="aluMemberLoginEmail">Email address</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Enter your registered email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="alu-member-primary">Email me a secure login link</button><p class="tiny muted">We’ll send you a one-time sign-in link. No password to remember.</p><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckLoginBtn">I opened the link</button><button type="button" id="aluMemberResendLoginBtn">Resend login link</button></div></div>'+
+  '<div id="aluMemberCreateForm" class="alu-member-form active"><label for="aluMemberName">Full name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Enter your name"><label for="aluMemberEmail">Email address</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="alu-member-primary">Create account</button><button type="button" id="aluMemberGoogleCreateBtn" class="alu-member-google"><span aria-hidden="true">G</span> Continue with Google</button><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckCreateBtn">I confirmed my email</button><button type="button" id="aluMemberResendCreateBtn">Resend confirmation</button></div></div>'+
+  '<div id="aluMemberLoginForm" class="alu-member-form"><label for="aluMemberLoginEmail">Email address</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Enter your registered email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="alu-member-primary">Email me a secure login link</button><button type="button" id="aluMemberGoogleLoginBtn" class="alu-member-google"><span aria-hidden="true">G</span> Continue with Google</button><p class="tiny muted">We’ll send you a one-time sign-in link. No password to remember.</p><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckLoginBtn">I opened the link</button><button type="button" id="aluMemberResendLoginBtn">Resend login link</button></div></div>'+
   '<div class="alu-member-security"><span>✓</span><div>Secure email verification protects your account. If you don’t see our email, check Spam or Promotions.</div></div><p class="alu-member-note">Use the same email address every time so your artist profile stays connected to your account.</p></div>'; 
   document.body.appendChild(wrap);
   function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Your next chapter starts here.':'Welcome back. Let’s get you in.'}
   wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
+  async function signInWithGoogle(button,errorId){
+    var c=client(),err=document.getElementById(errorId);
+    if(err)err.textContent='';
+    if(!c?.auth?.signInWithOAuth){if(err)err.textContent='Google sign-in is not available right now. Use the email option below.';return;}
+    var original=button.textContent;button.disabled=true;button.textContent='CONNECTING TO GOOGLE…';
+    try{
+      var result=await c.auth.signInWithOAuth({provider:'google',options:{redirectTo:memberAuthRedirectUrl(),queryParams:{prompt:'select_account'}}});
+      if(result.error)throw result.error;
+      if(err)err.textContent='Opening Google securely… Choose your account to continue.';
+    }catch(e){
+      console.error('V101 Google sign-in failed:',e);
+      var message=String(e?.message||'Google sign-in could not start.');
+      if(/provider.*(disabled|not enabled|not found)|unsupported provider/i.test(message))message='Google sign-in is not enabled on the secure account service yet. Use the email option for now.';
+      if(err)err.textContent=message;button.disabled=false;button.textContent=original;
+    }
+  }
+  document.getElementById('aluMemberGoogleCreateBtn').addEventListener('click',function(){signInWithGoogle(this,'aluMemberCreateError')});
+  document.getElementById('aluMemberGoogleLoginBtn').addEventListener('click',function(){signInWithGoogle(this,'aluMemberLoginError')});
   document.getElementById('aluMemberCreateBtn').addEventListener('click',async function(){
     var s=getState(),name=(document.getElementById('aluMemberName').value||'').trim(),email=(document.getElementById('aluMemberEmail').value||'').trim().toLowerCase(),agree=document.getElementById('aluMemberAgreement').checked===true,err=document.getElementById('aluMemberCreateError');err.textContent='';
     if(!name||!emailOK(email)){err.textContent='Enter your name and a valid email.';return}

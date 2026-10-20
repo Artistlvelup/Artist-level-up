@@ -4157,29 +4157,49 @@ async function render77(){
   let cloudPictures=[];
   const client=window.ALU_CLOUD?.client;
   const videoTask=(async()=>{
-    if(!client)return;
-    try{
-      const q=await Promise.race([
-        client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,created_at,artist_id,song_id').in('status',['approved','published']).order('created_at',{ascending:false}).limit(50),
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error('Global video query timed out')),3000))
-      ]);
-      if(q.error)throw q.error;
-      const cloud=(q.data||[]).map(v=>({
-        kind:'video',id:v.id,video_url:String(v.video_url||'').trim(),thumbnail_url:String(v.thumbnail_url||'').trim(),
-        title:v.title||'Untitled Video',artist_name:v.artist_name||'Artist Level Up artist',
-        description:v.description||'Discover this artist on Artist Level Up.',artist_id:v.artist_id||'',song_id:v.song_id||'',song_title:'',song_audio_url:'',song_cover_url:'',song_status:'',
-        createdAt:v.created_at||'',createdAtTs:new Date(v.created_at||0).getTime(),raw:v
-      })).filter(v=>v.video_url.startsWith('http://')||v.video_url.startsWith('https://'));
+    let cloud=[];
+    const columns='id,title,description,video_url,thumbnail_url,status,created_at,artist_id,song_id';
+    const mapCloudRows=rows=>(rows||[]).map(v=>({
+      kind:'video',id:v.id,video_url:String(v.video_url||'').trim(),thumbnail_url:String(v.thumbnail_url||'').trim(),
+      title:v.title||'Untitled Video',artist_name:v.artist_name||'Artist Level Up artist',
+      description:v.description||'Discover this artist on Artist Level Up.',artist_id:v.artist_id||'',song_id:v.song_id||'',song_title:'',song_audio_url:'',song_cover_url:'',song_status:'',
+      createdAt:v.created_at||'',createdAtTs:new Date(v.created_at||0).getTime(),raw:v
+    })).filter(v=>v.video_url.startsWith('http://')||v.video_url.startsWith('https://'));
+    if(client){
+      try{
+        const q=await Promise.race([
+          client.from('artist_videos').select(columns).in('status',['approved','published']).order('created_at',{ascending:false}).limit(50),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error('Global video query timed out')),8000))
+        ]);
+        if(q.error)throw q.error;
+        cloud=mapCloudRows(q.data);
+      }catch(e){console.warn('Global cloud video client query skipped; trying direct cloud read:',e?.message||e)}
+    }
+    /* Direct public REST fallback prevents the Global Feed from silently becoming picture-only
+       when the Supabase JS client is late, unavailable, or its video query times out. */
+    if(!cloud.length){
+      try{
+        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
+        const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
+        if(base&&key){
+          const url=base+'/rest/v1/artist_videos?select='+encodeURIComponent(columns)+'&status='+encodeURIComponent('in.(approved,published)')+'&order=created_at.desc&limit=50';
+          const rr=await fetch(url,{headers:{apikey:key,authorization:'Bearer '+key}});
+          if(!rr.ok)throw new Error('Cloud video read '+rr.status);
+          cloud=mapCloudRows(await rr.json());
+        }
+      }catch(e){console.warn('Global cloud video REST fallback skipped:',e?.message||e)}
+    }
+    if(cloud.length){
       const songIds=[...new Set(cloud.map(v=>String(v.song_id||'').trim()).filter(Boolean))];
-      if(songIds.length){
+      if(songIds.length&&client){
         try{
           const sr=await client.from('songs').select('id,title,audio_url,cover_url,status').in('id',songIds).eq('status','published');
-          if(!sr.error){const byId=new Map((sr.data||[]).map(s=>[String(s.id),s]));cloud.forEach(v=>{const s=byId.get(String(v.song_id||''));if(s){v.song_title=s.title||'';v.song_audio_url=s.audio_url||'';v.song_cover_url=s.cover_url||'';v.song_status=s.status||'';}})}
+          if(!sr.error){const byId=new Map((sr.data||[]).map(s=>[String(s.id),s]));cloud.forEach(v=>{const song=byId.get(String(v.song_id||''));if(song){v.song_title=song.title||'';v.song_audio_url=song.audio_url||'';v.song_cover_url=song.cover_url||'';v.song_status=song.status||'';}})}
         }catch(_){/* video still renders if music lookup is unavailable */}
       }
       const seen=new Set(cloud.map(v=>String(v.id)));
       videos=cloud.concat(videos.filter(v=>!seen.has(String(v.id))));
-    }catch(e){console.warn('Global cloud video feed load skipped:',e?.message||e)}
+    }
   })();
   const pictureTask=(async()=>{try{cloudPictures=await loadCloudPictures()}catch(e){console.warn('Global picture feed load skipped:',e?.message||e);cloudPictures=[]}})();
   await Promise.allSettled([videoTask,pictureTask]);

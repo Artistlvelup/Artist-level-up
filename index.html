@@ -3503,7 +3503,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
         cloudText='☁️ Published to Video Hub · Ready for viewers';
       }
       const retryBtn=cloudPending&&v.cloudStatus!=='blocked_size'?`<button class="btn" type="button" data-action="retryVideoCloud" data-video-id="${esc(v.id)}">☁️ Retry Cloud Upload</button>`:'';
-      return `<div class="card" style="padding:10px;margin:10px 0"><div style="position:relative;background:#050608;border-radius:14px;overflow:hidden">${src?`<video controls playsinline preload="metadata"${poster} src="${esc(src)}" style="width:100%;max-height:330px;display:block;background:#050608"></video>`:`<div style="padding:40px 16px;text-align:center" class="muted">Video preview is not available on this device yet.</div>`}</div><div class="row" style="margin-top:10px"><div class="grow"><h3>${esc(v.title||'Untitled video')}</h3><div class="tiny muted">${esc(statusLabel(v))} · ${Number(v.views||0).toLocaleString()} views</div></div>${!pending?`<button class="btn primary" data-action="promoteVideo" data-video-id="${esc(v.id)}">🚀 Promote</button>`:''}</div>${cloudText?`<p class="tiny muted" style="margin:8px 0;color:var(--gold)">${cloudText}</p>`:''}${retryBtn}<p class="muted" style="margin:7px 0">${esc(v.description||'')}</p><div class="tiny muted">${[['TikTok',v.tiktok],['Instagram',v.instagram],['Facebook',v.facebook],['YouTube',v.youtube]].filter(x=>x[1]).map(x=>`<a href="${esc(x[1])}" target="_blank" rel="noopener" style="color:var(--gold);margin-right:8px">${x[0]}</a>`).join('')}</div></div>`
+      return `<div class="card" style="padding:10px;margin:10px 0"><div style="position:relative;background:#050608;border-radius:14px;overflow:hidden">${src?`<video controls playsinline preload="metadata"${poster} src="${esc(src)}" style="width:100%;max-height:330px;display:block;background:#050608"></video>`:`<div style="padding:40px 16px;text-align:center" class="muted">Video preview is not available on this device yet.</div>`}</div><div class="row" style="margin-top:10px"><div class="grow"><h3>${esc(v.title||'Untitled video')}</h3><div class="tiny muted">${esc(statusLabel(v))} · ${Number(v.views||0).toLocaleString()} views</div></div>${!pending?`<button class="btn primary" data-action="promoteVideo" data-video-id="${esc(v.id)}">🚀 Promote</button>`:''}</div>${cloudText?`<p class="tiny muted" style="margin:8px 0;color:var(--gold)">${cloudText}</p>`:''}${v.cloudError||v.lastError?`<p class="tiny danger" style="margin:6px 0;overflow-wrap:anywhere">Cloud upload detail: ${esc(v.cloudError||v.lastError)}</p>`:''}${retryBtn}<p class="muted" style="margin:7px 0">${esc(v.description||'')}</p><div class="tiny muted">${[['TikTok',v.tiktok],['Instagram',v.instagram],['Facebook',v.facebook],['YouTube',v.youtube]].filter(x=>x[1]).map(x=>`<a href="${esc(x[1])}" target="_blank" rel="noopener" style="color:var(--gold);margin-right:8px">${x[0]}</a>`).join('')}</div></div>`
     }).join('');
   }
   function videoFormatLabel(ratio){return ratio==='9:16'?'📱 9:16 Vertical':'🖥️ 16:9 Landscape'}
@@ -3570,6 +3570,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       for(const item of items){if(item.status==='cloud_synced')continue;let v=vs.find(x=>String(x.id)===String(item.id));
         if(!v){let localUrl='';try{localUrl=URL.createObjectURL(item.blob)}catch(e){} item.localUrl=localUrl;v=aluVideoLocalRecord(item);v.localUrl=localUrl;vs.unshift(v);changed=true;}
         else if(!v.localUrl&&item.blob){try{v.localUrl=URL.createObjectURL(item.blob);changed=true}catch(e){}}
+        if(v.cloudStatus!==item.status||v.cloudError!==(item.lastError||'')){v.cloudStatus=item.status;v.cloudError=item.lastError||'';changed=true;}
         if(item.thumbnailData&&!v.thumbnailUrl){v.thumbnailUrl=item.thumbnailData;changed=true;}
       }
       if(changed)saveState(st);renderVideos();
@@ -3634,7 +3635,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,thumbnailUrl:'',remoteVideoId:item.remoteVideoId,songId:item.songId||null,cloudSaved:true,localOnly:false,status:'Pending Review',cloudStatus:'cloud_synced'});saveState(st);renderVideos();
       return {success:true};
     }catch(e){
-      const msg=String(e?.message||e?.statusText||e||'Unknown upload error');item.status=/size|exceed|too large|payload/i.test(msg)?'blocked_size':'pending';item.lastError=msg.slice(0,500);await aluVideoQueuePut(item);throw e;
+      const msg=String(e?.message||e?.statusText||e||'Unknown upload error');item.status=/size|exceed|too large|payload/i.test(msg)?'blocked_size':'pending';item.lastError=msg.slice(0,500);await aluVideoQueuePut(item);try{const st=getState()||{},vs=stateVideos(st);const v=vs.find(x=>String(x.id)===String(item.id));if(v){v.cloudStatus=item.status;v.cloudError=item.lastError;v.localOnly=true;v.cloudSaved=false;saveState(st);renderVideos();}}catch(syncError){console.warn('Video error status display skipped:',syncError)}throw e;
     }
   }
   let aluVideoRetryRunning=false;
@@ -3647,6 +3648,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   window.ALU_RETRY_VIDEO_CLOUD=retryVideoCloud;
   window.addEventListener('online',()=>{retryPendingVideoUploads();});
   setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);
+  /* Retry pending uploads while the page is open; retry after auth/session recovery too. */
+  setInterval(()=>{if(navigator.onLine&&!document.hidden)retryPendingVideoUploads()},30000);
+  try{window.ALU_CLOUD?.client?.auth?.onAuthStateChange?.((event,session)=>{if(session&&(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'))setTimeout(()=>retryPendingVideoUploads(),700);});}catch(e){console.warn('Video retry auth hook unavailable:',e)}
   function populateVideoSongPicker(){
     const sel=document.getElementById('aluVideoSong');if(!sel)return;
     const current=String(sel.value||'');
@@ -4158,7 +4162,17 @@ async function render77(){
   })();
   const pictureTask=(async()=>{try{cloudPictures=await loadCloudPictures()}catch(e){console.warn('Global picture feed load skipped:',e?.message||e);cloudPictures=[]}})();
   await Promise.allSettled([videoTask,pictureTask]);
-  items=[...videos,...cloudPictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);
+  const ordered=[...videos,...cloudPictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);
+  /* Pictures uploaded together share a timestamp, caption and artist. Group them into one horizontal swipe gallery; video posts remain vertical. */
+  const grouped=[],pictureGroups=new Map();
+  for(const item of ordered){
+    if(item.kind!=='picture'){grouped.push(item);continue;}
+    const key=[String(item.artist_name||''),String(item.caption||''),String(item.createdAt||'')].join('::');
+    let group=pictureGroups.get(key);
+    if(!group){group={...item,pictures:[]};pictureGroups.set(key,group);grouped.push(group);}
+    group.pictures.push(item);
+  }
+  items=grouped;
   activeVideo=null;
   if(!items.length){
     track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>No published posts yet</b><div style="opacity:.7;margin-top:8px">Approved pictures and published artist videos will appear here.</div></div></div>';
@@ -4170,7 +4184,7 @@ async function render77(){
     return '<section class="g77-item '+(isVideo?'g77-video-item':'g77-picture-item')+'" data-i="'+i+'">'+
       (isVideo
         ?'<video playsinline webkit-playsinline muted preload="none" '+(v.thumbnail_url?'poster="'+esc77(v.thumbnail_url)+'" ':'')+'src="'+esc77(v.video_url)+'"></video>'
-        :'<img class="g77-picture-media" src="'+esc77(v.image_url)+'" alt="Artist Level Up picture" loading="lazy" decoding="async">')+
+        :(v.pictures?.length>1?'<div class="g77-picture-carousel" aria-label="Picture gallery">'+v.pictures.map((p,j)=>'<img class="g77-picture-media" src="'+esc77(p.image_url)+'" alt="Artist Level Up picture '+(j+1)+' of '+v.pictures.length+'" loading="lazy" decoding="async">').join('')+'</div>':'<img class="g77-picture-media" src="'+esc77(v.image_url)+'" alt="Artist Level Up picture" loading="lazy" decoding="async">'))+
       '<div class="g77-gradient"></div>'+
       (isVideo?'<div class="g77-video-controls" aria-label="Video controls"><div class="g77-time" data-time>0:00 / 0:00</div><input class="g77-seek" type="range" min="0" max="0" value="0" step="0.1" aria-label="Video progress"><div class="g77-video-buttons"><button type="button" class="g77-skip" data-skip="-10" aria-label="Back 10 seconds">↶ 10s</button><button type="button" class="g77-skip" data-skip="10" aria-label="Forward 10 seconds">10s ↷</button></div></div>':'')+
       '<div class="g77-meta"><div class="g77-title">'+esc77(v.title||'Artist Level Up post')+'</div><div class="g77-artist">@'+esc77(v.artist_name||'Artist')+'</div><div class="g77-caption">'+esc77(v.description||v.caption||'Discover this artist on Artist Level Up.')+'</div></div>'+
@@ -7638,3 +7652,10 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 @media(max-width:420px){.studio-effects-room{padding:7px}.studio-effects-room-panel{width:100%;max-height:calc(100dvh - 14px);border-radius:13px}.studio-effects-room .alu-fx-rack{padding:9px}.studio-effects-room .alu-fx-group{padding:8px}.studio-effects-room .alu-fx-row{grid-template-columns:28px minmax(0,1fr) 54px;gap:7px;padding:8px;min-height:60px}.studio-effects-room .alu-fx-row button{width:54px;min-width:54px}}
 </style>
 
+
+<style id="aluV101PictureSwipeCarouselFix">
+#globalDiscoveryFeedV77 .g77-picture-carousel{display:flex;width:100%;height:calc(100dvh - 180px);max-height:calc(100dvh - 180px);min-height:0;flex:1 1 auto;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;scrollbar-width:none;background:#08090c}
+#globalDiscoveryFeedV77 .g77-picture-carousel::-webkit-scrollbar{display:none}
+#globalDiscoveryFeedV77 .g77-picture-carousel .g77-picture-media{display:block;flex:0 0 100%;width:100%;height:100%;min-width:100%;max-height:100%;object-fit:contain;scroll-snap-align:start;background:#08090c}
+@media(max-height:620px){#globalDiscoveryFeedV77 .g77-picture-carousel{height:calc(100dvh - 150px);max-height:calc(100dvh - 150px)}}
+</style>

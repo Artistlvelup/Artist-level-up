@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
-import worker from "../workers/auth/worker.js";
+import { readFileSync } from "node:fs";
+const workerSource = readFileSync(new URL("../workers/auth/worker.js", import.meta.url), "utf8");
+const { default: worker } = await import("data:text/javascript;base64," + Buffer.from(workerSource).toString("base64"));
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
@@ -42,15 +44,15 @@ class FakeD1 {
     // The Worker batches exactly one app_users insert followed by one session insert.
     const userValues = statements[0].values;
     const sessionValues = statements[1].values;
-    const [userId, , status, createdAt, updatedAt] = userValues;
-    const [tokenHash, sessionUserId, sessionCreatedAt, expiresAt, revokedAt] = sessionValues;
+    const [userId, createdAt, updatedAt] = userValues;
+    const [tokenHash, sessionUserId, sessionCreatedAt, expiresAt] = sessionValues;
     assert.equal(sessionUserId, userId);
-    this.users.set(userId, { status, created_at: createdAt, updated_at: updatedAt });
+    this.users.set(userId, { status: "active", created_at: createdAt, updated_at: updatedAt });
     this.sessions.set(tokenHash, {
       user_id: sessionUserId,
       created_at: sessionCreatedAt,
       expires_at: expiresAt,
-      revoked_at: revokedAt
+      revoked_at: null
     });
     return [{ success: true }, { success: true }];
   }

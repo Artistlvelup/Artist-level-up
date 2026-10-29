@@ -21,3 +21,5 @@ This branch is isolated from `main`; no live website or Supabase project was cha
 3. Migrate profile/account identity, table data and R2 objects using verified exports.
 4. Reimplement payment and callback flows without exposing secrets.
 5. Run end-to-end tests, then plan a controlled V101 cutover with rollback.
+
+Foreign-key constraints are intentionally omitted from the first SQLite schema pass. The initial metadata export contained constraint names where column names were expected, so those generated clauses were removed rather than risking an incorrect schema. Relationships must be reintroduced from verified column-level metadata in a later reviewed migration before application cutover.

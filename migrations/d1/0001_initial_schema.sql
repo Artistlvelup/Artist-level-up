@@ -7,7 +7,7 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "profiles" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "display_name" TEXT,
   "avatar_url" TEXT,
   "role" TEXT NOT NULL DEFAULT 'artist',
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS "profiles" (
 );
 
 CREATE TABLE IF NOT EXISTS "artists" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL UNIQUE,
   "artist_name" TEXT NOT NULL,
   "bio" TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS "artists" (
 );
 
 CREATE TABLE IF NOT EXISTS "songs" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "artist_id" TEXT NOT NULL,
   "title" TEXT NOT NULL,
   "genre" TEXT,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS "songs" (
 );
 
 CREATE TABLE IF NOT EXISTS "library" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "song_id" TEXT NOT NULL,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS "library" (
 );
 
 CREATE TABLE IF NOT EXISTS "promotions" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "artist_id" TEXT,
   "title" TEXT NOT NULL,
   "description" TEXT,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS "promotions" (
 );
 
 CREATE TABLE IF NOT EXISTS "withdrawals" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "amount" REAL NOT NULL,
   "bank_name" TEXT,
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS "withdrawals" (
 );
 
 CREATE TABLE IF NOT EXISTS "artist_videos" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "artist_id" TEXT,
   "title" TEXT NOT NULL,
   "description" TEXT,
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS "artist_videos" (
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_beats" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "producer_user_id" TEXT,
   "title" TEXT NOT NULL,
   "producer_name" TEXT NOT NULL,
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS "marketplace_beats" (
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_orders" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "buyer_user_id" TEXT,
   "beat_id" TEXT,
   "beat_title" TEXT NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS "marketplace_orders" (
 );
 
 CREATE TABLE IF NOT EXISTS "picture_posts" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "image_url" TEXT NOT NULL,
   "caption" TEXT,
@@ -181,7 +181,7 @@ CREATE TABLE IF NOT EXISTS "picture_posts" (
 );
 
 CREATE TABLE IF NOT EXISTS "artist_wallets" (
-  "artist_user_id" TEXT,
+  "artist_user_id" TEXT NOT NULL,
   "wallet_currency" TEXT NOT NULL DEFAULT 'USD',
   "available_minor" INTEGER NOT NULL DEFAULT 0,
   "pending_minor" INTEGER NOT NULL DEFAULT 0,
@@ -191,7 +191,7 @@ CREATE TABLE IF NOT EXISTS "artist_wallets" (
 );
 
 CREATE TABLE IF NOT EXISTS "artist_payout_accounts" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "artist_user_id" TEXT NOT NULL,
   "provider" TEXT NOT NULL DEFAULT 'paystack',
   "country_code" TEXT NOT NULL,
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS "artist_payout_accounts" (
 );
 
 CREATE TABLE IF NOT EXISTS "artist_payouts" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "artist_user_id" TEXT NOT NULL,
   "payout_account_id" TEXT,
   "currency" TEXT NOT NULL,
@@ -236,14 +236,14 @@ CREATE TABLE IF NOT EXISTS "artist_payouts" (
 );
 
 CREATE TABLE IF NOT EXISTS "platform_admins" (
-  "user_id" TEXT,
+  "user_id" TEXT NOT NULL,
   "active" INTEGER NOT NULL DEFAULT 1,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("user_id")
 );
 
 CREATE TABLE IF NOT EXISTS "upload_fee_payments" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "upload_type" TEXT NOT NULL,
   "amount_ngn" INTEGER NOT NULL DEFAULT 5000,
@@ -262,14 +262,14 @@ CREATE TABLE IF NOT EXISTS "upload_fee_payments" (
 );
 
 CREATE TABLE IF NOT EXISTS "platform_settings" (
-  "setting_key" TEXT,
+  "setting_key" TEXT NOT NULL,
   "setting_value" TEXT NOT NULL,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("setting_key")
 );
 
 CREATE TABLE IF NOT EXISTS "artist_pro_subscriptions" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "plan" TEXT NOT NULL,
   "amount_ngn" INTEGER NOT NULL,
@@ -285,7 +285,7 @@ CREATE TABLE IF NOT EXISTS "artist_pro_subscriptions" (
 );
 
 CREATE TABLE IF NOT EXISTS "streaming_distribution_requests" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "user_id" TEXT NOT NULL,
   "artist_name" TEXT NOT NULL,
   "release_title" TEXT NOT NULL,
@@ -315,14 +315,14 @@ CREATE TABLE IF NOT EXISTS "streaming_distribution_requests" (
 );
 
 CREATE TABLE IF NOT EXISTS "v101_bridge_config" (
-  "id" INTEGER,
+  "id" INTEGER NOT NULL,
   "secret" TEXT NOT NULL,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_manager_settings" (
-  "id" INTEGER,
+  "id" INTEGER NOT NULL,
   "appointment_status" TEXT NOT NULL DEFAULT 'not_appointed',
   "manager_registrant_code" TEXT,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -330,7 +330,7 @@ CREATE TABLE IF NOT EXISTS "isrc_manager_settings" (
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_rights_owner_agreements" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "rights_owner_name" TEXT NOT NULL,
   "rights_owner_email" TEXT,
   "agreement_reference" TEXT NOT NULL,
@@ -343,7 +343,7 @@ CREATE TABLE IF NOT EXISTS "isrc_rights_owner_agreements" (
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_recordings" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "rights_owner_agreement_id" TEXT NOT NULL,
   "rights_owner_name" TEXT NOT NULL,
   "artist_name" TEXT NOT NULL,
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS "isrc_recordings" (
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "recording_id" TEXT,
   "action" TEXT NOT NULL,
   "details" TEXT NOT NULL,
@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "recording_id" TEXT NOT NULL,
   "registry_name" TEXT NOT NULL,
   "submission_status" TEXT NOT NULL DEFAULT 'pending',
@@ -389,7 +389,7 @@ CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "statement_key" TEXT NOT NULL UNIQUE,
   "provider" TEXT NOT NULL,
   "statement_filename" TEXT,
@@ -411,7 +411,7 @@ CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "import_id" TEXT NOT NULL,
   "provider" TEXT NOT NULL,
   "source_line_id" TEXT NOT NULL,
@@ -436,7 +436,7 @@ CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
 );
 
 CREATE TABLE IF NOT EXISTS "platform_royalty_commissions" (
-  "id" TEXT,
+  "id" TEXT NOT NULL,
   "import_id" TEXT NOT NULL,
   "ledger_entry_id" TEXT NOT NULL UNIQUE,
   "artist_user_id" TEXT NOT NULL,

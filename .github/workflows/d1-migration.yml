@@ -48,5 +48,8 @@ jobs:
       - name: Check auth Worker JavaScript syntax
         run: node --input-type=module --check < workers/auth/worker.js
 
+      - name: Run auth Worker route and session tests
+        run: node --test workers/auth/worker.test.mjs
+
       - name: Confirm remote apply is deliberately disabled
         run: echo "Validation only. Remote D1 apply is not enabled in this workflow."

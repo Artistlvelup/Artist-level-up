@@ -1,0 +1,13 @@
+name = "artist-level-up-v101-auth"
+main = "workers/auth/worker.js"
+compatibility_date = "2026-10-29"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "artist_level_up_v101"
+database_id = "80a7182b-e203-4103-a749-bb4b230aba86"
+migrations_dir = "migrations/d1"
+
+# Set these as Worker environment variables/secrets in Cloudflare:
+# ALLOWED_ORIGINS = exact production HTTPS origins, comma-separated
+# SESSION_PEPPER = random secret of at least 32 characters (use wrangler secret put)

@@ -26,15 +26,23 @@ jobs:
       - name: Validate SQLite migration syntax
         shell: bash
         run: |
-          set -euo pipefail
-          sqlite3 :memory: <<'SQL'
-          PRAGMA foreign_keys = ON;
-          .read migrations/d1/0001_initial_schema.sql
-          PRAGMA foreign_key_check;
-          SELECT name FROM sqlite_master
-          WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-          ORDER BY name;
-          SQL
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          sql = Path("migrations/d1/0001_initial_schema.sql").read_text()
+          db = sqlite3.connect(":memory:")
+          db.execute("PRAGMA foreign_keys = ON")
+          db.executescript(sql)
+          violations = db.execute("PRAGMA foreign_key_check").fetchall()
+          tables = db.execute(
+              "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+          ).fetchone()[0]
+          if violations:
+              raise SystemExit(f"Foreign-key violations: {violations}")
+          if tables != 27:
+              raise SystemExit(f"Expected 27 tables, found {tables}")
+          print(f"Validated {tables} tables; no foreign-key violations.")
+          PY
 
   apply:
     needs: validate

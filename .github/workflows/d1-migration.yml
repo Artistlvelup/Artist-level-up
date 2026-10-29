@@ -2,12 +2,6 @@ name: Prepare Artist Level Up V101 D1
 
 on:
   workflow_dispatch:
-    inputs:
-      apply_remote:
-        description: "Apply the D1 schema to the remote database (only after reviewing the migration)"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -23,38 +17,36 @@ jobs:
       - name: Checkout migration branch
         uses: actions/checkout@v4
 
-      - name: Validate SQLite migration syntax
+      - name: Validate all SQLite migrations
         shell: bash
         run: |
           python - <<'PY'
           import sqlite3
           from pathlib import Path
-          sql = Path("migrations/d1/0001_initial_schema.sql").read_text()
+
           db = sqlite3.connect(":memory:")
           db.execute("PRAGMA foreign_keys = ON")
-          db.executescript(sql)
+          migrations = sorted(Path("migrations/d1").glob("[0-9][0-9][0-9][0-9]_*.sql"))
+          if len(migrations) != 2:
+              raise SystemExit(f"Expected 2 numbered migrations, found {len(migrations)}")
+
+          for migration in migrations:
+              print(f"Applying locally for validation: {migration}")
+              db.executescript(migration.read_text())
+
           violations = db.execute("PRAGMA foreign_key_check").fetchall()
           tables = db.execute(
               "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
           ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 27:
-              raise SystemExit(f"Expected 27 tables, found {tables}")
-          print(f"Validated {tables} tables; no foreign-key violations.")
+          if tables != 29:
+              raise SystemExit(f"Expected 29 tables, found {tables}")
+          print(f"Validated {len(migrations)} migrations, {tables} tables; no foreign-key violations.")
           PY
 
-  apply:
-    needs: validate
-    if: ${{ inputs.apply_remote == true }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout migration branch
-        uses: actions/checkout@v4
+      - name: Check auth Worker JavaScript syntax
+        run: node --check workers/auth/worker.js
 
-      - name: Apply schema to Cloudflare D1
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply artist_level_up_v101 --remote
+      - name: Confirm remote apply is deliberately disabled
+        run: echo "Validation only. Remote D1 apply is not enabled in this workflow."

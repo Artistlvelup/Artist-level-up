@@ -4,7 +4,6 @@
 -- Supabase auth.users foreign keys are intentionally omitted: authentication must be migrated separately.
 -- Access control must be enforced in authenticated Worker endpoints; D1 has no Supabase RLS.
 
-PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS "profiles" (
   "id" TEXT NOT NULL,
@@ -28,9 +27,6 @@ CREATE TABLE IF NOT EXISTS "artists" (
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "suspended" INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "songs" (
@@ -45,11 +41,6 @@ CREATE TABLE IF NOT EXISTS "songs" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("consumed_song_id") REFERENCES "songs" ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id"),
-  FOREIGN KEY ("song_id") REFERENCES "songs" ("id"),
-  FOREIGN KEY ("sound_song_id") REFERENCES "songs" ("id"),
-  FOREIGN KEY ("song_id") REFERENCES "songs" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "library" (
@@ -58,7 +49,6 @@ CREATE TABLE IF NOT EXISTS "library" (
   "song_id" TEXT NOT NULL,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("song_id") REFERENCES "songs" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "promotions" (
@@ -74,8 +64,6 @@ CREATE TABLE IF NOT EXISTS "promotions" (
   "target_type" TEXT NOT NULL DEFAULT 'music',
   "video_id" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id"),
-  FOREIGN KEY ("video_id") REFERENCES "artist_videos" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "withdrawals" (
@@ -108,9 +96,6 @@ CREATE TABLE IF NOT EXISTS "artist_videos" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "song_id" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("video_id") REFERENCES "artist_videos" ("id"),
-  FOREIGN KEY ("artist_id") REFERENCES "artists" ("id"),
-  FOREIGN KEY ("song_id") REFERENCES "songs" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_beats" (
@@ -129,7 +114,6 @@ CREATE TABLE IF NOT EXISTS "marketplace_beats" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("beat_id") REFERENCES "marketplace_beats" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_orders" (
@@ -162,7 +146,6 @@ CREATE TABLE IF NOT EXISTS "marketplace_orders" (
   "producer_payout_minor" INTEGER,
   "producer_payout_currency" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("beat_id") REFERENCES "marketplace_beats" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "picture_posts" (
@@ -177,7 +160,6 @@ CREATE TABLE IF NOT EXISTS "picture_posts" (
   "sound_title" TEXT,
   "artist_name" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("sound_song_id") REFERENCES "songs" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "artist_wallets" (
@@ -216,7 +198,6 @@ CREATE TABLE IF NOT EXISTS "artist_payout_accounts" (
   "flutterwave_subaccount_id" TEXT,
   "flutterwave_payout_account_id" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("payout_account_id") REFERENCES "artist_payout_accounts" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "artist_payouts" (
@@ -232,7 +213,6 @@ CREATE TABLE IF NOT EXISTS "artist_payouts" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "processed_at" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("payout_account_id") REFERENCES "artist_payout_accounts" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_admins" (
@@ -258,7 +238,6 @@ CREATE TABLE IF NOT EXISTS "upload_fee_payments" (
   "country_code" TEXT,
   "consumed_song_id" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("consumed_song_id") REFERENCES "songs" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_settings" (
@@ -339,7 +318,6 @@ CREATE TABLE IF NOT EXISTS "isrc_rights_owner_agreements" (
   "agreement_status" TEXT NOT NULL DEFAULT 'pending',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("rights_owner_agreement_id") REFERENCES "isrc_rights_owner_agreements" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_recordings" (
@@ -359,9 +337,6 @@ CREATE TABLE IF NOT EXISTS "isrc_recordings" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("recording_id") REFERENCES "isrc_recordings" ("id"),
-  FOREIGN KEY ("recording_id") REFERENCES "isrc_recordings" ("id"),
-  FOREIGN KEY ("rights_owner_agreement_id") REFERENCES "isrc_rights_owner_agreements" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
@@ -372,7 +347,6 @@ CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
   "actor_user_id" TEXT,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("recording_id") REFERENCES "isrc_recordings" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
@@ -385,7 +359,6 @@ CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
   "response_notes" TEXT,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("recording_id") REFERENCES "isrc_recordings" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
@@ -406,8 +379,6 @@ CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "reviewed_at" TEXT,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("import_id") REFERENCES "royalty_statement_imports" ("id"),
-  FOREIGN KEY ("import_id") REFERENCES "royalty_statement_imports" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
@@ -431,8 +402,6 @@ CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
   "artist_share_minor" INTEGER,
   "platform_commission_minor" INTEGER,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("ledger_entry_id") REFERENCES "royalty_ledger_entries" ("id"),
-  FOREIGN KEY ("import_id") REFERENCES "royalty_statement_imports" ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_royalty_commissions" (
@@ -446,6 +415,4 @@ CREATE TABLE IF NOT EXISTS "platform_royalty_commissions" (
   "commission_minor" INTEGER NOT NULL,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY ("id"),
-  FOREIGN KEY ("ledger_entry_id") REFERENCES "royalty_ledger_entries" ("id"),
-  FOREIGN KEY ("import_id") REFERENCES "royalty_statement_imports" ("id")
 );

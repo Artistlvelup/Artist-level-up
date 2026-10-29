@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS "artists" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "suspended" INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "songs" (
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS "songs" (
   "status" TEXT NOT NULL DEFAULT 'draft',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "library" (
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS "library" (
   "user_id" TEXT NOT NULL,
   "song_id" TEXT NOT NULL,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "promotions" (
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS "promotions" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "target_type" TEXT NOT NULL DEFAULT 'music',
   "video_id" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "withdrawals" (
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS "artist_videos" (
   "likes" INTEGER NOT NULL DEFAULT 0,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "song_id" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_beats" (
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS "marketplace_beats" (
   "status" TEXT NOT NULL DEFAULT 'pending',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "marketplace_orders" (
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS "marketplace_orders" (
   "platform_fee_minor" INTEGER,
   "producer_payout_minor" INTEGER,
   "producer_payout_currency" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "picture_posts" (
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS "picture_posts" (
   "sound_audio_url" TEXT,
   "sound_title" TEXT,
   "artist_name" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "artist_wallets" (
@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS "artist_payout_accounts" (
   "branch_code" TEXT,
   "flutterwave_subaccount_id" TEXT,
   "flutterwave_payout_account_id" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "artist_payouts" (
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS "artist_payouts" (
   "failure_reason" TEXT,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "processed_at" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_admins" (
@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS "upload_fee_payments" (
   "amount_major" REAL,
   "country_code" TEXT,
   "consumed_song_id" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_settings" (
@@ -317,7 +317,7 @@ CREATE TABLE IF NOT EXISTS "isrc_rights_owner_agreements" (
   "valid_until" TEXT,
   "agreement_status" TEXT NOT NULL DEFAULT 'pending',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_recordings" (
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS "isrc_recordings" (
   "registry_status" TEXT NOT NULL DEFAULT 'not_submitted',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS "isrc_audit_log" (
   "details" TEXT NOT NULL,
   "actor_user_id" TEXT,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
@@ -358,7 +358,7 @@ CREATE TABLE IF NOT EXISTS "isrc_registry_submissions" (
   "response_reference" TEXT,
   "response_notes" TEXT,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS "royalty_statement_imports" (
   "notes" TEXT NOT NULL DEFAULT '',
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "reviewed_at" TEXT,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
@@ -401,7 +401,7 @@ CREATE TABLE IF NOT EXISTS "royalty_ledger_entries" (
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "artist_share_minor" INTEGER,
   "platform_commission_minor" INTEGER,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );
 
 CREATE TABLE IF NOT EXISTS "platform_royalty_commissions" (
@@ -414,5 +414,5 @@ CREATE TABLE IF NOT EXISTS "platform_royalty_commissions" (
   "artist_share_minor" INTEGER NOT NULL,
   "commission_minor" INTEGER NOT NULL,
   "created_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY ("id"),
+  PRIMARY KEY ("id")
 );

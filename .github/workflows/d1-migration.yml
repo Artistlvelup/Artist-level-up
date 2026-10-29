@@ -1,0 +1,60 @@
+name: Prepare Artist Level Up V101 D1
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_remote:
+        description: "Apply the D1 schema to the remote database (only after reviewing the migration)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artist-level-up-v101-d1-migration
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+
+      - name: Validate SQLite migration syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          sql = Path("migrations/d1/0001_initial_schema.sql").read_text()
+          db = sqlite3.connect(":memory:")
+          db.execute("PRAGMA foreign_keys = ON")
+          db.executescript(sql)
+          violations = db.execute("PRAGMA foreign_key_check").fetchall()
+          tables = db.execute(
+              "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+          ).fetchone()[0]
+          if violations:
+              raise SystemExit(f"Foreign-key violations: {violations}")
+          if tables != 27:
+              raise SystemExit(f"Expected 27 tables, found {tables}")
+          print(f"Validated {tables} tables; no foreign-key violations.")
+          PY
+
+  apply:
+    needs: validate
+    if: ${{ inputs.apply_remote == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+
+      - name: Apply schema to Cloudflare D1
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply artist_level_up_v101 --remote

@@ -10,6 +10,8 @@
  *   POST /auth/anonymous  -> create anonymous identity + opaque session
  *   GET  /auth/session   -> validate bearer session
  *   POST /auth/logout    -> revoke bearer session
+ *   GET/PUT /api/me/profile -> read/update the signed-in profile
+ *   GET/POST /api/me/artist -> read/create the signed-in artist account
  *
  * This is not yet wired into V101. Add rate limiting and production origin
  * configuration before deployment. Do not expose D1 or service credentials
@@ -67,6 +69,73 @@ async function hashToken(token, pepper) {
   return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+const MAX_BODY_BYTES = 16 * 1024;
+
+async function readJson(request) {
+  const type = request.headers.get("Content-Type") || "";
+  if (!type.toLowerCase().includes("application/json")) throw new Error("JSON_REQUIRED");
+  const declared = Number(request.headers.get("Content-Length") || 0);
+  if (declared > MAX_BODY_BYTES) throw new Error("BODY_TOO_LARGE");
+  const raw = await request.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) throw new Error("BODY_TOO_LARGE");
+  try { return JSON.parse(raw); } catch { throw new Error("INVALID_JSON"); }
+}
+
+function cleanText(value, max, required = false) {
+  if (value == null && !required) return null;
+  if (typeof value !== "string") throw new Error("INVALID_FIELD");
+  const clean = value.trim();
+  if ((required && !clean) || clean.length > max) throw new Error("INVALID_FIELD");
+  return clean || null;
+}
+
+async function profileRoute(request, env, userId) {
+  if (request.method === "GET") {
+    const row = await env.DB.prepare(
+      "SELECT id, display_name, avatar_url, role, created_at, updated_at FROM profiles WHERE id = ? LIMIT 1"
+    ).bind(userId).first();
+    return json({ profile: row || null }, 200, corsHeaders(request, env));
+  }
+  if (request.method !== "PUT") return null;
+  const body = await readJson(request);
+  const displayName = cleanText(body.display_name, 80);
+  const avatarUrl = cleanText(body.avatar_url, 2048);
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, ?, 'artist', ?, ?) ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, avatar_url = excluded.avatar_url, updated_at = excluded.updated_at"
+  ).bind(userId, displayName, avatarUrl, now, now).run();
+  const row = await env.DB.prepare(
+    "SELECT id, display_name, avatar_url, role, created_at, updated_at FROM profiles WHERE id = ? LIMIT 1"
+  ).bind(userId).first();
+  return json({ profile: row }, 200, corsHeaders(request, env));
+}
+
+async function artistRoute(request, env, userId) {
+  if (request.method === "GET") {
+    const row = await env.DB.prepare(
+      "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE user_id = ? LIMIT 1"
+    ).bind(userId).first();
+    return json({ artist: row || null }, 200, corsHeaders(request, env));
+  }
+  if (request.method !== "POST") return null;
+  const body = await readJson(request);
+  const artistName = cleanText(body.artist_name, 100, true);
+  const bio = cleanText(body.bio, 2000);
+  const genre = cleanText(body.genre, 80);
+  const country = cleanText(body.country, 80);
+  const existing = await env.DB.prepare("SELECT id FROM artists WHERE user_id = ? LIMIT 1").bind(userId).first();
+  if (existing) return json({ error: "Artist account already exists" }, 409, corsHeaders(request, env));
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO artists (id, user_id, artist_name, bio, genre, country, status, created_at, updated_at, suspended) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, 0)"
+  ).bind(id, userId, artistName, bio, genre, country, now, now).run();
+  const row = await env.DB.prepare(
+    "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  return json({ artist: row }, 201, corsHeaders(request, env));
+}
+
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -119,6 +188,16 @@ export default {
 
     const url = new URL(request.url);
     try {
+      if (url.pathname === "/api/me/profile" || url.pathname === "/api/me/artist") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = url.pathname.endsWith("/profile")
+          ? await profileRoute(request, env, session.user_id)
+          : await artistRoute(request, env, session.user_id);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
       if (url.pathname === "/auth/anonymous" && request.method === "POST") {
         const session = await createAnonymous(env);
         return json(session, 201, cors);

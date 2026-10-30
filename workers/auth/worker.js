@@ -369,6 +369,35 @@ async function videoUploadIntentRoute(request, env, userId) {
   }
 }
 
+async function refreshSession(request, env) {
+  const cors = corsHeaders(request, env);
+  const oldToken = bearer(request);
+  if (!oldToken) return json({ error: "Bearer session required" }, 401, cors);
+
+  const now = Math.floor(Date.now() / 1000);
+  const oldHash = await hashToken(oldToken, env.SESSION_PEPPER);
+  const newSessionToken = await newToken();
+  const newHash = await hashToken(newSessionToken, env.SESSION_PEPPER);
+  const expiresAt = now + SESSION_TTL_SECONDS;
+
+  // D1 batch is transactional. The new token is inserted only if the old
+  // session is still live and the account is active; then the old token is
+  // revoked. Concurrent refresh attempts cannot both rotate the same token.
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO app_sessions (token_hash, user_id, created_at, expires_at, revoked_at) SELECT ?, s.user_id, ?, ?, NULL FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active'"
+    ).bind(newHash, now, expiresAt, oldHash, now),
+    env.DB.prepare(
+      "UPDATE app_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
+    ).bind(now, oldHash, now)
+  ]);
+
+  if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
+    return json({ error: "Invalid or expired session" }, 401, cors);
+  }
+  return json({ token: newSessionToken, expiresAt }, 200, cors);
+}
+
 async function bridgeSupabaseSession(request, env) {
   const cors = corsHeaders(request, env);
   const body = await readJson(request);
@@ -541,6 +570,10 @@ export default {
           : await artistRoute(request, env, session.user_id);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/auth/refresh" && request.method === "POST") {
+        return await refreshSession(request, env);
       }
 
       if (url.pathname === "/auth/bridge/supabase" && request.method === "POST") {

@@ -23,3 +23,17 @@ This branch is isolated from `main`; no live website or Supabase project was cha
 5. Run end-to-end tests, then plan a controlled V101 cutover with rollback.
 
 Foreign-key constraints are intentionally omitted from the first SQLite schema pass. The initial metadata export contained constraint names where column names were expected, so those generated clauses were removed rather than risking an incorrect schema. Relationships must be reintroduced from verified column-level metadata in a later reviewed migration before application cutover.
+
+
+## Supabase identity bridge prototype
+
+The Worker now includes `POST /auth/bridge/supabase` on this branch. It accepts the current V101 Supabase access token, validates it against the configured Supabase Auth `/auth/v1/user` endpoint, and uses the returned UUID as the D1 `app_users.user_id`. It never trusts a browser-supplied user ID or an unverified JWT decode.
+
+Worker variables required for bridge tests/deployment:
+- `SUPABASE_URL`: existing Supabase project URL (HTTPS).
+- `SUPABASE_ANON_KEY`: existing Supabase anon/publishable key.
+- `SESSION_PEPPER`: existing Worker secret; keep it private.
+- `ALLOWED_ORIGINS`: exact production web origin(s).
+- `DB`: D1 binding.
+
+This is a migration-branch prototype only. It returns an opaque 30-day bearer session; it is **not yet the final rotating-refresh/HttpOnly-cookie implementation**, and the V101 browser has not been wired to call it. Do not deploy it or disable Supabase yet. The bridge endpoint has automated unit tests for valid identity preservation, invalid tokens, and disabled D1 users; CI validation is pending.

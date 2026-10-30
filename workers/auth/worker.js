@@ -523,7 +523,7 @@ async function validateSession(request, env) {
   if (!token) return null;
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
   const row = await env.DB.prepare(
-    "SELECT s.user_id, s.expires_at FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' LIMIT 1"
+    "SELECT s.user_id, s.expires_at FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
   ).bind(tokenHash, Math.floor(Date.now() / 1000)).first();
   return row || null;
 }

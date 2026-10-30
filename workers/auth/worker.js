@@ -136,6 +136,83 @@ async function artistRoute(request, env, userId) {
   return json({ artist: row }, 201, corsHeaders(request, env));
 }
 
+async function songsRoute(request, env, userId, url) {
+  const cors = corsHeaders(request, env);
+  const artist = await env.DB.prepare(
+    "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
+  ).bind(userId).first();
+  if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+
+  if (url.pathname === "/api/me/songs" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at FROM songs WHERE artist_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(artist.id).all();
+    return json({ songs: rows.results || [] }, 200, cors);
+  }
+
+  if (url.pathname === "/api/me/songs" && request.method === "POST") {
+    const body = await readJson(request);
+    const title = cleanText(body.title, 160, true);
+    const genre = cleanText(body.genre, 80);
+    const coverUrl = cleanText(body.cover_url, 2048);
+    const duration = body.duration_seconds == null ? null : Number(body.duration_seconds);
+    if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 86400)) {
+      return json({ error: "INVALID_DURATION" }, 400, cors);
+    }
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO songs (id, artist_id, title, genre, cover_url, duration_seconds, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?)"
+    ).bind(id, artist.id, title, genre, coverUrl, duration, now, now).run();
+    const row = await env.DB.prepare(
+      "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at FROM songs WHERE id = ? AND artist_id = ? LIMIT 1"
+    ).bind(id, artist.id).first();
+    return json({ song: row }, 201, cors);
+  }
+
+  const match = /^\/api\/me\/songs\/([0-9a-f-]{36})$/.exec(url.pathname);
+  if (match && request.method === "PATCH") {
+    const body = await readJson(request);
+    const existing = await env.DB.prepare(
+      "SELECT id FROM songs WHERE id = ? AND artist_id = ? LIMIT 1"
+    ).bind(match[1], artist.id).first();
+    if (!existing) return json({ error: "Song not found" }, 404, cors);
+    const fields = [];
+    const values = [];
+    if (Object.hasOwn(body, "title")) { fields.push("title = ?"); values.push(cleanText(body.title, 160, true)); }
+    if (Object.hasOwn(body, "genre")) { fields.push("genre = ?"); values.push(cleanText(body.genre, 80)); }
+    if (Object.hasOwn(body, "cover_url")) { fields.push("cover_url = ?"); values.push(cleanText(body.cover_url, 2048)); }
+    if (Object.hasOwn(body, "duration_seconds")) {
+      const duration = body.duration_seconds == null ? null : Number(body.duration_seconds);
+      if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 86400)) {
+        return json({ error: "INVALID_DURATION" }, 400, cors);
+      }
+      fields.push("duration_seconds = ?"); values.push(duration);
+    }
+    if (!fields.length) return json({ error: "No editable fields supplied" }, 400, cors);
+    fields.push("updated_at = ?");
+    values.push(new Date().toISOString(), match[1], artist.id);
+    await env.DB.prepare(
+      "UPDATE songs SET " + fields.join(", ") + " WHERE id = ? AND artist_id = ?"
+    ).bind(...values).run();
+    const row = await env.DB.prepare(
+      "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at FROM songs WHERE id = ? AND artist_id = ? LIMIT 1"
+    ).bind(match[1], artist.id).first();
+    return json({ song: row }, 200, cors);
+  }
+  return null;
+}
+
+async function publicSongsRoute(request, env, url) {
+  if (request.method !== "GET" || url.pathname !== "/api/public/songs") return null;
+  const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit") || 20)));
+  if (!Number.isInteger(limit)) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
+  const rows = await env.DB.prepare(
+    "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, created_at FROM songs WHERE status IN ('published', 'approved') ORDER BY created_at DESC LIMIT ?"
+  ).bind(limit).all();
+  return json({ songs: rows.results || [] }, 200, corsHeaders(request, env));
+}
+
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -188,6 +265,19 @@ export default {
 
     const url = new URL(request.url);
     try {
+      if (url.pathname.startsWith("/api/public/songs")) {
+        const result = await publicSongsRoute(request, env, url);
+        if (result) return result;
+      }
+
+      if (url.pathname === "/api/me/songs" || url.pathname.startsWith("/api/me/songs/")) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await songsRoute(request, env, session.user_id, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
       if (url.pathname === "/api/me/profile" || url.pathname === "/api/me/artist") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);

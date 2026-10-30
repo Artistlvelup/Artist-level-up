@@ -14,6 +14,7 @@ class FakeD1 {
   prepare(sql) {
     const db = this;
     return {
+      sql,
       values: [],
       bind(...values) { this.values = values; return this; },
       async first() {
@@ -58,22 +59,28 @@ class FakeD1 {
   }
 
   async batch(statements) {
-    // The Worker batches exactly one app_users insert followed by one session insert.
-    const userValues = statements[0].values;
-    const sessionValues = statements[1].values;
-    const [userId, createdAt, updatedAt] = userValues;
-    const [tokenHash, sessionUserId, sessionCreatedAt, expiresAt] = sessionValues;
-    assert.equal(sessionUserId, userId);
-    this.users.set(userId, { status: "active", created_at: createdAt, updated_at: updatedAt });
-    this.sessions.set(tokenHash, {
-      user_id: sessionUserId,
-      created_at: sessionCreatedAt,
-      expires_at: expiresAt,
-      revoked_at: null
-    });
-    return [{ success: true }, { success: true }];
-  }
-}
+    if (statements[0].sql.includes("INSERT INTO app_users")) {
+      const userValues = statements[0].values;
+      const sessionValues = statements[1].values;
+      const [userId, createdAt, updatedAt] = userValues;
+      const [tokenHash, sessionUserId, sessionCreatedAt, expiresAt] = sessionValues;
+      assert.equal(sessionUserId, userId);
+      this.users.set(userId, { status: "active", created_at: createdAt, updated_at: updatedAt });
+      this.sessions.set(tokenHash, { user_id: sessionUserId, created_at: sessionCreatedAt, expires_at: expiresAt, revoked_at: null });
+      return [{ success: true }, { success: true }];
+    }
+    if (statements[0].sql.includes("INSERT INTO app_sessions")) {
+      const [newHash, createdAt, expiresAt, oldHash, now] = statements[0].values;
+      const oldSession = this.sessions.get(oldHash);
+      const user = oldSession && this.users.get(oldSession.user_id);
+      const valid = oldSession && oldSession.revoked_at === null && oldSession.expires_at > now && user?.status === "active";
+      if (!valid) return [{ success: true, meta: { changes: 0 } }, { success: true, meta: { changes: 0 } }];
+      this.sessions.set(newHash, { user_id: oldSession.user_id, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
+      oldSession.revoked_at = now;
+      return [{ success: true, meta: { changes: 1 } }, { success: true, meta: { changes: 1 } }];
+    }
+    throw new Error("Unexpected batch SQL: " + statements[0].sql);
+  }}
 
 function setup() {
   return {
@@ -207,4 +214,26 @@ test("does not restore a disabled D1 identity", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("rotates a live session and rejects reuse of the previous token", async () => {
+  const env = setup();
+  const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
+  const oldSession = await created.json();
+  const refresh = await worker.fetch(request("/auth/refresh", "POST", { Authorization: "Bearer " + oldSession.token }), env);
+  assert.equal(refresh.status, 200);
+  const nextSession = await refresh.json();
+  assert.match(nextSession.token, /^[A-Za-z0-9_-]{40,}$/);
+  assert.notEqual(nextSession.token, oldSession.token);
+  assert.equal(typeof nextSession.expiresAt, "number");
+  const oldCheck = await worker.fetch(request("/auth/session", "GET", { Authorization: "Bearer " + oldSession.token }), env);
+  assert.equal(oldCheck.status, 401);
+  const newCheck = await worker.fetch(request("/auth/session", "GET", { Authorization: "Bearer " + nextSession.token }), env);
+  assert.equal(newCheck.status, 200);
+});
+
+test("rejects refresh attempts without a live session", async () => {
+  const env = setup();
+  const response = await worker.fetch(request("/auth/refresh", "POST", { Authorization: "Bearer " + "x".repeat(43) }), env);
+  assert.equal(response.status, 401);
 });

@@ -19,7 +19,7 @@ The app also accesses the Supabase Storage bucket `music`; it is not a database 
 
 ## Proposed Worker API surface
 
-These are proposed contracts, not implemented endpoints.
+Implemented in the isolated Worker prototype: anonymous session creation/validation/logout, profile read/update, artist read/create, and artist-owned song list/create/update plus public published-song listing. Promotions, withdrawals, videos, marketplace, payment and storage routes below remain proposed contracts and are not yet implemented.
 
 ### Identity
 - `POST /auth/anonymous`: create anonymous identity and opaque session.

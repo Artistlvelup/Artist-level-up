@@ -369,6 +369,17 @@ async function videoUploadIntentRoute(request, env, userId) {
   }
 }
 
+async function revokeSessionFamily(env, familyId, now) {
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE app_session_families SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL"
+    ).bind(now, familyId),
+    env.DB.prepare(
+      "UPDATE app_sessions SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL"
+    ).bind(now, familyId)
+  ]);
+}
+
 async function refreshSession(request, env) {
   const cors = corsHeaders(request, env);
   const oldToken = bearer(request);
@@ -380,12 +391,11 @@ async function refreshSession(request, env) {
   const newHash = await hashToken(newSessionToken, env.SESSION_PEPPER);
   const expiresAt = now + SESSION_TTL_SECONDS;
 
-  // D1 batch is transactional. The new token is inserted only if the old
-  // session is still live and the account is active; then the old token is
-  // revoked. Concurrent refresh attempts cannot both rotate the same token.
+  // Rotation is atomic and stays inside the original family. Only one
+  // concurrent refresh can consume a given live token.
   const results = await env.DB.batch([
     env.DB.prepare(
-      "INSERT INTO app_sessions (token_hash, user_id, created_at, expires_at, revoked_at) SELECT ?, s.user_id, ?, ?, NULL FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active'"
+      "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) SELECT ?, s.user_id, s.family_id, ?, ?, NULL FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL"
     ).bind(newHash, now, expiresAt, oldHash, now),
     env.DB.prepare(
       "UPDATE app_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
@@ -393,6 +403,14 @@ async function refreshSession(request, env) {
   ]);
 
   if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
+    // A previously consumed token is evidence of replay. Revoke every token
+    // in that family, including the token most recently issued by refresh.
+    const previous = await env.DB.prepare(
+      "SELECT family_id, revoked_at FROM app_sessions WHERE token_hash = ? LIMIT 1"
+    ).bind(oldHash).first();
+    if (previous?.family_id && previous.revoked_at !== null) {
+      await revokeSessionFamily(env, previous.family_id, now);
+    }
     return json({ error: "Invalid or expired session" }, 401, cors);
   }
   return json({ token: newSessionToken, expiresAt }, 200, cors);
@@ -459,10 +477,16 @@ async function bridgeSupabaseSession(request, env) {
 
   const token = await newToken();
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const familyId = crypto.randomUUID();
   const expiresAt = now + SESSION_TTL_SECONDS;
-  await env.DB.prepare(
-    "INSERT INTO app_sessions (token_hash, user_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, NULL)"
-  ).bind(tokenHash, userId, now, expiresAt).run();
+  await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) VALUES (?, ?, ?, NULL)"
+    ).bind(familyId, userId, now),
+    env.DB.prepare(
+      "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, userId, familyId, now, expiresAt)
+  ]);
 
   return json({ userId, token, expiresAt }, 201, cors);
 }
@@ -478,13 +502,17 @@ async function createAnonymous(env) {
   const now = Math.floor(Date.now() / 1000);
   const expires = now + SESSION_TTL_SECONDS;
 
+  const familyId = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare(
       "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at) VALUES (?, 1, 'active', ?, ?)"
     ).bind(userId, now, now),
     env.DB.prepare(
-      "INSERT INTO app_sessions (token_hash, user_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, NULL)"
-    ).bind(tokenHash, userId, now, expires)
+      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) VALUES (?, ?, ?, NULL)"
+    ).bind(familyId, userId, now),
+    env.DB.prepare(
+      "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, userId, familyId, now, expires)
   ]);
 
   return { userId, token, expiresAt: expires };
@@ -599,9 +627,10 @@ export default {
         if (!token) return json({ error: "Bearer session required" }, 401, cors);
         const tokenHash = await hashToken(token, env.SESSION_PEPPER);
         const now = Math.floor(Date.now() / 1000);
-        await env.DB.prepare(
-          "UPDATE app_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL"
-        ).bind(now, tokenHash).run();
+        const current = await env.DB.prepare(
+          "SELECT family_id FROM app_sessions WHERE token_hash = ? LIMIT 1"
+        ).bind(tokenHash).first();
+        if (current?.family_id) await revokeSessionFamily(env, current.family_id, now);
         return json({ ok: true }, 200, cors);
       }
 

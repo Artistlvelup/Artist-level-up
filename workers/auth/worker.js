@@ -7,9 +7,12 @@
  *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
  *
  * Routes:
- *   POST /auth/anonymous  -> create anonymous identity + opaque session
+ *   POST /auth/bridge/supabase -> validate current Supabase session and preserve its UUID
+ *   POST /auth/anonymous  -> create anonymous identity + opaque session (prototype only)
  *   GET  /auth/session   -> validate bearer session
  *   POST /auth/logout    -> revoke bearer session
+ *
+ * Bridge configuration: SUPABASE_URL and SUPABASE_ANON_KEY are Worker vars.
  *   GET/PUT /api/me/profile -> read/update the signed-in profile
  *   GET/POST /api/me/artist -> read/create the signed-in artist account
  *

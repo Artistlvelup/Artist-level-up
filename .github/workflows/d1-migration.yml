@@ -31,8 +31,30 @@ jobs:
               raise SystemExit(f"Expected 3 numbered migrations, found {len(migrations)}")
 
           for migration in migrations:
+              if migration.name == "0003_move_published_song_to_r2.sql":
+                  db.execute(
+                      "INSERT INTO songs (id, artist_id, title, audio_url, status) VALUES (?, ?, ?, ?, ?)",
+                      (
+                          "44875219-61a6-46a6-aa3e-3cb6fb579092",
+                          "2b2a5bf6-9673-42a1-a33a-d40dab98ad44",
+                          "Otunba Cash Money Angelina",
+                          "https://example.supabase.co/old-song.mp3",
+                          "published",
+                      ),
+                  )
               print(f"Applying locally for validation: {migration}")
               db.executescript(migration.read_text())
+
+          migrated = db.execute(
+              "SELECT audio_url FROM songs WHERE id = ?",
+              ("44875219-61a6-46a6-aa3e-3cb6fb579092",),
+          ).fetchone()
+          expected = (
+              "https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/"
+              "audio_song_1792505499636_ilmfs-Otunba-Cash-Money-Angelina.mp3"
+          )
+          if not migrated or migrated[0] != expected:
+              raise SystemExit("R2 song URL migration did not update the expected song.")
 
           violations = db.execute("PRAGMA foreign_key_check").fetchall()
           tables = db.execute(

@@ -10,6 +10,7 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 class FakeD1 {
   users = new Map();
   sessions = new Map();
+  families = new Map();
 
   prepare(sql) {
     const db = this;
@@ -23,12 +24,22 @@ class FakeD1 {
           const user = db.users.get(userId);
           return user ? { status: user.status } : null;
         }
+        if (sql.includes("SELECT family_id, revoked_at FROM app_sessions") ||
+            sql.includes("SELECT family_id FROM app_sessions")) {
+          const [hash] = this.values;
+          const session = db.sessions.get(hash);
+          if (!session) return null;
+          return sql.includes("revoked_at")
+            ? { family_id: session.family_id, revoked_at: session.revoked_at }
+            : { family_id: session.family_id };
+        }
         if (sql.includes("SELECT s.user_id")) {
           const [hash, now] = this.values;
           const session = db.sessions.get(hash);
           if (!session || session.revoked_at !== null || session.expires_at <= now) return null;
           const user = db.users.get(session.user_id);
-          return user?.status === "active"
+          const family = db.families.get(session.family_id);
+          return user?.status === "active" && family?.revoked_at === null
             ? { user_id: session.user_id, expires_at: session.expires_at }
             : null;
         }
@@ -43,15 +54,9 @@ class FakeD1 {
           return { success: true, meta: { changes: 1 } };
         }
         if (sql.includes("INSERT INTO app_sessions")) {
-          const [tokenHash, userId, createdAt, expiresAt] = this.values;
-          db.sessions.set(tokenHash, { user_id: userId, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
+          const [tokenHash, userId, familyId, createdAt, expiresAt] = this.values;
+          db.sessions.set(tokenHash, { user_id: userId, family_id: familyId, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
           return { success: true, meta: { changes: 1 } };
-        }
-        if (sql.includes("UPDATE app_sessions SET revoked_at")) {
-          const [revokedAt, hash] = this.values;
-          const session = db.sessions.get(hash);
-          if (session && session.revoked_at === null) session.revoked_at = revokedAt;
-          return { success: true };
         }
         throw new Error("Unexpected SQL in run(): " + sql);
       }
@@ -59,29 +64,52 @@ class FakeD1 {
   }
 
   async batch(statements) {
-    if (statements[0].sql.includes("INSERT INTO app_users")) {
-      const userValues = statements[0].values;
-      const sessionValues = statements[1].values;
-      const [userId, createdAt, updatedAt] = userValues;
-      const [tokenHash, sessionUserId, sessionCreatedAt, expiresAt] = sessionValues;
+    const firstSql = statements[0].sql;
+    if (firstSql.includes("INSERT INTO app_users")) {
+      const [userId, createdAt, updatedAt] = statements[0].values;
+      const [familyId, familyUserId, familyCreatedAt] = statements[1].values;
+      const [tokenHash, sessionUserId, sessionFamilyId, sessionCreatedAt, expiresAt] = statements[2].values;
+      assert.equal(familyUserId, userId);
       assert.equal(sessionUserId, userId);
-      this.users.set(userId, { status: "active", created_at: createdAt, updated_at: updatedAt });
-      this.sessions.set(tokenHash, { user_id: sessionUserId, created_at: sessionCreatedAt, expires_at: expiresAt, revoked_at: null });
+      assert.equal(sessionFamilyId, familyId);
+      this.users.set(userId, { status: "active", is_anonymous: 1, created_at: createdAt, updated_at: updatedAt });
+      this.families.set(familyId, { user_id: userId, created_at: familyCreatedAt, revoked_at: null });
+      this.sessions.set(tokenHash, { user_id: userId, family_id: familyId, created_at: sessionCreatedAt, expires_at: expiresAt, revoked_at: null });
+      return [{ success: true }, { success: true }, { success: true }];
+    }
+    if (firstSql.includes("INSERT INTO app_session_families")) {
+      const [familyId, userId, createdAt] = statements[0].values;
+      const [tokenHash, sessionUserId, sessionFamilyId, sessionCreatedAt, expiresAt] = statements[1].values;
+      assert.equal(sessionUserId, userId);
+      assert.equal(sessionFamilyId, familyId);
+      this.families.set(familyId, { user_id: userId, created_at: createdAt, revoked_at: null });
+      this.sessions.set(tokenHash, { user_id: userId, family_id: familyId, created_at: sessionCreatedAt, expires_at: expiresAt, revoked_at: null });
       return [{ success: true }, { success: true }];
     }
-    if (statements[0].sql.includes("INSERT INTO app_sessions")) {
+    if (firstSql.includes("INSERT INTO app_sessions")) {
       const [newHash, createdAt, expiresAt, oldHash, now] = statements[0].values;
       const oldSession = this.sessions.get(oldHash);
       const user = oldSession && this.users.get(oldSession.user_id);
-      const valid = oldSession && oldSession.revoked_at === null && oldSession.expires_at > now && user?.status === "active";
+      const family = oldSession && this.families.get(oldSession.family_id);
+      const valid = oldSession && oldSession.revoked_at === null && oldSession.expires_at > now &&
+        user?.status === "active" && family?.revoked_at === null;
       if (!valid) return [{ success: true, meta: { changes: 0 } }, { success: true, meta: { changes: 0 } }];
-      this.sessions.set(newHash, { user_id: oldSession.user_id, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
+      this.sessions.set(newHash, { user_id: oldSession.user_id, family_id: oldSession.family_id, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
       oldSession.revoked_at = now;
       return [{ success: true, meta: { changes: 1 } }, { success: true, meta: { changes: 1 } }];
     }
-    throw new Error("Unexpected batch SQL: " + statements[0].sql);
-  }}
-
+    if (firstSql.includes("UPDATE app_session_families")) {
+      const [now, familyId] = statements[0].values;
+      const family = this.families.get(familyId);
+      if (family && family.revoked_at === null) family.revoked_at = now;
+      for (const session of this.sessions.values()) {
+        if (session.family_id === familyId && session.revoked_at === null) session.revoked_at = now;
+      }
+      return [{ success: true }, { success: true }];
+    }
+    throw new Error("Unexpected batch SQL: " + firstSql);
+  }
+}
 function setup() {
   return {
     DB: new FakeD1(),
@@ -216,7 +244,7 @@ test("does not restore a disabled D1 identity", async () => {
   }
 });
 
-test("rotates a live session and rejects reuse of the previous token", async () => {
+test("rotates a live session and keeps the replacement token valid", async () => {
   const env = setup();
   const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
   const oldSession = await created.json();
@@ -230,6 +258,26 @@ test("rotates a live session and rejects reuse of the previous token", async () 
   assert.equal(oldCheck.status, 401);
   const newCheck = await worker.fetch(request("/auth/session", "GET", { Authorization: "Bearer " + nextSession.token }), env);
   assert.equal(newCheck.status, 200);
+  assert.equal(env.DB.families.size, 1);
+  assert.equal([...env.DB.sessions.values()].every(s => s.family_id === [...env.DB.families.keys()][0]), true);
+});
+
+test("replaying a rotated token revokes every token in its family", async () => {
+  const env = setup();
+  const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
+  const original = await created.json();
+  const firstRefresh = await worker.fetch(request("/auth/refresh", "POST", { Authorization: "Bearer " + original.token }), env);
+  const replacement = await firstRefresh.json();
+  assert.equal(firstRefresh.status, 200);
+
+  const replay = await worker.fetch(request("/auth/refresh", "POST", { Authorization: "Bearer " + original.token }), env);
+  assert.equal(replay.status, 401);
+
+  const replacementCheck = await worker.fetch(request("/auth/session", "GET", {
+    Authorization: "Bearer " + replacement.token
+  }), env);
+  assert.equal(replacementCheck.status, 401);
+  assert.equal([...env.DB.families.values()][0].revoked_at !== null, true);
 });
 
 test("rejects refresh attempts without a live session", async () => {

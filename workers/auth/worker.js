@@ -28,7 +28,7 @@ function corsHeaders(request, env) {
   const origin = request.headers.get("Origin") || "";
   const headers = new Headers({
     "Vary": "Origin",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Max-Age": "86400"
   });
@@ -268,6 +268,104 @@ async function marketplaceRoute(request, env, userId, url) {
   return null;
 }
 
+
+const MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024;
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/x-m4v"]);
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function awsEncode(value) {
+  return encodeURIComponent(String(value)).replace(/[!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+}
+
+function awsPath(path) {
+  return path.split("/").map(awsEncode).join("/");
+}
+
+function awsQuery(params) {
+  return [...params.entries()]
+    .map(([k, v]) => [awsEncode(k), awsEncode(v)])
+    .sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]))
+    .map(([k, v]) => k + "=" + v).join("&");
+}
+
+async function hmacSha256(key, value) {
+  const cryptoKey = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(value)));
+}
+
+function hex(bytes) {
+  return [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function presignR2Put(env, objectKey, contentType) {
+  const account = String(env.CLOUDFLARE_ACCOUNT_ID || "");
+  const accessKey = String(env.R2_ACCESS_KEY_ID || "");
+  const secret = String(env.R2_SECRET_ACCESS_KEY || "");
+  const bucket = String(env.R2_BUCKET || "artist-level-up-videos");
+  if (!/^[a-f0-9]{32}$/i.test(account) || !accessKey || !secret || !bucket) {
+    throw new Error("R2_NOT_CONFIGURED");
+  }
+  const host = account + ".r2.cloudflarestorage.com";
+  const path = "/" + awsEncode(bucket) + "/" + awsPath(objectKey);
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const region = "auto";
+  const service = "s3";
+  const scope = dateStamp + "/" + region + "/" + service + "/aws4_request";
+  const params = new URLSearchParams({
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": accessKey + "/" + scope,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": "300",
+    "X-Amz-SignedHeaders": "host"
+  });
+  const canonicalQuery = awsQuery(params);
+  const canonicalRequest = ["PUT", path, canonicalQuery, "host:" + host + "\n", "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const encoder = new TextEncoder();
+  const requestHash = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(canonicalRequest))));
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, requestHash].join("\n");
+  const kDate = await hmacSha256(encoder.encode("AWS4" + secret), dateStamp);
+  const kRegion = await hmacSha256(kDate, region);
+  const kService = await hmacSha256(kRegion, service);
+  const kSigning = await hmacSha256(kService, "aws4_request");
+  const signature = hex(await hmacSha256(kSigning, stringToSign));
+  const uploadUrl = "https://" + host + path + "?" + canonicalQuery + "&X-Amz-Signature=" + signature;
+  const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  if (!publicBase || !/^https:\/\//i.test(publicBase)) throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
+  return { uploadUrl, publicUrl: publicBase + "/" + objectKey.split("/").map(awsEncode).join("/"), objectKey, contentType, expiresIn: 300 };
+}
+
+async function videoUploadIntentRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return null;
+  const artist = await env.DB.prepare(
+    "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
+  ).bind(userId).first();
+  if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+  const body = await readJson(request);
+  const purpose = body.purpose == null ? "video" : cleanText(body.purpose, 16, true);
+  if (!["video", "thumbnail"].includes(purpose)) return json({ error: "INVALID_PURPOSE" }, 400, cors);
+  const filename = cleanText(body.filename, 180, true);
+  const contentType = cleanText(body.contentType, 100, true).toLowerCase();
+  const size = Number(body.size);
+  const allowed = purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
+  const maxBytes = purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
+  if (!allowed.has(contentType)) return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
+  if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes) return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
+  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : "jpg")).toLowerCase();
+  const key = artist.id + "/" + (purpose === "video" ? "videos" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
+  try {
+    const signed = await presignR2Put(env, key, contentType);
+    return json(signed, 200, cors);
+  } catch (error) {
+    if (error?.message === "R2_NOT_CONFIGURED" || error?.message === "R2_PUBLIC_URL_NOT_CONFIGURED") {
+      return json({ error: "R2 upload service is not configured" }, 503, cors);
+    }
+    throw error;
+  }
+}
+
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -334,7 +432,7 @@ export default {
         return json({ error: "Method not allowed" }, 405, cors);
       }
 
-      if (url.pathname === "/api/me/promotions") {
+      if (url.pathname === "/api/me/videos/upload-intent") {\n        const session = await validateSession(request, env);\n        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);\n        const result = await videoUploadIntentRoute(request, env, session.user_id);\n        if (result) return result;\n        return json({ error: "Method not allowed" }, 405, cors);\n      }\n\n      if (url.pathname === "/api/me/promotions") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await promotionRoute(request, env, session.user_id);

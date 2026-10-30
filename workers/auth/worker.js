@@ -312,6 +312,10 @@ export default {
 
       return json({ error: "Not found" }, 404, cors);
     } catch (error) {
+      if (["JSON_REQUIRED", "BODY_TOO_LARGE", "INVALID_JSON", "INVALID_FIELD"].includes(error?.message)) {
+        const status = error.message === "BODY_TOO_LARGE" ? 413 : 400;
+        return json({ error: error.message }, status, cors);
+      }
       // Keep internal SQL/errors out of the response.
       console.error("V101 auth Worker error", error);
       return json({ error: "Authentication request failed" }, 500, cors);

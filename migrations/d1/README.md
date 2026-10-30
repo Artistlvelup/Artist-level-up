@@ -27,7 +27,7 @@ Foreign-key constraints are intentionally omitted from the first SQLite schema p
 
 ## Supabase identity bridge prototype
 
-The Worker now includes `POST /auth/bridge/supabase` on this branch. It accepts the current V101 Supabase access token, validates it against the configured Supabase Auth `/auth/v1/user` endpoint, and uses the returned UUID as the D1 `app_users.user_id`. It never trusts a browser-supplied user ID or an unverified JWT decode.
+The Worker now includes `POST /auth/bridge/supabase` on this branch. It accepts the current V101 Supabase access token, validates it against the configured Supabase Auth `/auth/v1/user` endpoint, and uses the returned UUID as the D1 `app_users.user_id`. It never trusts a browser-supplied user ID or an unverified JWT decode. `POST /auth/refresh` rotates a live 30-day bearer session transactionally; the old token becomes invalid after successful rotation.
 
 Worker variables required for bridge tests/deployment:
 - `SUPABASE_URL`: existing Supabase project URL (HTTPS).
@@ -36,4 +36,4 @@ Worker variables required for bridge tests/deployment:
 - `ALLOWED_ORIGINS`: exact production web origin(s).
 - `DB`: D1 binding.
 
-This is a migration-branch prototype only. It returns an opaque 30-day bearer session; it is **not yet the final rotating-refresh/HttpOnly-cookie implementation**, and the V101 browser has not been wired to call it. Do not deploy it or disable Supabase yet. The bridge endpoint has automated unit tests for valid identity preservation, invalid tokens, and disabled D1 users; CI validation is pending.
+This is a migration-branch prototype only. The V101 browser has not been wired to call it, and secure browser persistence (preferably a same-site HttpOnly cookie) plus refresh-family replay handling still need implementation and testing. The Worker unit tests cover verified identity preservation, invalid tokens, disabled D1 users, session rotation, and rejection of the old token. CI validation is pending. Do not deploy it or disable Supabase yet.

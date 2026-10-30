@@ -2,6 +2,9 @@ name: Prepare Artist Level Up V101 D1
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - migration/d1-v101-prep
 
 permissions:
   contents: read

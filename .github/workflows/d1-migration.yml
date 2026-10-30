@@ -27,8 +27,8 @@ jobs:
           db = sqlite3.connect(":memory:")
           db.execute("PRAGMA foreign_keys = ON")
           migrations = sorted(Path("migrations/d1").glob("[0-9][0-9][0-9][0-9]_*.sql"))
-          if len(migrations) != 2:
-              raise SystemExit(f"Expected 2 numbered migrations, found {len(migrations)}")
+          if len(migrations) != 3:
+              raise SystemExit(f"Expected 3 numbered migrations, found {len(migrations)}")
 
           for migration in migrations:
               print(f"Applying locally for validation: {migration}")

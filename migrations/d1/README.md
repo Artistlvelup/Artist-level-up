@@ -36,4 +36,4 @@ Worker variables required for bridge tests/deployment:
 - `ALLOWED_ORIGINS`: exact production web origin(s).
 - `DB`: D1 binding.
 
-This is a migration-branch prototype only. The V101 browser has not been wired to call it, and secure browser persistence (preferably a same-site HttpOnly cookie) plus refresh-family replay handling still need implementation and testing. The Worker unit tests cover verified identity preservation, invalid tokens, disabled D1 users, session rotation, and rejection of the old token. CI validation is pending. Do not deploy it or disable Supabase yet.
+This is a migration-branch prototype only. The V101 browser has not been wired to call it, and secure browser persistence (preferably a same-site HttpOnly cookie) plus production CSRF protections still need implementation and testing. Migration 0004 adds per-login session families: refresh rotates within a family, logout revokes that family, and replay of a previously revoked token revokes every token in the family. Worker tests cover family creation, rotation, replay revocation, and logout. Do not deploy it or disable Supabase yet.

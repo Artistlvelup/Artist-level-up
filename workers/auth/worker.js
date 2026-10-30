@@ -321,7 +321,7 @@ async function presignR2Put(env, objectKey, contentType) {
     "X-Amz-SignedHeaders": "host"
   });
   const canonicalQuery = awsQuery(params);
-  const canonicalRequest = ["PUT", path, canonicalQuery, "host:" + host + "\n", "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const canonicalRequest = ["PUT", path, canonicalQuery, "content-type:" + contentType + "\nhost:" + host + "\n", "content-type;host", "UNSIGNED-PAYLOAD"].join("\n");
   const encoder = new TextEncoder();
   const requestHash = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(canonicalRequest))));
   const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, requestHash].join("\n");

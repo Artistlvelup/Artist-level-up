@@ -432,7 +432,15 @@ export default {
         return json({ error: "Method not allowed" }, 405, cors);
       }
 
-      if (url.pathname === "/api/me/videos/upload-intent") {\n        const session = await validateSession(request, env);\n        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);\n        const result = await videoUploadIntentRoute(request, env, session.user_id);\n        if (result) return result;\n        return json({ error: "Method not allowed" }, 405, cors);\n      }\n\n      if (url.pathname === "/api/me/promotions") {
+      if (url.pathname === "/api/me/videos/upload-intent") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await videoUploadIntentRoute(request, env, session.user_id);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/promotions") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await promotionRoute(request, env, session.user_id);

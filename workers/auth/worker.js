@@ -251,6 +251,23 @@ async function promotionRoute(request, env, userId) {
   return json({ promotion: { id, artist_id: artist.id, title, description, budget, status: "pending", starts_at: startsAt, ends_at: endsAt, target_type: targetType, video_id: videoId } }, 201, cors);
 }
 
+async function marketplaceRoute(request, env, userId, url) {
+  const cors = corsHeaders(request, env);
+  if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' ORDER BY created_at DESC LIMIT 100"
+    ).all();
+    return json({ beats: rows.results || [] }, 200, cors);
+  }
+  if (url.pathname === "/api/me/marketplace/orders" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, beat_id, beat_title, producer_name, license, amount_ngn, currency, status, paid_at, created_at FROM marketplace_orders WHERE buyer_user_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(userId).all();
+    return json({ orders: rows.results || [] }, 200, cors);
+  }
+  return null;
+}
+
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -303,6 +320,20 @@ export default {
 
     const url = new URL(request.url);
     try {
+      if (url.pathname === "/api/marketplace/beats") {
+        const result = await marketplaceRoute(request, env, null, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/marketplace/orders") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await marketplaceRoute(request, env, session.user_id, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
       if (url.pathname === "/api/me/promotions") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);

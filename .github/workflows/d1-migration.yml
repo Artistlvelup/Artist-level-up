@@ -30,8 +30,8 @@ jobs:
           db = sqlite3.connect(":memory:")
           db.execute("PRAGMA foreign_keys = ON")
           migrations = sorted(Path("migrations/d1").glob("[0-9][0-9][0-9][0-9]_*.sql"))
-          if len(migrations) != 3:
-              raise SystemExit(f"Expected 3 numbered migrations, found {len(migrations)}")
+          if len(migrations) != 4:
+              raise SystemExit(f"Expected 4 numbered migrations, found {len(migrations)}")
 
           for migration in migrations:
               if migration.name == "0003_move_published_song_to_r2.sql":
@@ -65,8 +65,8 @@ jobs:
           ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 29:
-              raise SystemExit(f"Expected 29 tables, found {tables}")
+          if tables != 30:
+              raise SystemExit(f"Expected 30 tables, found {tables}")
           print(f"Validated {len(migrations)} migrations, {tables} tables; no foreign-key violations.")
           PY
 

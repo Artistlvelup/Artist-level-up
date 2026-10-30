@@ -17,6 +17,11 @@ class FakeD1 {
       values: [],
       bind(...values) { this.values = values; return this; },
       async first() {
+        if (sql.includes("SELECT status FROM app_users")) {
+          const [userId] = this.values;
+          const user = db.users.get(userId);
+          return user ? { status: user.status } : null;
+        }
         if (sql.includes("SELECT s.user_id")) {
           const [hash, now] = this.values;
           const session = db.sessions.get(hash);
@@ -29,6 +34,18 @@ class FakeD1 {
         throw new Error("Unexpected SQL in first(): " + sql);
       },
       async run() {
+        if (sql.includes("INSERT INTO app_users")) {
+          const [userId, isAnonymous, createdAt, updatedAt] = this.values;
+          const existing = db.users.get(userId);
+          if (!existing) db.users.set(userId, { status: "active", is_anonymous: isAnonymous, created_at: createdAt, updated_at: updatedAt });
+          else if (existing.status === "active") existing.updated_at = updatedAt;
+          return { success: true, meta: { changes: 1 } };
+        }
+        if (sql.includes("INSERT INTO app_sessions")) {
+          const [tokenHash, userId, createdAt, expiresAt] = this.values;
+          db.sessions.set(tokenHash, { user_id: userId, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("UPDATE app_sessions SET revoked_at")) {
           const [revokedAt, hash] = this.values;
           const session = db.sessions.get(hash);
@@ -62,7 +79,9 @@ function setup() {
   return {
     DB: new FakeD1(),
     SESSION_PEPPER: "test-only-pepper-with-at-least-32-characters",
-    ALLOWED_ORIGINS: "https://artistlevelup.com.ng"
+    ALLOWED_ORIGINS: "https://artistlevelup.com.ng",
+    SUPABASE_URL: "https://example-project.supabase.co",
+    SUPABASE_ANON_KEY: "test-publishable-key"
   };
 }
 
@@ -123,4 +142,69 @@ test("fails closed when required configuration is missing", async () => {
   const env = { DB: new FakeD1(), ALLOWED_ORIGINS: "https://artistlevelup.com.ng" };
   const response = await worker.fetch(request("/auth/anonymous", "POST"), env);
   assert.equal(response.status, 503);
+});
+
+test("bridges a verified Supabase user without changing the user's UUID", async () => {
+  const env = setup();
+  const originalFetch = globalThis.fetch;
+  const userId = "a8f27e84-cd57-4cdd-8f00-09b865a7bb6d";
+  globalThis.fetch = async (url, options) => {
+    assert.equal(String(url), "https://example-project.supabase.co/auth/v1/user");
+    assert.equal(options.headers.Authorization, "Bearer valid-supabase-access-token");
+    assert.equal(options.headers.apikey, "test-publishable-key");
+    return new Response(JSON.stringify({ id: userId, is_anonymous: true }), { status: 200 });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://artistlevelup.com.ng" },
+      body: JSON.stringify({ access_token: "valid-supabase-access-token" })
+    }), env);
+    assert.equal(response.status, 201);
+    const body = await response.json();
+    assert.equal(body.userId, userId);
+    assert.match(body.token, /^[A-Za-z0-9_-]{40,}$/);
+    assert.equal(env.DB.users.size, 1);
+    assert.equal(env.DB.users.has(userId), true);
+    assert.equal(env.DB.sessions.size, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("does not bridge an invalid Supabase token or create a D1 identity", async () => {
+  const env = setup();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ message: "invalid token" }), { status: 401 });
+  try {
+    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: "invalid-supabase-access-token" })
+    }), env);
+    assert.equal(response.status, 401);
+    assert.equal(env.DB.users.size, 0);
+    assert.equal(env.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("does not restore a disabled D1 identity", async () => {
+  const env = setup();
+  const userId = "a8f27e84-cd57-4cdd-8f00-09b865a7bb6d";
+  env.DB.users.set(userId, { status: "disabled" });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ id: userId }), { status: 200 });
+  try {
+    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: "valid-supabase-access-token" })
+    }), env);
+    assert.equal(response.status, 403);
+    assert.equal(env.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

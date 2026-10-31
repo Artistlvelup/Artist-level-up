@@ -464,16 +464,21 @@ async function bridgeSupabaseSession(request, env) {
 
   const now = Math.floor(Date.now() / 1000);
   const existing = await env.DB.prepare(
-    "SELECT status FROM app_users WHERE user_id = ? LIMIT 1"
+    "SELECT status, is_anonymous FROM app_users WHERE user_id = ? LIMIT 1"
   ).bind(userId).first();
-  if (existing?.status === "disabled") {
+
+  // This bridge is for identities explicitly imported during the V101 cutover.
+  // Never auto-provision a D1 identity merely because an arbitrary Supabase
+  // account presents a valid token. New-user onboarding is a separate flow.
+  if (!existing) {
+    return json({ error: "ACCOUNT_NOT_MIGRATED" }, 403, cors);
+  }
+  if (existing.status !== "active") {
     return json({ error: "ACCOUNT_DISABLED" }, 403, cors);
   }
-
-  // Preserve the Supabase UUID. This does not create a replacement identity.
-  await env.DB.prepare(
-    "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at) VALUES (?, ?, 'active', ?, ?) ON CONFLICT(user_id) DO UPDATE SET updated_at = excluded.updated_at WHERE app_users.status = 'active'"
-  ).bind(userId, supabaseUser.is_anonymous === true ? 1 : 0, now, now).run();
+  if (existing.is_anonymous !== (supabaseUser.is_anonymous === true ? 1 : 0)) {
+    return json({ error: "ACCOUNT_IDENTITY_MISMATCH" }, 403, cors);
+  }
 
   const token = await newToken();
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);

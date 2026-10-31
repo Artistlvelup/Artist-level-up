@@ -274,6 +274,35 @@ async function promotionRoute(request, env, userId) {
   return json({ promotion: { id, artist_id: artist.id, title, description, budget, status: "pending", starts_at: startsAt, ends_at: endsAt, target_type: targetType, video_id: videoId } }, 201, cors);
 }
 
+
+async function withdrawalRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return null;
+  const body = await readJson(request);
+  const amount = Number(body.amount);
+  const bankName = cleanText(body.bank_name, 120, true);
+  const accountName = cleanText(body.account_name, 120, true);
+  const accountNumber = cleanText(String(body.account_number ?? ""), 32, true);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
+    return json({ error: "INVALID_AMOUNT" }, 400, cors);
+  }
+  if (!/^[0-9]{6,32}$/.test(accountNumber)) {
+    return json({ error: "INVALID_ACCOUNT_NUMBER" }, 400, cors);
+  }
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO withdrawals (id, user_id, amount, bank_name, account_name, account_number, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)"
+  ).bind(id, userId, amount, bankName, accountName, accountNumber, now).run();
+  return json({
+    withdrawal: {
+      id, user_id: userId, amount, bank_name: bankName,
+      account_name: accountName, account_number: accountNumber,
+      status: "pending", created_at: now
+    }
+  }, 201, cors);
+}
+
 async function marketplaceRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
   if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
@@ -682,6 +711,14 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await videoUploadIntentRoute(request, env, session.user_id);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/withdrawals") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await withdrawalRoute(request, env, session.user_id);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
       }

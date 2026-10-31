@@ -9,6 +9,7 @@ const { default: worker } = await import("data:text/javascript;base64," + Buffer
 class DataD1 {
   users = new Map();
   sessions = new Map();
+  families = new Map();
   profiles = new Map();
   artists = new Map();
   prepare(sql) {
@@ -21,7 +22,8 @@ class DataD1 {
         if (sql.includes("SELECT s.user_id")) {
           const s = db.sessions.get(v[0]);
           const u = s && db.users.get(s.user_id);
-          return s && s.revoked_at === null && s.expires_at > v[1] && u?.status === "active"
+          const f = s && db.families.get(s.family_id);
+          return s && s.revoked_at === null && s.expires_at > v[1] && u?.status === "active" && f?.revoked_at === null
             ? { user_id: s.user_id, expires_at: s.expires_at } : null;
         }
         if (sql.includes("FROM profiles WHERE id")) return db.profiles.get(v[0]) || null;
@@ -53,9 +55,10 @@ class DataD1 {
     };
   }
   async batch(stmts) {
-    const [u,s] = stmts.map(x => x.values);
+    const [u,f,s] = stmts.map(x => x.values);
     this.users.set(u[0], { status: "active" });
-    this.sessions.set(s[0], { user_id:s[1], expires_at:s[3], revoked_at:null });
+    this.families.set(f[0], { user_id:f[1], created_at:f[2], revoked_at:null });
+    this.sessions.set(s[0], { user_id:s[1], family_id:s[2], created_at:s[3], expires_at:s[4], revoked_at:null });
   }
 }
 const env = () => ({ DB:new DataD1(), SESSION_PEPPER:"test-pepper-long-enough-for-authentication-123", ALLOWED_ORIGINS:"https://artistlevelup.com.ng" });

@@ -60,3 +60,17 @@ Migration rule: import only the active admin/main account and its required linke
 4. Prepare a selective data export/import for only the main account and its required linked records. Reuse the already verified R2 media objects.
 5. Rebuild and test payment/privileged functions with webhook verification and idempotency.
 6. Only after those checks, plan a staged cutover with rollback. Do not apply remote D1 migrations or change the live V101 website until the schema and API tests are reviewed.
+
+## Cloudflare-native rebuild decision and first implementation (2026-10-31)
+
+The owner confirmed that the platform has only one intended existing account and authorized a fresh Cloudflare-native rebuild rather than migrating the old Supabase login.
+
+- A byte-for-byte V101 source snapshot was saved on this isolated branch as `V101-BACKUP-BEFORE-CLOUDFLARE-REBUILD-2026-10-31.html`, sourced from the current `main` V101 HTML. The live `main` branch remains unchanged.
+- Migration `0005_cloudflare_native_auth.sql` adds email/password-hash fields to `app_users`, a one-time first-admin claim row, and login throttling storage.
+- The Worker now has a one-time first-admin registration endpoint (`POST /auth/register-admin`) gated by a server-side `BOOTSTRAP_SECRET`, and email/password login (`POST /auth/login`). Passwords use PBKDF2-SHA-256 with per-account random salt; plaintext passwords are never stored. Login sessions use the existing opaque-token/session-family design.
+- The Supabase auth bridge was removed from the Worker. The native-auth tests cover first-admin creation, one-time setup protection, successful login, and invalid-password rejection.
+- GitHub Actions run `41196708992` completed successfully on 2026-10-31, validating all five D1 migrations and the Worker test suite.
+- This is backend preparation only: the Worker is not deployed, the remote D1 migrations are not applied, and V101 HTML has not yet been switched to the new auth. The current V101 app still contains Supabase data, storage, and edge-function calls that must be replaced before a full cutover.
+- Supabase remains active and untouched for rollback. The R2 media objects already verified by the owner are to be reused, not re-uploaded.
+
+Next: finish the Cloudflare Worker deployment configuration and the V101-to-Worker data/storage adapter, then test the full V101 flows before any live cutover.

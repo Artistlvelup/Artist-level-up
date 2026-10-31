@@ -2,6 +2,22 @@
 
 Status: source-code audit of `Artist-Level-Up-LAUNCH-MASTER.html` on the isolated migration branch. This is a dependency inventory, not a completed replacement or authorization to cut over.
 
+## Live account cleanup and migration scope (2026-10-31)
+
+The live Supabase Auth inventory was checked and cleaned before migration planning:
+
+- 294 anonymous Auth accounts were deleted.
+- Their 150 linked profile rows and 11 linked artist rows were deleted.
+- Two confirmed (non-anonymous) Auth accounts remain.
+- One remaining account is the active platform admin and the main V101 owner account. It has 1 profile, 1 artist record, 8 artist videos, 3 picture posts, 1 song, 1 artist-pro subscription, 1 streaming-distribution request, and 3 upload-fee payment records.
+- The other confirmed account has an artist profile and artist record but no videos, picture posts, songs, subscriptions, distribution requests, upload-fee payments, or withdrawals. It is excluded from the Cloudflare migration scope; it has not been deleted from Supabase.
+- Two orphaned platform-admin rows left by deleted anonymous accounts were removed. The one active admin row remains.
+- Post-cleanup verification: 2 Auth users, 2 profiles, 2 artist records, 0 anonymous users, 1 active admin row.
+- No user records have been imported into D1. D1 remains unmodified by this cleanup.
+- The 8 videos, 3 pictures and 1 song are the main account's real content. Previously verified R2 media objects must be reused, not uploaded again.
+
+Migration rule: import only the active admin/main account and its required linked records. Do not import anonymous identities, the empty secondary confirmed account, or orphaned references. Preserve original stable user ID for the main account where the new auth design supports it. Do not export or recreate passwords from Supabase Auth; design a secure first-login credential/session migration.
+
 ## Confirmed application dependencies
 
 1. **Supabase Auth**
@@ -30,7 +46,7 @@ Status: source-code audit of `Artist-Level-Up-LAUNCH-MASTER.html` on the isolate
 ## Cutover blockers
 
 - No app cutover: the V101 HTML still initializes Supabase and directly calls its Auth, Postgres REST, Storage and Edge Function services.
-- No confirmed export/import of the existing Supabase Auth user inventory or stable user-ID mapping.
+- The main account's stable user-ID mapping and secure first-login/session transition are not yet implemented or tested in the Worker.
 - The current D1 schema migration is still a first-pass SQLite-compatible schema. Public-table foreign keys, PostgreSQL checks, triggers, indexes and RLS policy equivalents still require a reviewed migration plan.
 - No confirmed export/import of the existing `music` bucket objects or their metadata.
 - The Paystack Edge Function and any other privileged functions must be inventoried and replaced or deliberately retained behind a secure service boundary.
@@ -40,7 +56,7 @@ Status: source-code audit of `Artist-Level-Up-LAUNCH-MASTER.html` on the isolate
 
 1. Finish a complete source audit of all Supabase table names, Storage paths, and Edge Function names.
 2. Define a secure Worker API and browser adapter so V101 no longer needs direct PostgREST or privileged operations.
-3. Decide and test identity continuity for the existing Supabase user IDs before importing profiles.
-4. Inventory and migrate Storage objects, beginning with a dry-run manifest and checksums.
+3. Implement and test identity continuity for the one main active-admin account; create new Cloudflare identities only for future signups.
+4. Prepare a selective data export/import for only the main account and its required linked records. Reuse the already verified R2 media objects.
 5. Rebuild and test payment/privileged functions with webhook verification and idempotency.
-6. Only after those checks, plan a staged cutover with rollback. Do not apply D1 migrations or change the live V101 app as part of this inventory step.
+6. Only after those checks, plan a staged cutover with rollback. Do not apply remote D1 migrations or change the live V101 website until the schema and API tests are reviewed.

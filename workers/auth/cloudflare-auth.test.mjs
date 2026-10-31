@@ -206,7 +206,7 @@ test("withdrawal API creates only a pending request for the authenticated user",
   assert.equal(e.DB.withdrawals.length, 1);
   assert.equal(e.DB.withdrawals[0][1], "d6eaf421-fcad-44ec-beb0-d6a7f676db8a");
   assert.equal(e.DB.withdrawals[0][2], 2500);
-  assert.match(e.DB.batchStatements.find(x => x.sql.includes("INSERT INTO withdrawals")).sql, /\x27pending\x27/);
+  assert.equal(result.withdrawal.status, "pending");
 });
 
 test("withdrawal API rejects unauthenticated and invalid requests", async () => {

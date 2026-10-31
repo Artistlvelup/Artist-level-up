@@ -43,6 +43,9 @@ class AuthD1 {
         throw new Error("Unexpected first SQL: " + sql);
       },
       async all() {
+        if (sql.includes("FROM songs s LEFT JOIN artists")) {
+          return { results: [{ id: "22222222-2222-4222-8222-222222222222", title: "Test Song", status: "pending", artist_name: "Test Artist" }] };
+        }
         if (sql.includes("FROM artist_videos")) {
           return { results: [{ id: "11111111-1111-4111-8111-111111111111", title: "Review this video", status: "pending" }] };
         }
@@ -56,6 +59,9 @@ class AuthD1 {
         throw new Error("Unexpected all SQL: " + sql);
       },
       async run() {
+        if (sql.includes("UPDATE songs SET status = ?, updated_at = ? WHERE id = ?")) {
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("UPDATE artist_videos SET status = ? WHERE id = ?")) {
           return { success: true, meta: { changes: 1 } };
         }
@@ -296,5 +302,34 @@ test("admin can list and moderate videos; non-admin cannot", async () => {
   assert.equal(invalid.status, 400);
 
   const denied = await worker.fetch(new Request("https://worker.example/api/admin/videos"), e);
+  assert.equal(denied.status, 401);
+});
+
+
+test("admin can list and moderate songs; non-admin cannot", async () => {
+  const e = env();
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com", display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  const list = await worker.fetch(new Request("https://worker.example/api/admin/songs?status=pending", { headers }), e);
+  assert.equal(list.status, 200);
+  assert.equal((await list.json()).songs[0].status, "pending");
+
+  const id = "22222222-2222-4222-8222-222222222222";
+  const moderate = await worker.fetch(new Request("https://worker.example/api/admin/songs/" + id, {
+    method: "PATCH", headers, body: JSON.stringify({ status: "approved" })
+  }), e);
+  assert.equal(moderate.status, 200);
+  assert.equal((await moderate.json()).status, "approved");
+
+  const invalid = await worker.fetch(new Request("https://worker.example/api/admin/songs/" + id, {
+    method: "PATCH", headers, body: JSON.stringify({ status: "paid" })
+  }), e);
+  assert.equal(invalid.status, 400);
+
+  const denied = await worker.fetch(new Request("https://worker.example/api/admin/songs"), e);
   assert.equal(denied.status, 401);
 });

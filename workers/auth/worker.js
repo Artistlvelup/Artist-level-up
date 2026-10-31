@@ -33,12 +33,6 @@ const OWNER_CONTENT_SEED = {
   },
   videos: [
     { id:"a8f27e84-cd57-4cdd-8f00-09b865a7bb6d", title:"Learn how to create a good song", description:"Try to become famous\\n\\nArtist level up", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1792306951137_pephg.mp4", created_at:"2026-10-18T07:43:19.125877+00:00" },
-    { id:"f1e7e2fb-efea-41cf-8d49-01c5df5694c0", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792487251174_mygum.mp4", created_at:"2026-10-20T09:31:51.045056+00:00" },
-    { id:"375f98e4-e91a-497c-b8b0-8e7e2668deae", title:"Artist vs record label wahala", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1793006594271_ymakg.mp4", created_at:"2026-10-26T09:24:03.196432+00:00" },
-    { id:"df376905-995d-4151-ace0-20bf3dcf20bb", title:"Learn how to create a good song", description:"Artist level up", status:"rejected", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792309718487_szkjs.mp4", created_at:"2026-10-18T07:49:16.928566+00:00" },
-    { id:"b4c0d44a-ab87-4d68-b937-5f429275b6af", title:"Listen to this upcoming artist", description:"Artist level up", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792455775612_sjyc3.mp4", created_at:"2026-10-20T00:23:02.010026+00:00" },
-    { id:"645967d2-028a-4d84-a8ee-c70f58bc62db", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792489364319_0z4rr.mp4", created_at:"2026-10-20T09:53:14.349764+00:00" },
-    { id:"0c830261-d479-46e0-83c6-24e36180501d", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792502188829_6dcpw.mp4", created_at:"2026-10-20T13:56:45.510779+00:00" },
     { id:"66133708-eb56-4a71-8963-a4b8478f910e", title:"Listen to this upcoming artist", description:"", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1/video_1792488726169_pcp5c.mp4", created_at:"2026-10-20T09:53:01.271945+00:00" }
   ],
   pictures: [
@@ -534,7 +528,7 @@ async function registerFirstAdmin(request, env) {
     ).bind(now, userId),
     env.DB.prepare(
       "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) SELECT ?, ?, ?, 'admin', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(userId, displayName, "https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/avatars/d6eaf421-fcad-44ec-beb0-d6a7f676db8a/profile.jpg", isoNow, isoNow, userId),
+    ).bind(userId, displayName, null, isoNow, isoNow, userId),
     env.DB.prepare(
       "INSERT INTO platform_admins (user_id, active, created_at) SELECT ?, 1, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
     ).bind(userId, isoNow, userId),

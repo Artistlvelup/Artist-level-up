@@ -496,6 +496,163 @@ async function bridgeSupabaseSession(request, env) {
   return json({ userId, token, expiresAt }, 201, cors);
 }
 
+
+const PASSWORD_ITERATIONS = 310000;
+const LOGIN_WINDOW_SECONDS = 15 * 60;
+const LOGIN_MAX_ATTEMPTS = 5;
+
+function constantTimeEqual(a, b) {
+  const left = String(a || "");
+  const right = String(b || "");
+  let diff = left.length ^ right.length;
+  const length = Math.max(left.length, right.length);
+  for (let i = 0; i < length; i++) {
+    diff |= (left.charCodeAt(i % (left.length || 1)) || 0) ^
+      (right.charCodeAt(i % (right.length || 1)) || 0);
+  }
+  return diff === 0;
+}
+
+function validEmail(value) {
+  if (typeof value !== "string") return null;
+  const email = value.trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
+}
+
+async function derivePasswordHash(password, salt, iterations = PASSWORD_ITERATIONS) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits({
+    name: "PBKDF2", hash: "SHA-256",
+    salt: Uint8Array.from(atob(salt.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((salt.length + 3) % 4)), c => c.charCodeAt(0)),
+    iterations
+  }, key, 256);
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function createPasswordSalt() {
+  return base64url(crypto.getRandomValues(new Uint8Array(16)));
+}
+
+async function createUserSession(env, userId) {
+  const token = await newToken();
+  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + SESSION_TTL_SECONDS;
+  const familyId = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) VALUES (?, ?, ?, NULL)"
+    ).bind(familyId, userId, now),
+    env.DB.prepare(
+      "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, userId, familyId, now, expiresAt)
+  ]);
+  return { userId, token, expiresAt };
+}
+
+async function registerFirstAdmin(request, env) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  if (!env.BOOTSTRAP_SECRET || String(env.BOOTSTRAP_SECRET).length < 32) {
+    return json({ error: "OWNER_SETUP_NOT_CONFIGURED" }, 503, cors);
+  }
+  const body = await readJson(request);
+  const email = validEmail(body.email);
+  const password = typeof body.password === "string" ? body.password : "";
+  const displayName = cleanText(body.display_name, 80, true);
+  const bootstrapSecret = typeof body.bootstrap_secret === "string" ? body.bootstrap_secret : "";
+  if (!email || password.length < 12 || password.length > 128 || !displayName) {
+    return json({ error: "Enter a valid email, display name and password of at least 12 characters." }, 400, cors);
+  }
+  if (!constantTimeEqual(bootstrapSecret, env.BOOTSTRAP_SECRET)) {
+    return json({ error: "Owner setup key is invalid." }, 403, cors);
+  }
+
+  const salt = await createPasswordSalt();
+  const passwordHash = await derivePasswordHash(password, salt);
+  const userId = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const isoNow = new Date().toISOString();
+
+  // D1 batch is transactional. Conditional inserts make the bootstrap one-time,
+  // even if two setup requests arrive together.
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at, email, password_hash, password_salt, password_iterations, role) SELECT ?, 0, 'active', ?, ?, ?, ?, ?, ?, 'admin' WHERE EXISTS (SELECT 1 FROM auth_bootstrap_state WHERE id = 1 AND claimed_at IS NULL) AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_anonymous = 0 AND role = 'admin' AND status = 'active')"
+    ).bind(userId, now, now, email, passwordHash, salt, PASSWORD_ITERATIONS),
+    env.DB.prepare(
+      "UPDATE auth_bootstrap_state SET claimed_at = ? WHERE id = 1 AND claimed_at IS NULL AND EXISTS (SELECT 1 FROM app_users WHERE user_id = ? AND role = 'admin')"
+    ).bind(now, userId),
+    env.DB.prepare(
+      "INSERT INTO profiles (id, display_name, role, created_at, updated_at) SELECT ?, ?, 'admin', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(userId, displayName, isoNow, isoNow, userId),
+    env.DB.prepare(
+      "INSERT INTO platform_admins (user_id, active, created_at) SELECT ?, 1, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(userId, isoNow, userId),
+    env.DB.prepare(
+      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) SELECT ?, user_id, ?, NULL FROM app_users WHERE user_id = ?"
+    ).bind(crypto.randomUUID(), now, userId)
+  ]);
+  if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
+    return json({ error: "OWNER_SETUP_ALREADY_USED" }, 409, cors);
+  }
+
+  const familyId = await env.DB.prepare(
+    "SELECT family_id FROM app_session_families WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
+  ).bind(userId).first();
+  const token = await newToken();
+  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const expiresAt = now + SESSION_TTL_SECONDS;
+  await env.DB.prepare(
+    "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
+  ).bind(tokenHash, userId, familyId.family_id, now, expiresAt).run();
+  return json({ userId, token, expiresAt, role: "admin" }, 201, cors);
+}
+
+async function loginOwner(request, env) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  const body = await readJson(request);
+  const email = validEmail(body.email);
+  const password = typeof body.password === "string" ? body.password : "";
+  if (!email || !password || password.length > 128) {
+    return json({ error: "Invalid email or password." }, 400, cors);
+  }
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const attemptKey = await hashToken(email + "|" + ip, env.SESSION_PEPPER);
+  const now = Math.floor(Date.now() / 1000);
+  const attempt = await env.DB.prepare(
+    "SELECT attempts, window_started_at, locked_until FROM auth_login_attempts WHERE attempt_key = ? LIMIT 1"
+  ).bind(attemptKey).first();
+  if (attempt?.locked_until && attempt.locked_until > now) {
+    return json({ error: "Too many login attempts. Try again later." }, 429, cors);
+  }
+
+  const user = await env.DB.prepare(
+    "SELECT user_id, password_hash, password_salt, password_iterations, status, role FROM app_users WHERE email = ? AND is_anonymous = 0 LIMIT 1"
+  ).bind(email).first();
+  const salt = user?.password_salt || "MDAwMDAwMDAwMDAwMDAwMA";
+  const expected = user?.password_hash || "0".repeat(64);
+  const actual = await derivePasswordHash(password, salt, user?.password_iterations || PASSWORD_ITERATIONS);
+  if (!user || user.status !== "active" || !constantTimeEqual(actual, expected)) {
+    const freshWindow = !attempt || now - attempt.window_started_at >= LOGIN_WINDOW_SECONDS;
+    const attempts = freshWindow ? 1 : Number(attempt.attempts || 0) + 1;
+    const windowStarted = freshWindow ? now : attempt.window_started_at;
+    const lockedUntil = attempts >= LOGIN_MAX_ATTEMPTS ? now + LOGIN_WINDOW_SECONDS : null;
+    await env.DB.prepare(
+      "INSERT INTO auth_login_attempts (attempt_key, attempts, window_started_at, locked_until) VALUES (?, ?, ?, ?) ON CONFLICT(attempt_key) DO UPDATE SET attempts = excluded.attempts, window_started_at = excluded.window_started_at, locked_until = excluded.locked_until"
+    ).bind(attemptKey, attempts, windowStarted, lockedUntil).run();
+    return json({ error: "Invalid email or password." }, 401, cors);
+  }
+
+  await env.DB.prepare("DELETE FROM auth_login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
+  const session = await createUserSession(env, user.user_id);
+  return json({ ...session, role: user.role }, 200, cors);
+}
+
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -552,6 +709,12 @@ export default {
 
     const url = new URL(request.url);
     try {
+      if (url.pathname === "/auth/register-admin") {
+        return await registerFirstAdmin(request, env);
+      }
+      if (url.pathname === "/auth/login") {
+        return await loginOwner(request, env);
+      }
       if (url.pathname === "/api/marketplace/beats") {
         const result = await marketplaceRoute(request, env, null, url);
         if (result) return result;

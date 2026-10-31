@@ -303,6 +303,38 @@ async function withdrawalRoute(request, env, userId) {
   }, 201, cors);
 }
 
+async function adminVideosRoute(request, env, session, url) {
+  const cors = corsHeaders(request, env);
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (request.method === "GET") {
+    const status = url.searchParams.get("status");
+    const allowed = new Set(["pending", "approved", "published", "rejected"]);
+    if (status && !allowed.has(status)) return json({ error: "Invalid video status" }, 400, cors);
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 100)));
+    if (!Number.isInteger(limit)) return json({ error: "Invalid limit" }, 400, cors);
+    const query = status
+      ? env.DB.prepare("SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE status = ? ORDER BY created_at DESC LIMIT ?").bind(status, limit)
+      : env.DB.prepare("SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos ORDER BY created_at DESC LIMIT ?").bind(limit);
+    const rows = await query.all();
+    return json({ videos: rows.results || [] }, 200, cors);
+  }
+  if (request.method === "PATCH") {
+    const match = /^\\/api\\/admin\\/videos\\/([0-9a-f-]{36})$/.exec(url.pathname);
+    if (!match) return json({ error: "Invalid video ID" }, 400, cors);
+    let body;
+    try { body = await request.json(); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const status = String(body?.status || "");
+    if (!new Set(["approved", "published", "rejected"]).has(status)) {
+      return json({ error: "Status must be approved, published, or rejected" }, 400, cors);
+    }
+    const result = await env.DB.prepare("UPDATE artist_videos SET status = ? WHERE id = ?")
+      .bind(status, match[1]).run();
+    if (!result.meta?.changes) return json({ error: "Video not found" }, 404, cors);
+    return json({ success: true, id: match[1], status }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+
 async function adminCommissionRoute(request, env, session) {
   const cors = corsHeaders(request, env);
   if (request.method !== "GET") return null;
@@ -709,6 +741,13 @@ export default {
         const result = await marketplaceRoute(request, env, null, url);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/admin/videos" || url.pathname.startsWith("/api/admin/videos/")) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await adminVideosRoute(request, env, session, url);
+        if (result) return result;
       }
 
       if (url.pathname === "/api/admin/marketplace/commissions") {

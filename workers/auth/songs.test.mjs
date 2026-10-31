@@ -7,7 +7,7 @@ const source = readFileSync(new URL("./worker.js", import.meta.url), "utf8");
 const { default: worker } = await import("data:text/javascript;base64," + Buffer.from(source).toString("base64"));
 
 class SongsD1 {
-  users = new Map(); sessions = new Map(); artists = new Map(); songs = new Map();
+  users = new Map(); sessions = new Map(); families = new Map(); artists = new Map(); songs = new Map();
   prepare(sql) {
     const db=this;
     return {
@@ -15,8 +15,8 @@ class SongsD1 {
       async first(){
         const v=this.values;
         if(sql.includes("SELECT s.user_id")) {
-          const s=db.sessions.get(v[0]), u=s&&db.users.get(s.user_id);
-          return s&&s.revoked_at===null&&s.expires_at>v[1]&&u?.status==="active"?{user_id:s.user_id,expires_at:s.expires_at}:null;
+          const s=db.sessions.get(v[0]), u=s&&db.users.get(s.user_id), f=s&&db.families.get(s.family_id);
+          return s&&s.revoked_at===null&&s.expires_at>v[1]&&u?.status==="active"&&f?.revoked_at===null?{user_id:s.user_id,expires_at:s.expires_at}:null;
         }
         if(sql.includes("SELECT id FROM artists WHERE user_id")) {
           const a=[...db.artists.values()].find(x=>x.user_id===v[0]&&x.suspended===0); return a?{id:a.id}:null;
@@ -56,9 +56,10 @@ class SongsD1 {
     };
   }
   async batch(stmts){
-    const u=stmts[0].values,s=stmts[1].values;
+    const u=stmts[0].values,f=stmts[1].values,s=stmts[2].values;
     this.users.set(u[0],{status:"active"});
-    this.sessions.set(s[0],{user_id:s[1],expires_at:s[3],revoked_at:null});
+    this.families.set(f[0],{user_id:f[1],created_at:f[2],revoked_at:null});
+    this.sessions.set(s[0],{user_id:s[1],family_id:s[2],created_at:s[3],expires_at:s[4],revoked_at:null});
   }
 }
 const env=()=>{const DB=new SongsD1();return {DB,SESSION_PEPPER:"test-pepper-long-enough-for-authentication-123",ALLOWED_ORIGINS:"https://artistlevelup.com.ng"};};

@@ -303,6 +303,38 @@ async function withdrawalRoute(request, env, userId) {
   }, 201, cors);
 }
 
+async function adminSongsRoute(request, env, session, url) {
+  const cors = corsHeaders(request, env);
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (request.method === "GET") {
+    const status = url.searchParams.get("status");
+    const allowed = new Set(["draft", "pending", "approved", "published", "rejected", "archived"]);
+    if (status && !allowed.has(status)) return json({ error: "Invalid song status" }, 400, cors);
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 100)));
+    if (!Number.isInteger(limit)) return json({ error: "Invalid limit" }, 400, cors);
+    const query = status
+      ? env.DB.prepare("SELECT s.id, s.artist_id, a.artist_name, s.title, s.genre, s.audio_url, s.cover_url, s.duration_seconds, s.status, s.created_at, s.updated_at FROM songs s LEFT JOIN artists a ON a.id = s.artist_id WHERE s.status = ? ORDER BY s.created_at DESC LIMIT ?").bind(status, limit)
+      : env.DB.prepare("SELECT s.id, s.artist_id, a.artist_name, s.title, s.genre, s.audio_url, s.cover_url, s.duration_seconds, s.status, s.created_at, s.updated_at FROM songs s LEFT JOIN artists a ON a.id = s.artist_id ORDER BY s.created_at DESC LIMIT ?").bind(limit);
+    const rows = await query.all();
+    return json({ songs: rows.results || [] }, 200, cors);
+  }
+  if (request.method === "PATCH") {
+    const songId = url.pathname.slice("/api/admin/songs/".length);
+    if (!/^[0-9a-f-]{36}$/i.test(songId)) return json({ error: "Invalid song ID" }, 400, cors);
+    let body;
+    try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const status = String(body?.status || "");
+    if (!new Set(["approved", "published", "rejected", "archived"]).has(status)) {
+      return json({ error: "Status must be approved, published, rejected, or archived" }, 400, cors);
+    }
+    const result = await env.DB.prepare("UPDATE songs SET status = ?, updated_at = ? WHERE id = ?")
+      .bind(status, new Date().toISOString(), songId).run();
+    if (!result.meta?.changes) return json({ error: "Song not found" }, 404, cors);
+    return json({ success: true, id: songId, status }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+
 async function adminVideosRoute(request, env, session, url) {
   const cors = corsHeaders(request, env);
   if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
@@ -741,6 +773,13 @@ export default {
         const result = await marketplaceRoute(request, env, null, url);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/admin/songs" || url.pathname.startsWith("/api/admin/songs/")) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await adminSongsRoute(request, env, session, url);
+        if (result) return result;
       }
 
       if (url.pathname === "/api/admin/videos" || url.pathname.startsWith("/api/admin/videos/")) {

@@ -125,7 +125,8 @@ test("first-admin setup creates one admin and a D1 session", async () => {
   assert.equal(e.DB.sessions.size, 1);
   assert.equal(e.DB.bootstrapClaimedAt > 0, true);
   assert.equal(e.DB.users.has("d6eaf421-fcad-44ec-beb0-d6a7f676db8a"), true);
-  assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO artist_videos")).length, 8);
+  assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO artist_videos")).length, 2);
+  assert.equal(e.DB.batchStatements.some(x => x.values.some(v => typeof v === "string" && v.includes(".supabase.co/storage/"))), false);
   assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO picture_posts")).length, 3);
   assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO songs")).length, 1);
 });

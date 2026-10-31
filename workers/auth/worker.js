@@ -533,8 +533,8 @@ async function registerFirstAdmin(request, env) {
       "UPDATE auth_bootstrap_state SET claimed_at = ? WHERE id = 1 AND claimed_at IS NULL AND EXISTS (SELECT 1 FROM app_users WHERE user_id = ? AND role = 'admin')"
     ).bind(now, userId),
     env.DB.prepare(
-      "INSERT INTO profiles (id, display_name, role, created_at, updated_at) SELECT ?, ?, 'admin', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(userId, displayName, isoNow, isoNow, userId),
+      "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) SELECT ?, ?, ?, 'admin', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(userId, displayName, "https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/avatars/d6eaf421-fcad-44ec-beb0-d6a7f676db8a/profile.jpg", isoNow, isoNow, userId),
     env.DB.prepare(
       "INSERT INTO platform_admins (user_id, active, created_at) SELECT ?, 1, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
     ).bind(userId, isoNow, userId),

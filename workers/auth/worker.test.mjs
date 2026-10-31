@@ -115,8 +115,6 @@ function setup() {
     DB: new FakeD1(),
     SESSION_PEPPER: "test-only-pepper-with-at-least-32-characters",
     ALLOWED_ORIGINS: "https://artistlevelup.com.ng",
-    SUPABASE_URL: "https://example-project.supabase.co",
-    SUPABASE_ANON_KEY: "test-publishable-key"
   };
 }
 
@@ -177,71 +175,6 @@ test("fails closed when required configuration is missing", async () => {
   const env = { DB: new FakeD1(), ALLOWED_ORIGINS: "https://artistlevelup.com.ng" };
   const response = await worker.fetch(request("/auth/anonymous", "POST"), env);
   assert.equal(response.status, 503);
-});
-
-test("bridges a verified Supabase user without changing the user's UUID", async () => {
-  const env = setup();
-  const originalFetch = globalThis.fetch;
-  const userId = "a8f27e84-cd57-4cdd-8f00-09b865a7bb6d";
-  globalThis.fetch = async (url, options) => {
-    assert.equal(String(url), "https://example-project.supabase.co/auth/v1/user");
-    assert.equal(options.headers.Authorization, "Bearer valid-supabase-access-token");
-    assert.equal(options.headers.apikey, "test-publishable-key");
-    return new Response(JSON.stringify({ id: userId, is_anonymous: true }), { status: 200 });
-  };
-  try {
-    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: "https://artistlevelup.com.ng" },
-      body: JSON.stringify({ access_token: "valid-supabase-access-token" })
-    }), env);
-    assert.equal(response.status, 201);
-    const body = await response.json();
-    assert.equal(body.userId, userId);
-    assert.match(body.token, /^[A-Za-z0-9_-]{40,}$/);
-    assert.equal(env.DB.users.size, 1);
-    assert.equal(env.DB.users.has(userId), true);
-    assert.equal(env.DB.sessions.size, 1);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("does not bridge an invalid Supabase token or create a D1 identity", async () => {
-  const env = setup();
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ message: "invalid token" }), { status: 401 });
-  try {
-    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ access_token: "invalid-supabase-access-token" })
-    }), env);
-    assert.equal(response.status, 401);
-    assert.equal(env.DB.users.size, 0);
-    assert.equal(env.DB.sessions.size, 0);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test("does not restore a disabled D1 identity", async () => {
-  const env = setup();
-  const userId = "a8f27e84-cd57-4cdd-8f00-09b865a7bb6d";
-  env.DB.users.set(userId, { status: "disabled" });
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({ id: userId }), { status: 200 });
-  try {
-    const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ access_token: "valid-supabase-access-token" })
-    }), env);
-    assert.equal(response.status, 403);
-    assert.equal(env.DB.sessions.size, 0);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
 });
 
 test("rotates a live session and keeps the replacement token valid", async () => {

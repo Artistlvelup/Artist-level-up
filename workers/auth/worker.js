@@ -21,6 +21,34 @@
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
+// Preserve the existing owner's stable application identity and content links.
+// A fresh password is created during the one-time Cloudflare admin registration.
+const LEGACY_OWNER_USER_ID = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+const LEGACY_OWNER_ARTIST_ID = "2b2a5bf6-9673-42a1-a33a-d40dab98ad44";
+const OWNER_CONTENT_SEED = {
+  song: {
+    id: "44875219-61a6-46a6-aa3e-3cb6fb579092",
+    title: "Otunba Cash Money Angelina",
+    audio_url: "https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/audio_song_1792505499636_ilmfs-Otunba-Cash-Money-Angelina.mp3",
+    created_at: "2026-10-21T10:25:41.780786+00:00"
+  },
+  videos: [
+    { id:"a8f27e84-cd57-4cdd-8f00-09b865a7bb6d", title:"Learn how to create a good song", description:"Try to become famous\\n\\nArtist level up", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1792306951137_pephg.mp4", created_at:"2026-10-18T07:43:19.125877+00:00" },
+    { id:"f1e7e2fb-efea-41cf-8d49-01c5df5694c0", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792487251174_mygum.mp4", created_at:"2026-10-20T09:31:51.045056+00:00" },
+    { id:"375f98e4-e91a-497c-b8b0-8e7e2668deae", title:"Artist vs record label wahala", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1793006594271_ymakg.mp4", created_at:"2026-10-26T09:24:03.196432+00:00" },
+    { id:"df376905-995d-4151-ace0-20bf3dcf20bb", title:"Learn how to create a good song", description:"Artist level up", status:"rejected", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792309718487_szkjs.mp4", created_at:"2026-10-18T07:49:16.928566+00:00" },
+    { id:"b4c0d44a-ab87-4d68-b937-5f429275b6af", title:"Listen to this upcoming artist", description:"Artist level up", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792455775612_sjyc3.mp4", created_at:"2026-10-20T00:23:02.010026+00:00" },
+    { id:"645967d2-028a-4d84-a8ee-c70f58bc62db", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792489364319_0z4rr.mp4", created_at:"2026-10-20T09:53:14.349764+00:00" },
+    { id:"0c830261-d479-46e0-83c6-24e36180501d", title:"Listen to this upcoming artist", description:"", status:"pending", video_url:"https://wmtddmaxwulypvhjjntz.supabase.co/storage/v1/object/public/music/videos/video_1792502188829_6dcpw.mp4", created_at:"2026-10-20T13:56:45.510779+00:00" },
+    { id:"66133708-eb56-4a71-8963-a4b8478f910e", title:"Listen to this upcoming artist", description:"", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1/video_1792488726169_pcp5c.mp4", created_at:"2026-10-20T09:53:01.271945+00:00" }
+  ],
+  pictures: [
+    { id:"1952cd7e-d8b5-4d82-8876-a25d2cec8422", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447538978_2_g0xj0.jpg", created_at:"2026-10-19T22:05:34.866+00:00" },
+    { id:"59d23fda-f22a-4cf2-b858-ec527c0fb9f6", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447535205_0_dqn63.jpg", created_at:"2026-10-19T22:05:34.866+00:00" },
+    { id:"9c29fbbb-d629-4d87-86d1-c6963a8ac35b", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447537185_1_i8vvw.jpg", created_at:"2026-10-19T22:05:34.866+00:00" }
+  ]
+};
+
 function allowedOrigins(env) {
   return new Set(String(env.ALLOWED_ORIGINS || "")
     .split(",").map(x => x.trim()).filter(Boolean));
@@ -491,7 +519,7 @@ async function registerFirstAdmin(request, env) {
 
   const salt = await createPasswordSalt();
   const passwordHash = await derivePasswordHash(password, salt);
-  const userId = crypto.randomUUID();
+  const userId = LEGACY_OWNER_USER_ID;
   const now = Math.floor(Date.now() / 1000);
   const isoNow = new Date().toISOString();
   const familyId = crypto.randomUUID();
@@ -513,7 +541,19 @@ async function registerFirstAdmin(request, env) {
     ).bind(userId, isoNow, userId),
     env.DB.prepare(
       "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) SELECT ?, user_id, ?, NULL FROM app_users WHERE user_id = ?"
-    ).bind(familyId, now, userId)
+    ).bind(familyId, now, userId),
+    env.DB.prepare(
+      "INSERT INTO artists (id, user_id, artist_name, bio, genre, country, status, created_at, updated_at, suspended) SELECT ?, ?, 'Solo_vibez', '', '', 'Nigeria', 'pending', ?, ?, 0 WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(LEGACY_OWNER_ARTIST_ID, userId, "2026-10-18T07:00:09.637509+00:00", "2026-10-18T07:00:09.637509+00:00", userId),
+    env.DB.prepare(
+      "INSERT INTO songs (id, artist_id, title, audio_url, status, created_at, updated_at) SELECT ?, ?, ?, ?, 'published', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(OWNER_CONTENT_SEED.song.id, LEGACY_OWNER_ARTIST_ID, OWNER_CONTENT_SEED.song.title, OWNER_CONTENT_SEED.song.audio_url, OWNER_CONTENT_SEED.song.created_at, OWNER_CONTENT_SEED.song.created_at, userId),
+    ...OWNER_CONTENT_SEED.videos.map(video => env.DB.prepare(
+      "INSERT INTO artist_videos (id, artist_id, title, description, video_url, status, views, likes, created_at) SELECT ?, ?, ?, ?, ?, ?, 0, 0, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(video.id, LEGACY_OWNER_ARTIST_ID, video.title, video.description, video.video_url, video.status, video.created_at, userId)),
+    ...OWNER_CONTENT_SEED.pictures.map(picture => env.DB.prepare(
+      "INSERT INTO picture_posts (id, user_id, image_url, caption, status, created_at, artist_name) SELECT ?, ?, ?, ?, 'published', ?, 'Artist Level Up' WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
+    ).bind(picture.id, userId, picture.image_url, "🎨🔥 Art speaks. Creativity shines. Talent rises! 🚀🌍\\n\\n❤️ Like, 💬 comment, and 🔁 share your favorite artwork!\\n\\n#ArtistLevelUp #CreativeVibes #VisualArt", picture.created_at, userId))
   ]);
   if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
     return json({ error: "OWNER_SETUP_ALREADY_USED" }, 409, cors);

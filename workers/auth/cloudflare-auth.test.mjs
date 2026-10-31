@@ -42,6 +42,16 @@ class AuthD1 {
         }
         throw new Error("Unexpected first SQL: " + sql);
       },
+      async all() {
+        if (sql.includes("FROM marketplace_orders WHERE status = 'paid'")) {
+          return { results: [
+            { id: "order-1", beat_title: "Test Beat", producer_name: "Producer", amount_ngn: 5000,
+              status: "paid", platform_fee_percent: 10, platform_fee_ngn: 500,
+              producer_payout_ngn: 4500, paid_at: "2026-10-30T10:00:00.000Z", paystack_reference: "ref-1" }
+          ] };
+        }
+        throw new Error("Unexpected all SQL: " + sql);
+      },
       async run() {
         if (sql.includes("INSERT INTO withdrawals")) {
           db.withdrawals.push(this.values);
@@ -231,4 +241,25 @@ test("withdrawal API rejects unauthenticated and invalid requests", async () => 
   }), e);
   assert.equal(invalid.status, 400);
   assert.equal(e.DB.withdrawals.length, 0);
+});
+
+
+test("marketplace commission report is available to admin only", async () => {
+  const e = env();
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com", display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const response = await worker.fetch(new Request("https://worker.example/api/admin/marketplace/commissions?limit=20", {
+    headers: { Authorization: "Bearer " + token }
+  }), e);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.orders.length, 1);
+  assert.equal(result.orders[0].platform_fee_ngn, 500);
+  assert.equal(result.orders[0].status, "paid");
+
+  const unauthenticated = await worker.fetch(new Request("https://worker.example/api/admin/marketplace/commissions"), e);
+  assert.equal(unauthenticated.status, 401);
 });

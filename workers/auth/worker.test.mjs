@@ -19,10 +19,10 @@ class FakeD1 {
       values: [],
       bind(...values) { this.values = values; return this; },
       async first() {
-        if (sql.includes("SELECT status FROM app_users")) {
+        if (sql.includes("SELECT status FROM app_users") || sql.includes("SELECT status, is_anonymous FROM app_users")) {
           const [userId] = this.values;
           const user = db.users.get(userId);
-          return user ? { status: user.status } : null;
+          return user ? { status: user.status, is_anonymous: user.is_anonymous } : null;
         }
         if (sql.includes("SELECT family_id, revoked_at FROM app_sessions") ||
             sql.includes("SELECT family_id FROM app_sessions")) {

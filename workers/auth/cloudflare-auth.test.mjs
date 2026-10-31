@@ -43,6 +43,9 @@ class AuthD1 {
         throw new Error("Unexpected first SQL: " + sql);
       },
       async all() {
+        if (sql.includes("FROM artist_videos")) {
+          return { results: [{ id: "11111111-1111-4111-8111-111111111111", title: "Review this video", status: "pending" }] };
+        }
         if (sql.includes("FROM marketplace_orders WHERE status = 'paid'")) {
           return { results: [
             { id: "order-1", beat_title: "Test Beat", producer_name: "Producer", amount_ngn: 5000,
@@ -53,6 +56,9 @@ class AuthD1 {
         throw new Error("Unexpected all SQL: " + sql);
       },
       async run() {
+        if (sql.includes("UPDATE artist_videos SET status = ? WHERE id = ?")) {
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("INSERT INTO withdrawals")) {
           db.withdrawals.push(this.values);
           return { success: true, meta: { changes: 1 } };
@@ -262,4 +268,33 @@ test("marketplace commission report is available to admin only", async () => {
 
   const unauthenticated = await worker.fetch(new Request("https://worker.example/api/admin/marketplace/commissions"), e);
   assert.equal(unauthenticated.status, 401);
+});
+
+
+test("admin can list and moderate videos; non-admin cannot", async () => {
+  const e = env();
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com", display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  const list = await worker.fetch(new Request("https://worker.example/api/admin/videos?status=pending", { headers }), e);
+  assert.equal(list.status, 200);
+  assert.equal((await list.json()).videos[0].status, "pending");
+
+  const id = "11111111-1111-4111-8111-111111111111";
+  const moderate = await worker.fetch(new Request("https://worker.example/api/admin/videos/" + id, {
+    method: "PATCH", headers, body: JSON.stringify({ status: "approved" })
+  }), e);
+  assert.equal(moderate.status, 200);
+  assert.equal((await moderate.json()).status, "approved");
+
+  const invalid = await worker.fetch(new Request("https://worker.example/api/admin/videos/" + id, {
+    method: "PATCH", headers, body: JSON.stringify({ status: "deleted" })
+  }), e);
+  assert.equal(invalid.status, 400);
+
+  const denied = await worker.fetch(new Request("https://worker.example/api/admin/videos"), e);
+  assert.equal(denied.status, 401);
 });

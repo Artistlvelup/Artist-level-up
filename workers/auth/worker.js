@@ -7,8 +7,7 @@
  *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
  *
  * Routes:
- *   POST /auth/bridge/supabase -> validate current Supabase session and preserve its UUID
- *   POST /auth/anonymous  -> create anonymous identity + opaque session (prototype only)
+ * *   POST /auth/anonymous  -> create anonymous identity + opaque session (prototype only)
  *   GET  /auth/session   -> validate bearer session
  *   POST /auth/logout    -> revoke bearer session
  *
@@ -416,87 +415,6 @@ async function refreshSession(request, env) {
   return json({ token: newSessionToken, expiresAt }, 200, cors);
 }
 
-async function bridgeSupabaseSession(request, env) {
-  const cors = corsHeaders(request, env);
-  const body = await readJson(request);
-  const accessToken = cleanText(body.access_token, 8192, true);
-  if (!accessToken || accessToken.length < 20) {
-    return json({ error: "INVALID_SUPABASE_TOKEN" }, 400, cors);
-  }
-
-  let base;
-  try {
-    base = new URL(String(env.SUPABASE_URL || ""));
-    if (base.protocol !== "https:" || base.username || base.password || base.pathname !== "/" || base.search || base.hash) {
-      throw new Error("INVALID_SUPABASE_URL");
-    }
-  } catch {
-    return json({ error: "SUPABASE_AUTH_NOT_CONFIGURED" }, 503, cors);
-  }
-  const anonKey = String(env.SUPABASE_ANON_KEY || "");
-  if (!anonKey) return json({ error: "SUPABASE_AUTH_NOT_CONFIGURED" }, 503, cors);
-
-  // Ask Supabase Auth to validate the access token. Never trust a decoded JWT
-  // or a user ID supplied by the browser.
-  let authResponse;
-  try {
-    authResponse = await fetch(new URL("/auth/v1/user", base.origin), {
-      method: "GET",
-      headers: {
-        "apikey": anonKey,
-        "Authorization": "Bearer " + accessToken,
-        "Accept": "application/json"
-      }
-    });
-  } catch {
-    return json({ error: "SUPABASE_AUTH_UNAVAILABLE" }, 503, cors);
-  }
-  if (!authResponse.ok) return json({ error: "INVALID_SUPABASE_SESSION" }, 401, cors);
-
-  let supabaseUser;
-  try { supabaseUser = await authResponse.json(); } catch {
-    return json({ error: "INVALID_SUPABASE_RESPONSE" }, 502, cors);
-  }
-  const userId = typeof supabaseUser?.id === "string" ? supabaseUser.id : "";
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId)) {
-    return json({ error: "INVALID_SUPABASE_RESPONSE" }, 502, cors);
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const existing = await env.DB.prepare(
-    "SELECT status, is_anonymous FROM app_users WHERE user_id = ? LIMIT 1"
-  ).bind(userId).first();
-
-  // This bridge is for identities explicitly imported during the V101 cutover.
-  // Never auto-provision a D1 identity merely because an arbitrary Supabase
-  // account presents a valid token. New-user onboarding is a separate flow.
-  if (!existing) {
-    return json({ error: "ACCOUNT_NOT_MIGRATED" }, 403, cors);
-  }
-  if (existing.status !== "active") {
-    return json({ error: "ACCOUNT_DISABLED" }, 403, cors);
-  }
-  if (existing.is_anonymous !== (supabaseUser.is_anonymous === true ? 1 : 0)) {
-    return json({ error: "ACCOUNT_IDENTITY_MISMATCH" }, 403, cors);
-  }
-
-  const token = await newToken();
-  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
-  const familyId = crypto.randomUUID();
-  const expiresAt = now + SESSION_TTL_SECONDS;
-  await env.DB.batch([
-    env.DB.prepare(
-      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) VALUES (?, ?, ?, NULL)"
-    ).bind(familyId, userId, now),
-    env.DB.prepare(
-      "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
-    ).bind(tokenHash, userId, familyId, now, expiresAt)
-  ]);
-
-  return json({ userId, token, expiresAt }, 201, cors);
-}
-
-
 const PASSWORD_ITERATIONS = 310000;
 const LOGIN_WINDOW_SECONDS = 15 * 60;
 const LOGIN_MAX_ATTEMPTS = 5;
@@ -768,13 +686,6 @@ export default {
 
       if (url.pathname === "/auth/refresh" && request.method === "POST") {
         return await refreshSession(request, env);
-      }
-
-      if (url.pathname === "/auth/bridge/supabase" && request.method === "POST") {
-        if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-          return json({ error: "SUPABASE_AUTH_NOT_CONFIGURED" }, 503, cors);
-        }
-        return await bridgeSupabaseSession(request, env);
       }
 
       if (url.pathname === "/auth/anonymous" && request.method === "POST") {

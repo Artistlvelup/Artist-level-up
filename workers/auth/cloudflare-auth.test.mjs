@@ -12,6 +12,7 @@ class AuthD1 {
   families = new Map();
   sessions = new Map();
   attempts = new Map();
+  withdrawals = [];
   bootstrapClaimedAt = null;
   batchStatements = [];
 
@@ -42,6 +43,10 @@ class AuthD1 {
         throw new Error("Unexpected first SQL: " + sql);
       },
       async run() {
+        if (sql.includes("INSERT INTO withdrawals")) {
+          db.withdrawals.push(this.values);
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("INSERT INTO app_sessions")) {
           const [hash, userId, familyId, createdAt, expiresAt] = this.values;
           db.sessions.set(hash, { user_id: userId, family_id: familyId, created_at: createdAt, expires_at: expiresAt, revoked_at: null });
@@ -173,4 +178,56 @@ test("owner login rejects an incorrect password", async () => {
     email: "owner@example.com", password: "wrong-password"
   }), e);
   assert.equal(response.status, 401);
+});
+
+
+test("withdrawal API creates only a pending request for the authenticated user", async () => {
+  const e = env();
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com",
+    display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!",
+    bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const response = await worker.fetch(new Request("https://worker.example/api/me/withdrawals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({
+      amount: 2500, bank_name: "Example Bank",
+      account_name: "Owner Name", account_number: "0123456789",
+      user_id: "attacker-controlled-id", status: "approved"
+    })
+  }), e);
+  assert.equal(response.status, 201);
+  const result = await response.json();
+  assert.equal(result.withdrawal.status, "pending");
+  assert.equal(result.withdrawal.user_id, "d6eaf421-fcad-44ec-beb0-d6a7f676db8a");
+  assert.equal(e.DB.withdrawals.length, 1);
+  assert.equal(e.DB.withdrawals[0][1], "d6eaf421-fcad-44ec-beb0-d6a7f676db8a");
+  assert.equal(e.DB.withdrawals[0][6], "pending");
+});
+
+test("withdrawal API rejects unauthenticated and invalid requests", async () => {
+  const e = env();
+  const unauthenticated = await worker.fetch(post("/api/me/withdrawals", {
+    amount: 2500, bank_name: "Example Bank",
+    account_name: "Owner Name", account_number: "0123456789"
+  }), e);
+  assert.equal(unauthenticated.status, 401);
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com", display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const invalid = await worker.fetch(new Request("https://worker.example/api/me/withdrawals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({
+      amount: -10, bank_name: "Example Bank",
+      account_name: "Owner Name", account_number: "12"
+    })
+  }), e);
+  assert.equal(invalid.status, 400);
+  assert.equal(e.DB.withdrawals.length, 0);
 });

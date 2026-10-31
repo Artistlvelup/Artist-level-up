@@ -74,3 +74,18 @@ The owner confirmed that the platform has only one intended existing account and
 - Supabase remains active and untouched for rollback. The R2 media objects already verified by the owner are to be reused, not re-uploaded.
 
 Next: finish the Cloudflare Worker deployment configuration and the V101-to-Worker data/storage adapter, then test the full V101 flows before any live cutover.
+
+
+## Owner content verification and bootstrap seed (2026-10-31)
+
+A fresh read-only query of the confirmed main owner account was used to prepare the first-admin seed. The account's stable user UUID and artist UUID are preserved, while the owner will choose a new email/password during Cloudflare setup.
+
+- Profile: `Solo_vibez` (owner identity preserved; no old password or Supabase auth session is copied).
+- Artist record: preserved under its existing artist UUID.
+- Song: 1 record, `Otunba Cash Money Angelina`; its audio URL points to the already verified R2 MP3.
+- Videos: 8 records. Two already point to the verified R2 video objects. **Six video files are still on Supabase Storage** and their existing public URLs are retained temporarily so their records are not lost. These six objects must be copied to R2 and their URLs updated before Supabase Storage can be shut down.
+- Picture posts: 3 records; all three point to the already verified R2 picture objects.
+- The first-admin Worker batch now seeds the owner profile, artist, song, all 8 video records and all 3 picture records alongside the new password account and first session. It preserves the stable owner UUID so existing content relationships remain valid.
+- No remote D1 migration or Worker deployment has been performed. The source HTML still uses Supabase for app data, uploads, moderation, marketplace checkout and payment flows.
+
+This means the R2 content transfer is **not complete for videos**. Do not disconnect or pause Supabase until the six remaining video objects have been copied, tested, and their D1 URLs switched to R2.

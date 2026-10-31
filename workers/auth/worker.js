@@ -1,23 +1,22 @@
 /**
- * Artist Level Up V101 — isolated anonymous auth Worker prototype.
+ * Artist Level Up V101 — Cloudflare-native authentication and D1 API Worker.
  *
  * Required bindings/secrets:
  *   DB: D1 database binding
- *   SESSION_PEPPER: random secret stored as a Worker secret (never in source)
+ *   SESSION_PEPPER: random secret stored as a Worker secret (minimum 32 chars)
+ *   BOOTSTRAP_SECRET: one-time first-owner setup secret (minimum 32 chars)
  *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
  *
- * Routes:
- * *   POST /auth/anonymous  -> create anonymous identity + opaque session (prototype only)
- *   GET  /auth/session   -> validate bearer session
- *   POST /auth/logout    -> revoke bearer session
+ * Owner authentication:
+ *   POST /auth/register-admin -> one-time owner setup; seeds the existing owner profile,
+ *                               artist record, and verified content metadata.
+ *   POST /auth/login          -> email/password login with PBKDF2-SHA-256 password hashes.
+ *   GET  /auth/session        -> validate bearer session.
+ *   POST /auth/refresh        -> rotate session token.
+ *   POST /auth/logout         -> revoke session family.
  *
- * Bridge configuration: SUPABASE_URL and SUPABASE_ANON_KEY are Worker vars.
- *   GET/PUT /api/me/profile -> read/update the signed-in profile
- *   GET/POST /api/me/artist -> read/create the signed-in artist account
- *
- * This is not yet wired into V101. Add rate limiting and production origin
- * configuration before deployment. Do not expose D1 or service credentials
- * to browser code.
+ * Data APIs are only partially ported. Do not switch V101 or disable Supabase
+ * until every app data, media, admin, and payment flow has a tested Worker route.
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 

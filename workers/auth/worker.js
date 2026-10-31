@@ -303,6 +303,18 @@ async function withdrawalRoute(request, env, userId) {
   }, 201, cors);
 }
 
+async function adminCommissionRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "GET") return null;
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  const limit = Math.min(100, Math.max(1, Number(new URL(request.url).searchParams.get("limit") || 50)));
+  if (!Number.isInteger(limit)) return json({ error: "Invalid limit" }, 400, cors);
+  const rows = await env.DB.prepare(
+    "SELECT id, beat_title, producer_name, amount_ngn, status, platform_fee_percent, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT ?"
+  ).bind(limit).all();
+  return json({ orders: rows.results || [] }, 200, cors);
+}
+
 async function marketplaceRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
   if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
@@ -695,6 +707,14 @@ export default {
       }
       if (url.pathname === "/api/marketplace/beats") {
         const result = await marketplaceRoute(request, env, null, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/admin/marketplace/commissions") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await adminCommissionRoute(request, env, session);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
       }

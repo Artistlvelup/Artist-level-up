@@ -85,7 +85,8 @@ A fresh read-only query of the confirmed main owner account was used to prepare 
 - Song: 1 record, `Otunba Cash Money Angelina`; its audio URL points to the already verified R2 MP3.
 - Videos: 8 records. Two already point to the verified R2 video objects. **Six video files are still on Supabase Storage** and their existing public URLs are retained temporarily so their records are not lost. These six objects must be copied to R2 and their URLs updated before Supabase Storage can be shut down.
 - Picture posts: 3 records; all three point to the already verified R2 picture objects.
+- Profile avatar: its existing public URL is retained temporarily in the seeded profile; the avatar file itself still needs to be copied to R2.
 - The first-admin Worker batch now seeds the owner profile, artist, song, all 8 video records and all 3 picture records alongside the new password account and first session. It preserves the stable owner UUID so existing content relationships remain valid.
 - No remote D1 migration or Worker deployment has been performed. The source HTML still uses Supabase for app data, uploads, moderation, marketplace checkout and payment flows.
 
-This means the R2 content transfer is **not complete for videos**. Do not disconnect or pause Supabase until the six remaining video objects have been copied, tested, and their D1 URLs switched to R2.
+This means the R2 content transfer is **not complete**: six video objects and the profile avatar still depend on Supabase Storage. Do not disconnect or pause Supabase until all seven remaining objects have been copied, tested, and their D1 URLs switched to R2.

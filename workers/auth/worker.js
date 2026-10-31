@@ -576,6 +576,7 @@ async function registerFirstAdmin(request, env) {
   const userId = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
   const isoNow = new Date().toISOString();
+  const familyId = crypto.randomUUID();
 
   // D1 batch is transactional. Conditional inserts make the bootstrap one-time,
   // even if two setup requests arrive together.
@@ -594,21 +595,18 @@ async function registerFirstAdmin(request, env) {
     ).bind(userId, isoNow, userId),
     env.DB.prepare(
       "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) SELECT ?, user_id, ?, NULL FROM app_users WHERE user_id = ?"
-    ).bind(crypto.randomUUID(), now, userId)
+    ).bind(familyId, now, userId)
   ]);
   if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
     return json({ error: "OWNER_SETUP_ALREADY_USED" }, 409, cors);
   }
 
-  const familyId = await env.DB.prepare(
-    "SELECT family_id FROM app_session_families WHERE user_id = ? ORDER BY created_at DESC LIMIT 1"
-  ).bind(userId).first();
   const token = await newToken();
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
   const expiresAt = now + SESSION_TTL_SECONDS;
   await env.DB.prepare(
     "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
-  ).bind(tokenHash, userId, familyId.family_id, now, expiresAt).run();
+  ).bind(tokenHash, userId, familyId, now, expiresAt).run();
   return json({ userId, token, expiresAt, role: "admin" }, 201, cors);
 }
 

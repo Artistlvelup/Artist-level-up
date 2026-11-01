@@ -441,3 +441,28 @@ test("Supabase bridge rejects anonymous and unapproved identities", async () => 
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test("Supabase bridge rejects missing anonymous-status proof and malformed tokens", async () => {
+  const e = env();
+  const ownerId = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+  e.DB.legacyAdminIds.add(ownerId);
+  e.DB.profileIds.add(ownerId);
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ id: ownerId }), { status: 200 });
+    const missingFlag = await worker.fetch(post("/auth/bridge/supabase", {
+      access_token: "s".repeat(50)
+    }), e);
+    assert.equal(missingFlag.status, 403);
+    assert.equal(e.DB.sessions.size, 0);
+
+    const malformed = await worker.fetch(post("/auth/bridge/supabase", {
+      access_token: "not a valid token"
+    }), e);
+    assert.equal(malformed.status, 400);
+    assert.equal(e.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

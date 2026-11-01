@@ -18,7 +18,7 @@
  * data, media, admin, and payment flow has a tested Worker route.
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
-const LEGACY_OWNER_USER_ID = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+const LEGACY_OWNER_USER_ID = ""; // No legacy/test account is authorized for Cloudflare identity migration.
 
 function allowedOrigins(env) {
   return new Set(String(env.ALLOWED_ORIGINS || "")

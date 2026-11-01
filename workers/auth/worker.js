@@ -726,7 +726,7 @@ async function bridgeSupabaseSession(request, env) {
   }
   if (!existing) {
     await env.DB.prepare(
-      "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at, role) SELECT ?, 0, 'active', ?, ?, 'artist' WHERE EXISTS (SELECT 1 FROM platform_admins WHERE user_id = ? AND active = 1) AND EXISTS (SELECT 1 FROM profiles WHERE id = ?) ON CONFLICT(user_id) DO NOTHING"
+      "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at) SELECT ?, 0, 'active', ?, ? WHERE EXISTS (SELECT 1 FROM platform_admins WHERE user_id = ? AND active = 1) AND EXISTS (SELECT 1 FROM profiles WHERE id = ?) ON CONFLICT(user_id) DO NOTHING"
     ).bind(LEGACY_OWNER_USER_ID, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000), LEGACY_OWNER_USER_ID, LEGACY_OWNER_USER_ID).run();
   }
   const verifiedD1User = await env.DB.prepare(

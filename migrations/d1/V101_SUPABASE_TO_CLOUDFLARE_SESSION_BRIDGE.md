@@ -1,6 +1,6 @@
 # V101 Supabase-to-Cloudflare Session Bridge Design
 
-Status: architecture proposal only. No Worker code, V101 HTML, live Supabase, D1, or deployed service has been changed.
+Status: design reference with an implemented migration-branch prototype. The Worker bridge and V101 owner-admin unlock are implemented on `migration/d1-v101-prep`; the Worker preview is deployed to workers.dev. Production V101 and remote D1 remain unchanged.
 Branch: `migration/d1-v101-prep`.
 
 ## Decision
@@ -15,9 +15,9 @@ This preserves account identity and avoids treating every app open as a fresh an
 - Startup reads the cached session, validates the access token using `auth.getUser(access_token)`, and creates an anonymous Supabase identity only if no valid session exists.
 - The UUID is retained in `window.ALU_CLOUD.userId`.
 - There is no inspected email/password sign-up or password-login call in this HTML snapshot.
-- The current Worker prototype instead has `POST /auth/anonymous`, which creates a new UUID, and 30-day bearer sessions. It has no Supabase session exchange endpoint and must not be used as the cutover flow for existing users.
+- The Worker now has `POST /auth/bridge/supabase`. It verifies the current access token against the configured Supabase Auth `/auth/v1/user` endpoint, allows only the exact verified owner UUID and active D1 admin mapping, and issues a 30-day opaque bearer session. The migration HTML keeps that Worker token in memory only and revokes it on owner logout. It does not persist the Cloudflare token in localStorage or IndexedDB.
 
-## Proposed one-time bridge
+## Implemented one-time bridge (migration branch)
 
 ### 1. Client keeps current Supabase session alive
 
@@ -122,6 +122,6 @@ Fallback only if a same-site HttpOnly cookie cannot be provided:
 - Supabase project auth configuration/signing algorithm and endpoint behavior must be verified in a test exchange. Never hardcode an assumed JWT signing algorithm.
 - Session lifetime, multi-device session management UI, and account recovery policy require product approval.
 
-## No-change boundary
+## Current boundary
 
-This is an architecture proposal only. No live users were migrated, no D1 SQL was applied, no Worker was deployed, no Supabase session was revoked, and no V101 HTML was edited.
+The branch Worker has been deployed to its workers.dev preview by the branch workflow. The V101 HTML change remains on `migration/d1-v101-prep`; it has not been published to the live Render website. No remote D1 migration was applied, no Supabase account or session was deleted/revoked by this work, and no media was transferred. The bridge will fail closed until `SUPABASE_URL`, `SUPABASE_ANON_KEY`, the exact allowed origin, and migration `0005_verified_owner_identity.sql` are present in the Worker/D1 environment. Full app data, media, payment and admin-action cutover remains incomplete.

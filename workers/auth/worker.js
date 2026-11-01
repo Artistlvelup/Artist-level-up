@@ -414,6 +414,118 @@ async function marketplaceRoute(request, env, userId, url) {
 }
 
 
+const VIDEO_SOCIAL_FIELDS = ["tiktok_url", "instagram_url", "facebook_url", "youtube_url"];
+
+function trustedR2ObjectUrl(value, env, artistId, folder) {
+  const base = String(env.R2_PUBLIC_BASE_URL || "").replace(/\\/$/, "");
+  if (!base || !/^https:\\/\\//i.test(base)) return false;
+  let candidate, root;
+  try { candidate = new URL(value); root = new URL(base); } catch { return false; }
+  if (candidate.origin !== root.origin || candidate.username || candidate.password || candidate.search || candidate.hash) return false;
+  const prefix = root.pathname.replace(/\\/$/, "") + "/" + artistId + "/" + folder + "/";
+  return candidate.pathname.startsWith(prefix) && candidate.pathname.length > prefix.length;
+}
+
+function safeSocialUrl(value) {
+  if (value == null || value === "") return null;
+  const clean = cleanText(value, 2048);
+  try {
+    const parsed = new URL(clean);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password ? parsed.toString() : null;
+  } catch { return null; }
+}
+
+async function myVideosRoute(request, env, userId, url) {
+  const cors = corsHeaders(request, env);
+  const artist = await env.DB.prepare(
+    "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
+  ).bind(userId).first();
+  if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+
+  if (url.pathname === "/api/me/videos" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE artist_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(artist.id).all();
+    return json({ videos: rows.results || [] }, 200, cors);
+  }
+
+  if (url.pathname === "/api/me/videos" && request.method === "POST") {
+    const body = await readJson(request);
+    const title = cleanText(body.title, 160, true);
+    const description = cleanText(body.description, 2000);
+    const videoUrl = cleanText(body.video_url, 2048, true);
+    if (!trustedR2ObjectUrl(videoUrl, env, artist.id, "videos")) {
+      return json({ error: "VIDEO_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    }
+    const thumbnailUrl = body.thumbnail_url == null || body.thumbnail_url === ""
+      ? null : cleanText(body.thumbnail_url, 2048);
+    if (thumbnailUrl && !trustedR2ObjectUrl(thumbnailUrl, env, artist.id, "thumbnails")) {
+      return json({ error: "THUMBNAIL_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    }
+    const socials = {};
+    for (const field of VIDEO_SOCIAL_FIELDS) {
+      const raw = body[field] == null ? null : cleanText(body[field], 2048);
+      const parsed = raw == null ? null : safeSocialUrl(raw);
+      if (raw && !parsed) return json({ error: "INVALID_SOCIAL_URL", field }, 400, cors);
+      socials[field] = parsed;
+    }
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO artist_videos (id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, 0, 0, ?)"
+    ).bind(id, artist.id, title, description, videoUrl, thumbnailUrl, socials.tiktok_url, socials.instagram_url, socials.facebook_url, socials.youtube_url, now).run();
+    const video = await env.DB.prepare(
+      "SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE id = ? AND artist_id = ? LIMIT 1"
+    ).bind(id, artist.id).first();
+    return json({ video }, 201, cors);
+  }
+
+  const match = /^\\/api\\/me\\/videos\\/([0-9a-f-]{36})$/i.exec(url.pathname);
+  if (!match) return null;
+  const videoId = match[1];
+  const existing = await env.DB.prepare(
+    "SELECT id FROM artist_videos WHERE id = ? AND artist_id = ? LIMIT 1"
+  ).bind(videoId, artist.id).first();
+  if (!existing) return json({ error: "Video not found" }, 404, cors);
+
+  if (request.method === "PATCH") {
+    const body = await readJson(request);
+    const fields = [], values = [];
+    if (Object.hasOwn(body, "title")) { fields.push("title = ?"); values.push(cleanText(body.title, 160, true)); }
+    if (Object.hasOwn(body, "description")) { fields.push("description = ?"); values.push(cleanText(body.description, 2000)); }
+    if (Object.hasOwn(body, "thumbnail_url")) {
+      const value = body.thumbnail_url == null || body.thumbnail_url === "" ? null : cleanText(body.thumbnail_url, 2048);
+      if (value && !trustedR2ObjectUrl(value, env, artist.id, "thumbnails")) {
+        return json({ error: "THUMBNAIL_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+      }
+      fields.push("thumbnail_url = ?"); values.push(value);
+    }
+    for (const field of VIDEO_SOCIAL_FIELDS) {
+      if (!Object.hasOwn(body, field)) continue;
+      const raw = body[field] == null ? null : cleanText(body[field], 2048);
+      const parsed = raw == null ? null : safeSocialUrl(raw);
+      if (raw && !parsed) return json({ error: "INVALID_SOCIAL_URL", field }, 400, cors);
+      fields.push(field + " = ?"); values.push(parsed);
+    }
+    if (!fields.length) return json({ error: "No editable fields supplied" }, 400, cors);
+    values.push(videoId, artist.id);
+    await env.DB.prepare(
+      "UPDATE artist_videos SET " + fields.join(", ") + " WHERE id = ? AND artist_id = ?"
+    ).bind(...values).run();
+    const video = await env.DB.prepare(
+      "SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE id = ? AND artist_id = ? LIMIT 1"
+    ).bind(videoId, artist.id).first();
+    return json({ video }, 200, cors);
+  }
+
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM artist_videos WHERE id = ? AND artist_id = ?").bind(videoId, artist.id).run();
+    return json({ success: true, id: videoId, record_deleted: true, media_object_deleted: false }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+
+
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024;
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/x-m4v"]);
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -824,6 +936,14 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await marketplaceRoute(request, env, session.user_id, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/videos" || url.pathname.startsWith("/api/me/videos/")) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await myVideosRoute(request, env, session.user_id, url);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
       }

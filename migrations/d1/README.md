@@ -55,6 +55,6 @@ Required Worker configuration for this bridge:
 - `ALLOWED_ORIGINS`: exact browser origins that use the migration HTML.
 - `DB`: D1 binding with the verified owner profile and active admin mapping.
 
-The verified identity SQL is local migration `0006_verified_owner_identity.sql`. It has **not** been applied to remote D1. The bridge will correctly fail closed until the required environment values are configured and that migration is separately reviewed and applied with explicit approval.
+The verified identity SQL is local migration `0005_verified_owner_identity.sql`. It has **not** been applied to remote D1. The bridge will correctly fail closed until the required environment values are configured and that migration is separately reviewed and applied with explicit approval.
 
 The Worker deploy workflow runs automatically for pushes to this migration branch and deploys the Worker only; it does not apply D1 migrations or publish the V101 website. The D1 workflow validates migrations and tests locally only. Keep the live V101 website and existing Supabase account unchanged until end-to-end tests pass and the owner explicitly approves cutover.

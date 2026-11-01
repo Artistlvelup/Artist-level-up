@@ -417,12 +417,12 @@ async function marketplaceRoute(request, env, userId, url) {
 const VIDEO_SOCIAL_FIELDS = ["tiktok_url", "instagram_url", "facebook_url", "youtube_url"];
 
 function trustedR2ObjectUrl(value, env, artistId, folder) {
-  const base = String(env.R2_PUBLIC_BASE_URL || "").replace(/\\/$/, "");
-  if (!base || !/^https:\\/\\//i.test(base)) return false;
+  const base = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  if (!base || !/^https:\/\//i.test(base)) return false;
   let candidate, root;
   try { candidate = new URL(value); root = new URL(base); } catch { return false; }
   if (candidate.origin !== root.origin || candidate.username || candidate.password || candidate.search || candidate.hash) return false;
-  const prefix = root.pathname.replace(/\\/$/, "") + "/" + artistId + "/" + folder + "/";
+  const prefix = root.pathname.replace(/\/$/, "") + "/" + artistId + "/" + folder + "/";
   return candidate.pathname.startsWith(prefix) && candidate.pathname.length > prefix.length;
 }
 
@@ -480,7 +480,7 @@ async function myVideosRoute(request, env, userId, url) {
     return json({ video }, 201, cors);
   }
 
-  const match = /^\\/api\\/me\\/videos\\/([0-9a-f-]{36})$/i.exec(url.pathname);
+  const match = /^\/api\/me\/videos\/([0-9a-f-]{36})$/i.exec(url.pathname);
   if (!match) return null;
   const videoId = match[1];
   const existing = await env.DB.prepare(

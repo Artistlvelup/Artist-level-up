@@ -12,6 +12,8 @@ class AuthD1 {
   families = new Map();
   sessions = new Map();
   attempts = new Map();
+  legacyAdminIds = new Set();
+  profileIds = new Set();
   withdrawals = [];
   bootstrapClaimedAt = null;
   batchStatements = [];
@@ -24,6 +26,14 @@ class AuthD1 {
       bind(...values) { this.values = values; return this; },
       async first() {
         if (sql.includes("FROM auth_bootstrap_state")) return { claimed_at: db.bootstrapClaimedAt };
+        if (sql.includes("FROM platform_admins pa JOIN profiles")) {
+          const [userId] = this.values;
+          return db.legacyAdminIds.has(userId) && db.profileIds.has(userId) ? { user_id: userId } : null;
+        }
+        if (sql.includes("FROM app_users WHERE user_id =")) {
+          const [userId] = this.values;
+          return db.users.get(userId) || null;
+        }
         if (sql.includes("FROM app_users WHERE email =")) {
           const [email] = this.values;
           return [...db.users.values()].find(x => x.email === email && x.is_anonymous === 0) || null;
@@ -62,6 +72,15 @@ class AuthD1 {
         throw new Error("Unexpected all SQL: " + sql);
       },
       async run() {
+        if (sql.includes("INSERT INTO app_users") && sql.includes("SELECT ?, 0, 'active'")) {
+          const [userId, createdAt, updatedAt, adminId, profileId] = this.values;
+          if (!db.legacyAdminIds.has(adminId) || !db.profileIds.has(profileId)) return { success: true, meta: { changes: 0 } };
+          if (!db.users.has(userId)) db.users.set(userId, {
+            user_id: userId, is_anonymous: 0, status: "active", created_at: createdAt,
+            updated_at: updatedAt, role: "artist", email: null
+          });
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("UPDATE songs SET status = ?, updated_at = ? WHERE id = ?")) {
           return { success: true, meta: { changes: 1 } };
         }
@@ -128,7 +147,9 @@ function env() {
     DB: new AuthD1(),
     SESSION_PEPPER: "test-session-pepper-at-least-thirty-two-characters",
     BOOTSTRAP_SECRET: "test-bootstrap-secret-at-least-thirty-two-characters",
-    ALLOWED_ORIGINS: "https://artistlevelup.com.ng"
+    ALLOWED_ORIGINS: "https://artistlevelup.com.ng",
+    SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_ANON_KEY: "test-publishable-key"
   };
 }
 function post(path, body) {
@@ -356,4 +377,62 @@ test("admin can list and moderate songs; non-admin cannot", async () => {
 
   const denied = await worker.fetch(new Request("https://worker.example/api/admin/songs"), e);
   assert.equal(denied.status, 401);
+});
+
+
+test("Supabase bridge links only the verified existing owner and creates a D1 session without seeding content", async () => {
+  const e = env();
+  const ownerId = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+  e.DB.legacyAdminIds.add(ownerId);
+  e.DB.profileIds.add(ownerId);
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  try {
+    globalThis.fetch = async (url, options) => {
+      requestedUrl = String(url);
+      assert.equal(options.headers.apikey, e.SUPABASE_ANON_KEY);
+      assert.equal(options.headers.Authorization, "Bearer " + "s".repeat(50));
+      return new Response(JSON.stringify({ id: ownerId, is_anonymous: false }), {
+        status: 200, headers: { "Content-Type": "application/json" }
+      });
+    };
+    const response = await worker.fetch(post("/auth/bridge/supabase", {
+      access_token: "s".repeat(50), user_id: "attacker-id", role: "admin"
+    }), e);
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.userId, ownerId);
+    assert.equal(result.role, "admin");
+    assert.match(result.token, /^[A-Za-z0-9_-]{40,}$/);
+    assert.equal(requestedUrl, e.SUPABASE_URL + "/auth/v1/user");
+    assert.equal(e.DB.users.get(ownerId).is_anonymous, 0);
+    assert.equal(e.DB.users.get(ownerId).role, "artist");
+    assert.equal(e.DB.sessions.size, 1);
+    assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO artist_videos")), false);
+    assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO songs")), false);
+    assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO picture_posts")), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Supabase bridge rejects anonymous and unapproved identities", async () => {
+  const e = env();
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      id: "d6eaf421-fcad-44ec-beb0-d6a7f676db8a", is_anonymous: true
+    }), { status: 200 });
+    const anonymous = await worker.fetch(post("/auth/bridge/supabase", { access_token: "s".repeat(50) }), e);
+    assert.equal(anonymous.status, 403);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      id: "00000000-0000-4000-8000-000000000000", is_anonymous: false
+    }), { status: 200 });
+    const unknown = await worker.fetch(post("/auth/bridge/supabase", { access_token: "s".repeat(50) }), e);
+    assert.equal(unknown.status, 403);
+    assert.equal(e.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

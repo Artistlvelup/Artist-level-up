@@ -267,6 +267,23 @@ test("creates an anonymous identity and returns a usable opaque session", async 
   assert.equal(response.headers.get("Cache-Control"), "no-store");
 });
 
+test("anonymous artist sessions cannot access any protected admin API", async () => {
+  const env = setup();
+  const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
+  assert.equal(created.status, 201);
+  const session = await created.json();
+  const headers = { Authorization: "Bearer " + session.token };
+  for (const path of [
+    "/api/admin/songs",
+    "/api/admin/videos",
+    "/api/admin/withdrawals",
+    "/api/admin/marketplace/commissions"
+  ]) {
+    const response = await worker.fetch(request(path, "GET", headers), env);
+    assert.equal(response.status, 403, path + " must reject an anonymous artist session");
+  }
+});
+
 test("validates a created session and rejects it after logout", async () => {
   const env = setup();
   const created = await worker.fetch(request("/auth/anonymous", "POST"), env);

@@ -42,15 +42,19 @@ Required Worker settings for the bridge:
 
 The V101 browser has not yet been wired to call the bridge. This is bearer-token prototype behavior; secure browser persistence (preferably same-site HttpOnly cookies), CSRF protections, deployment settings, and end-to-end testing on the final hostname remain open. Keep Supabase live. Do not deploy, apply remote D1 migrations, edit the live V101 HTML, or switch over until those remaining steps are reviewed and explicitly approved.
 
-The earlier description of a `POST /auth/bridge/supabase` prototype was inaccurate. A fresh inspection of `workers/auth/worker.js` on this branch confirms that **the route and server-side Supabase token verification function are absent**. Do not call or rely on that endpoint yet.
+## Current owner-session bridge status
 
-The Worker currently exposes a separate native-auth prototype:
-- `POST /auth/register-admin` creates a password-based admin using the preserved owner UUID, claims the one-time bootstrap state, and seeds profile, artist, song, video, and picture rows.
-- `POST /auth/login` authenticates that newly-created password account.
-- `POST /auth/anonymous` creates a new anonymous UUID.
+The Worker source on this branch **does include** `POST /auth/bridge/supabase`. It accepts only a current Supabase access token, verifies it server-to-server against the configured Supabase Auth `/auth/v1/user` endpoint, allows only the exact previously verified owner UUID, and requires the matching active `platform_admins` mapping plus the imported owner profile in D1. It then issues a hashed-token Cloudflare session. Browser-supplied user IDs, email addresses, roles, and admin flags are not trusted.
 
-These routes are **not** a safe bridge for the existing Supabase account. In particular, do not run `/auth/register-admin` as a workaround: it creates new D1 identity/password state and attempts to seed content records. The owner-only Supabase bridge must first verify the existing access token with the configured Supabase Auth `/auth/v1/user` endpoint, allow only the exact pre-approved owner UUID, reject anonymous/unknown identities, and preserve existing IDs without reseeding or overwriting business records.
+The V101 migration HTML now requests this verification before opening the owner admin view. The returned Cloudflare bearer token is kept in memory only and revoked when the owner logs out. The old browser PIN and public `openOwnerAdmin()` shortcut no longer grant admin access. This is a migration-branch change, not a live-site cutover.
 
-Read-only verification on 2026-11-01 confirmed that the selected Supabase Auth user exists, is non-anonymous, is not deleted or banned; the matching profile and artist rows exist; and the matching `platform_admins` row is active. The profile's `role` column is `artist`, so Worker authorization must rely on the verified active `platform_admins` record (or an equally trusted server-side mapping), not a client claim or the profile role.
+Required Worker configuration for this bridge:
+- `SUPABASE_URL`: existing Supabase project URL (Variable).
+- `SUPABASE_ANON_KEY`: existing Supabase publishable/anon key (Secret).
+- `SESSION_PEPPER`: private Worker secret, at least 32 characters.
+- `ALLOWED_ORIGINS`: exact browser origins that use the migration HTML.
+- `DB`: D1 binding with the verified owner profile and active admin mapping.
 
-Migration 0004 provides per-login session families and token rotation. That mechanism is separate from the missing Supabase exchange route. Secure browser persistence (preferably a same-site HttpOnly cookie), CSRF protection, bridge tests, and the final app hostname decision remain open. Keep Supabase live; do not deploy, apply remote D1 migrations, edit the live V101 HTML, or switch over yet.
+The verified identity SQL is local migration `0006_verified_owner_identity.sql`. It has **not** been applied to remote D1. The bridge will correctly fail closed until the required environment values are configured and that migration is separately reviewed and applied with explicit approval.
+
+The Worker deploy workflow runs automatically for pushes to this migration branch and deploys the Worker only; it does not apply D1 migrations or publish the V101 website. The D1 workflow validates migrations and tests locally only. Keep the live V101 website and existing Supabase account unchanged until end-to-end tests pass and the owner explicitly approves cutover.

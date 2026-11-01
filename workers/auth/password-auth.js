@@ -14,7 +14,7 @@ function response(data, status, cors) {
 function encode(bytes) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function decode(value) {
@@ -33,6 +33,12 @@ async function derivePassword(password, salt, iterations = PASSWORD_ITERATIONS) 
   return encode(new Uint8Array(bits));
 }
 
+function requirePepper(env) {
+  const pepper = String(env.SESSION_PEPPER || "");
+  if (pepper.length < 32) throw new Error("SESSION_PEPPER_NOT_CONFIGURED");
+  return pepper;
+}
+
 async function hashToken(token, pepper) {
   const digest = await crypto.subtle.digest(
     "SHA-256", new TextEncoder().encode(pepper + ":" + token)
@@ -42,12 +48,12 @@ async function hashToken(token, pepper) {
 
 function validEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
-    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value);
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function validPassword(value) {
   return typeof value === "string" && value.length >= 12 &&
-    value.length <= 128 && !/[\\u0000-\\u001f\\u007f]/.test(value);
+    value.length <= 128 && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
 async function readBody(request) {
@@ -85,10 +91,10 @@ async function sendVerificationEmail(env, email, token) {
   const apiKey = String(env.RESEND_API_KEY || "");
   const from = String(env.AUTH_EMAIL_FROM || "");
   const appUrl = String(env.APP_PUBLIC_URL || "");
-  if (!apiKey || !from || !/^https:\\/\\//i.test(appUrl)) {
+  if (!apiKey || !from || !/^https:\/\//i.test(appUrl)) {
     throw new Error("EMAIL_DELIVERY_NOT_CONFIGURED");
   }
-  const verifyUrl = appUrl.replace(/\\/$/, "") + "/?auth_verify=" + encodeURIComponent(token);
+  const verifyUrl = appUrl.replace(/\/$/, "") + "/?auth_verify=" + encodeURIComponent(token);
   const result = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
@@ -131,7 +137,7 @@ export async function registerPasswordAccount(request, env, cors) {
   const saltText = encode(salt);
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
   const token = encode(tokenBytes);
-  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const tokenHash = await hashToken(token, requirePepper(env));
   const expiresAt = now + VERIFY_TTL_SECONDS;
 
   try {
@@ -156,6 +162,32 @@ export async function registerPasswordAccount(request, env, cors) {
   return response({ ok: true, verificationRequired: true }, 202, cors);
 }
 
+export async function resendPasswordVerification(request, env, cors) {
+  const body = await readBody(request);
+  if (!body) return response({ error: "INVALID_JSON" }, 400, cors);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!validEmail(email)) return response({ ok: true, message: "If the account needs verification, an email will be sent." }, 202, cors);
+  const now = Math.floor(Date.now() / 1000);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await rateAllowed(env, "resend:ip:" + ip, now)) || !(await rateAllowed(env, "resend:email:" + email, now))) {
+    return response({ error: "Too many attempts. Please try again later." }, 429, cors);
+  }
+  const row = await env.DB.prepare(
+    "SELECT c.user_id FROM app_credentials c JOIN app_users u ON u.user_id = c.user_id WHERE c.email_normalized = ? AND c.email_verified_at IS NULL AND u.status = 'active' AND u.is_anonymous = 0 LIMIT 1"
+  ).bind(email).first();
+  if (row) {
+    const token = encode(crypto.getRandomValues(new Uint8Array(32)));
+    const tokenHash = await hashToken(token, requirePepper(env));
+    await env.DB.batch([
+      env.DB.prepare("UPDATE app_email_verification_tokens SET consumed_at = ? WHERE user_id = ? AND consumed_at IS NULL").bind(now, row.user_id),
+      env.DB.prepare("INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)").bind(tokenHash, row.user_id, email, now, now + VERIFY_TTL_SECONDS)
+    ]);
+    try { await sendVerificationEmail(env, email, token); }
+    catch (error) { console.error("V101 resend verification error", error?.message || error); }
+  }
+  return response({ ok: true, message: "If the account needs verification, an email will be sent." }, 202, cors);
+}
+
 export async function verifyPasswordAccount(request, env, cors) {
   const body = await readBody(request);
   const token = typeof body?.token === "string" ? body.token : "";
@@ -163,7 +195,7 @@ export async function verifyPasswordAccount(request, env, cors) {
     return response({ error: "Invalid or expired verification link." }, 400, cors);
   }
   const now = Math.floor(Date.now() / 1000);
-  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const tokenHash = await hashToken(token, requirePepper(env));
   const row = await env.DB.prepare(
     "SELECT user_id FROM app_email_verification_tokens WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ? LIMIT 1"
   ).bind(tokenHash, now).first();

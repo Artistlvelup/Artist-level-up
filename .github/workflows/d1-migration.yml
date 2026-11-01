@@ -30,8 +30,8 @@ jobs:
           db = sqlite3.connect(":memory:")
           db.execute("PRAGMA foreign_keys = ON")
           migrations = sorted(Path("migrations/d1").glob("[0-9][0-9][0-9][0-9]_*.sql"))
-          if len(migrations) != 5:
-              raise SystemExit(f"Expected 5 numbered migrations, found {len(migrations)}")
+          if len(migrations) != 6:
+              raise SystemExit(f"Expected 6 numbered migrations, found {len(migrations)}")
 
           for migration in migrations:
               if migration.name == "0003_move_published_song_to_r2.sql":
@@ -67,7 +67,29 @@ jobs:
               raise SystemExit(f"Foreign-key violations: {violations}")
           if tables != 32:
               raise SystemExit(f"Expected 32 tables, found {tables}")
-          print(f"Validated {len(migrations)} migrations, {tables} tables; no foreign-key violations.")
+
+          owner_id = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a"
+          artist_id = "2b2a5bf6-9673-42a1-a33a-d40dab98ad44"
+          owner = db.execute(
+              "SELECT id, display_name, avatar_url, role FROM profiles"
+          ).fetchall()
+          artists = db.execute(
+              "SELECT id, user_id, artist_name, status, suspended FROM artists"
+          ).fetchall()
+          admins = db.execute(
+              "SELECT user_id, active FROM platform_admins"
+          ).fetchall()
+          if owner != [(owner_id, "Solo_vibez", None, "artist")]:
+              raise SystemExit(f"Unexpected profile import: {owner}")
+          if artists != [(artist_id, owner_id, "Solo_vibez", "pending", 0)]:
+              raise SystemExit(f"Unexpected artist import: {artists}")
+          if admins != [(owner_id, 1)]:
+              raise SystemExit(f"Unexpected admin import: {admins}")
+          if db.execute("SELECT count(*) FROM artist_videos").fetchone()[0] != 0:
+              raise SystemExit("Identity migration must not seed video metadata.")
+          if db.execute("SELECT count(*) FROM picture_posts").fetchone()[0] != 0:
+              raise SystemExit("Identity migration must not seed picture posts.")
+          print(f"Validated {len(migrations)} migrations, {tables} tables, and exactly one owner identity; no foreign-key violations.")
           PY
 
       - name: Check auth Worker JavaScript syntax

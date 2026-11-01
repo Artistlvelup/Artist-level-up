@@ -1,4 +1,5 @@
 name = "artist-level-up-v101"
+main = "workers/auth/worker.js"
 compatibility_date = "2026-10-29"
 
 [[d1_databases]]

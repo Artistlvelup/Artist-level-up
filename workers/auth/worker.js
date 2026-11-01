@@ -911,7 +911,7 @@ export default {
       if (url.pathname === "/auth/session" && request.method === "GET") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
-        return json({ userId: session.user_id, expiresAt: session.expires_at }, 200, cors);
+        return json({ userId: session.user_id, expiresAt: session.expires_at, role: session.role }, 200, cors);
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {

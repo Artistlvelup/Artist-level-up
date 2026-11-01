@@ -825,7 +825,7 @@ async function bridgeSupabaseSession(request, env) {
 
   // Only the exact pre-approved, existing owner identity can cross this bridge.
   // Do not accept a user ID, role, email, or admin flag supplied by the browser.
-  if (!legacyUser || legacyUser.id !== LEGACY_OWNER_USER_ID || legacyUser.is_anonymous === true) {
+  if (!legacyUser || legacyUser.id !== LEGACY_OWNER_USER_ID || legacyUser.is_anonymous !== false) {
     return json({ error: "This Supabase identity is not authorized for V101 migration" }, 403, cors);
   }
 

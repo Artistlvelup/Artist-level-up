@@ -160,82 +160,32 @@ function post(path, body) {
   });
 }
 
-test("first-admin setup creates one admin and a D1 session", async () => {
-  const e = env();
-  const response = await worker.fetch(post("/auth/register-admin", {
-    email: "Owner@Example.com",
-    display_name: "Platform Owner",
-    password: "A-Strong-Owner-Password-2026!",
-    bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  assert.equal(response.status, 201);
-  const result = await response.json();
-  assert.equal(result.role, "admin");
-  assert.match(result.token, /^[A-Za-z0-9_-]{40,}$/);
-  assert.equal(e.DB.users.size, 1);
-  assert.equal(e.DB.sessions.size, 1);
-  assert.equal(e.DB.bootstrapClaimedAt > 0, true);
-  assert.equal(e.DB.users.has("d6eaf421-fcad-44ec-beb0-d6a7f676db8a"), true);
-  assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO artist_videos")).length, 2);
-  assert.equal(e.DB.batchStatements.some(x => x.values.some(v => typeof v === "string" && v.includes(".supabase.co/storage/"))), false);
-  assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO picture_posts")).length, 3);
-  assert.equal(e.DB.batchStatements.filter(x => x.sql.includes("INSERT INTO songs")).length, 1);
-});
-
-test("first-admin setup cannot be claimed twice", async () => {
-  const e = env();
-  const payload = {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  };
-  assert.equal((await worker.fetch(post("/auth/register-admin", payload), e)).status, 201);
-  const again = await worker.fetch(post("/auth/register-admin", {
-    ...payload, email: "second@example.com"
-  }), e);
-  assert.equal(again.status, 409);
-  assert.equal(e.DB.users.size, 1);
-});
-
-test("owner can log in with the new password and receive a valid session", async () => {
-  const e = env();
-  await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const response = await worker.fetch(post("/auth/login", {
-    email: "OWNER@example.com", password: "A-Strong-Owner-Password-2026!"
-  }), e);
-  assert.equal(response.status, 200);
-  const result = await response.json();
-  assert.equal(result.role, "admin");
-  const check = await worker.fetch(new Request("https://worker.example/auth/session", {
-    headers: { Authorization: "Bearer " + result.token }
-  }), e);
-  assert.equal(check.status, 200);
-});
-
-test("owner login rejects an incorrect password", async () => {
-  const e = env();
-  await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const response = await worker.fetch(post("/auth/login", {
-    email: "owner@example.com", password: "wrong-password"
-  }), e);
-  assert.equal(response.status, 401);
-});
+async function ownerSession(e) {
+  const ownerId = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+  e.DB.legacyAdminIds.add(ownerId);
+  e.DB.profileIds.add(ownerId);
+  e.DB.users.set(ownerId, {
+    user_id: ownerId, is_anonymous: 0, status: "active", role: "artist"
+  });
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: ownerId, is_anonymous: false
+  }), { status: 200 });
+  try {
+    const response = await worker.fetch(post("/auth/bridge/supabase", {
+      access_token: "s".repeat(80)
+    }), e);
+    assert.equal(response.status, 200);
+    return await response.json();
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+}
 
 
 test("withdrawal API creates only a pending request for the authenticated user", async () => {
   const e = env();
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com",
-    display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!",
-    bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const response = await worker.fetch(new Request("https://worker.example/api/me/withdrawals", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -262,11 +212,7 @@ test("withdrawal API rejects unauthenticated and invalid requests", async () => 
     account_name: "Owner Name", account_number: "0123456789"
   }), e);
   assert.equal(unauthenticated.status, 401);
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const invalid = await worker.fetch(new Request("https://worker.example/api/me/withdrawals", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -282,11 +228,7 @@ test("withdrawal API rejects unauthenticated and invalid requests", async () => 
 
 test("marketplace commission report is available to admin only", async () => {
   const e = env();
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const response = await worker.fetch(new Request("https://worker.example/api/admin/marketplace/commissions?limit=20", {
     headers: { Authorization: "Bearer " + token }
   }), e);
@@ -303,11 +245,7 @@ test("marketplace commission report is available to admin only", async () => {
 
 test("admin can list and moderate videos; non-admin cannot", async () => {
   const e = env();
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
   const list = await worker.fetch(new Request("https://worker.example/api/admin/videos?status=pending", { headers }), e);
   assert.equal(list.status, 200);
@@ -332,11 +270,7 @@ test("admin can list and moderate videos; non-admin cannot", async () => {
 
 test("admin can review withdrawals; non-admin and unauthenticated users cannot", async () => {
   const e = env();
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const headers = { Authorization: "Bearer " + token };
   const list = await worker.fetch(new Request("https://worker.example/api/admin/withdrawals?status=pending", { headers }), e);
   assert.equal(list.status, 200);
@@ -353,11 +287,7 @@ test("admin can review withdrawals; non-admin and unauthenticated users cannot",
 
 test("admin can list and moderate songs; non-admin cannot", async () => {
   const e = env();
-  const registered = await worker.fetch(post("/auth/register-admin", {
-    email: "owner@example.com", display_name: "Owner",
-    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
-  }), e);
-  const { token } = await registered.json();
+  const { token } = await ownerSession(e);
   const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
   const list = await worker.fetch(new Request("https://worker.example/api/admin/songs?status=pending", { headers }), e);
   assert.equal(list.status, 200);

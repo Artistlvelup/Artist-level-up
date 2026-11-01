@@ -152,67 +152,13 @@ const request = (path, method = "GET", headers = {}) =>
   new Request("https://auth.example.test" + path, { method, headers });
 
 
-const OWNER_ID = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
 const ownerBridgeRequest = token => new Request("https://auth.example.test/auth/bridge/supabase", {
   method: "POST",
   headers: { Origin: "https://artistlevelup.com.ng", "Content-Type": "application/json" },
   body: JSON.stringify({ access_token: token })
 });
 
-test("bridges only the existing verified non-anonymous owner and issues an admin session", async () => {
-  const env = setup();
-  env.DB.ownerAdminMapped = true;
-  env.DB.ownerProfileExists = true;
-  env.DB.users.set(OWNER_ID, { status: "active", is_anonymous: 0 });
-  const previousFetch = globalThis.fetch;
-  globalThis.fetch = async (url, options) => {
-    assert.equal(url, "https://project.supabase.co/auth/v1/user");
-    assert.equal(options.headers.Authorization, "Bearer " + "s".repeat(80));
-    assert.equal(options.headers.apikey, "test-supabase-anon-key");
-    return new Response(JSON.stringify({ id: OWNER_ID, is_anonymous: false }), { status: 200 });
-  };
-  try {
-    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
-    assert.equal(response.status, 200);
-    const body = await response.json();
-    assert.equal(body.userId, OWNER_ID);
-    assert.equal(body.role, "admin");
-    assert.match(body.token, /^[A-Za-z0-9_-]{40,}$/);
-    const check = await worker.fetch(request("/auth/session", "GET", {
-      Authorization: "Bearer " + body.token
-    }), env);
-    assert.equal(check.status, 200);
-    assert.equal((await check.json()).role, "admin");
-  } finally {
-    globalThis.fetch = previousFetch;
-  }
-});
-
-
-test("bridge creates only the existing owner identity row when the D1 mapping is present", async () => {
-  const env = setup();
-  env.DB.ownerAdminMapped = true;
-  env.DB.ownerProfileExists = true;
-  const previousFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    id: OWNER_ID, is_anonymous: false
-  }), { status: 200 });
-  try {
-    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
-    assert.equal(response.status, 200);
-    assert.deepEqual(env.DB.users.get(OWNER_ID), {
-      status: "active", is_anonymous: 0,
-      created_at: env.DB.users.get(OWNER_ID).created_at,
-      updated_at: env.DB.users.get(OWNER_ID).updated_at
-    });
-    assert.equal(env.DB.users.size, 1);
-    assert.equal(env.DB.sessions.size, 1);
-  } finally {
-    globalThis.fetch = previousFetch;
-  }
-});
-
-test("rejects anonymous or different Supabase identities at the bridge", async () => {
+test("rejects every legacy Supabase identity while no Cloudflare account is approved", async () => {
   const env = setup();
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
@@ -221,21 +167,7 @@ test("rejects anonymous or different Supabase identities at the bridge", async (
   try {
     const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
     assert.equal(response.status, 403);
-    assert.equal(env.DB.sessions.size, 0);
-  } finally {
-    globalThis.fetch = previousFetch;
-  }
-});
-
-test("fails closed when the verified owner mapping is absent from D1", async () => {
-  const env = setup();
-  const previousFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    id: OWNER_ID, is_anonymous: false
-  }), { status: 200 });
-  try {
-    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
-    assert.equal(response.status, 403);
+    assert.equal(env.DB.users.size, 0);
     assert.equal(env.DB.sessions.size, 0);
   } finally {
     globalThis.fetch = previousFetch;

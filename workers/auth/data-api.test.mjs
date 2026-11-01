@@ -154,6 +154,15 @@ test("video metadata API is session- and artist-scoped and never deletes the R2 
   assert.equal(video.views,0);
   const listed = await worker.fetch(req("/api/me/videos","GET",session.token),e);
   assert.equal((await listed.json()).videos.length,1);
+
+  const otherSession = await signedIn(e);
+  const otherArtistResponse = await worker.fetch(req("/api/me/artist","POST",otherSession.token,{artist_name:"Other Artist"}),e);
+  assert.equal(otherArtistResponse.status,201);
+  const otherList = await worker.fetch(req("/api/me/videos","GET",otherSession.token),e);
+  assert.equal((await otherList.json()).videos.length,0);
+  assert.equal((await worker.fetch(req("/api/me/videos/" + video.id,"PATCH",otherSession.token,{title:"Hijack"}),e)).status,404);
+  assert.equal((await worker.fetch(req("/api/me/videos/" + video.id,"DELETE",otherSession.token),e)).status,404);
+
   const patched = await worker.fetch(req("/api/me/videos/" + video.id,"PATCH",session.token,{title:"Updated title",status:"published",video_url:"https://evil.example/replaced.mp4"}),e);
   assert.equal(patched.status,200);
   const updated = (await patched.json()).video;

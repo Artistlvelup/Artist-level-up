@@ -25,15 +25,17 @@ This branch is isolated from `main`; no live website or Supabase project was cha
 Foreign-key constraints are intentionally omitted from the first SQLite schema pass. The initial metadata export contained constraint names where column names were expected, so those generated clauses were removed rather than risking an incorrect schema. Relationships must be reintroduced from verified column-level metadata in a later reviewed migration before application cutover.
 
 
-## Supabase identity bridge prototype
+## Supabase identity bridge status — NOT IMPLEMENTED
 
-The Worker now includes `POST /auth/bridge/supabase` on this branch. It accepts the current V101 Supabase access token, validates it against the configured Supabase Auth `/auth/v1/user` endpoint, and uses the returned UUID as the D1 `app_users.user_id`. It never trusts a browser-supplied user ID or an unverified JWT decode. `POST /auth/refresh` rotates a live 30-day bearer session transactionally; the old token becomes invalid after successful rotation.
+The earlier description of a `POST /auth/bridge/supabase` prototype was inaccurate. A fresh inspection of `workers/auth/worker.js` on this branch confirms that **the route and server-side Supabase token verification function are absent**. Do not call or rely on that endpoint yet.
 
-Worker variables required for bridge tests/deployment:
-- `SUPABASE_URL`: existing Supabase project URL (HTTPS).
-- `SUPABASE_ANON_KEY`: existing Supabase anon/publishable key.
-- `SESSION_PEPPER`: existing Worker secret; keep it private.
-- `ALLOWED_ORIGINS`: exact production web origin(s).
-- `DB`: D1 binding.
+The Worker currently exposes a separate native-auth prototype:
+- `POST /auth/register-admin` creates a password-based admin using the preserved owner UUID, claims the one-time bootstrap state, and seeds profile, artist, song, video, and picture rows.
+- `POST /auth/login` authenticates that newly-created password account.
+- `POST /auth/anonymous` creates a new anonymous UUID.
 
-This is a migration-branch prototype only. The V101 browser has not been wired to call it, and secure browser persistence (preferably a same-site HttpOnly cookie) plus production CSRF protections still need implementation and testing. Migration 0004 adds per-login session families: refresh rotates within a family, logout revokes that family, and replay of a previously revoked token revokes every token in the family. Worker tests cover family creation, rotation, replay revocation, and logout. Do not deploy it or disable Supabase yet.
+These routes are **not** a safe bridge for the existing Supabase account. In particular, do not run `/auth/register-admin` as a workaround: it creates new D1 identity/password state and attempts to seed content records. The owner-only Supabase bridge must first verify the existing access token with the configured Supabase Auth `/auth/v1/user` endpoint, allow only the exact pre-approved owner UUID, reject anonymous/unknown identities, and preserve existing IDs without reseeding or overwriting business records.
+
+Read-only verification on 2026-11-01 confirmed that the selected Supabase Auth user exists, is non-anonymous, is not deleted or banned; the matching profile and artist rows exist; and the matching `platform_admins` row is active. The profile's `role` column is `artist`, so Worker authorization must rely on the verified active `platform_admins` record (or an equally trusted server-side mapping), not a client claim or the profile role.
+
+Migration 0004 provides per-login session families and token rotation. That mechanism is separate from the missing Supabase exchange route. Secure browser persistence (preferably a same-site HttpOnly cookie), CSRF protection, bridge tests, and the final app hostname decision remain open. Keep Supabase live; do not deploy, apply remote D1 migrations, edit the live V101 HTML, or switch over yet.

@@ -541,6 +541,8 @@ async function myVideosRoute(request, env, userId, url) {
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024;
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/x-m4v"]);
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const AUDIO_TYPES = new Set(["audio/mpeg", "audio/mp3", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm", "audio/flac", "audio/x-flac", "audio/m4a", "audio/x-m4a"]);
+const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 
 function awsEncode(value) {
   return encodeURIComponent(String(value)).replace(/[!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
@@ -614,16 +616,16 @@ async function videoUploadIntentRoute(request, env, userId) {
   if (!artist) return json({ error: "Active artist account required" }, 403, cors);
   const body = await readJson(request);
   const purpose = body.purpose == null ? "video" : cleanText(body.purpose, 16, true);
-  if (!["video", "thumbnail"].includes(purpose)) return json({ error: "INVALID_PURPOSE" }, 400, cors);
+  if (!["video", "thumbnail", "audio"].includes(purpose)) return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const filename = cleanText(body.filename, 180, true);
   const contentType = cleanText(body.contentType, 100, true).toLowerCase();
   const size = Number(body.size);
-  const allowed = purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
-  const maxBytes = purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
+  const allowed = purpose === "video" ? VIDEO_TYPES : purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
+  const maxBytes = purpose === "video" ? MAX_VIDEO_BYTES : purpose === "audio" ? MAX_AUDIO_BYTES : 10 * 1024 * 1024;
   if (!allowed.has(contentType)) return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes) return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : "jpg")).toLowerCase();
-  const key = artist.id + "/" + (purpose === "video" ? "videos" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
+  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+  const key = artist.id + "/" + (purpose === "video" ? "videos" : purpose === "audio" ? "audio" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
   try {
     const signed = await presignR2Put(env, key, contentType);
     return json(signed, 200, cors);

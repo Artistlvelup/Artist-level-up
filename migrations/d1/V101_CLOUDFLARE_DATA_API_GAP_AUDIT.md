@@ -12,7 +12,7 @@ Status: read-only route coverage audit; no live service or data changed.
 | Artist | `GET/POST /api/me/artist` | Existing owner artist identity must remain stable |
 | Songs | `GET/POST /api/me/songs`, `PATCH /api/me/songs/:id` | Audio upload/storage and song lifecycle are not complete |
 | Public songs | `GET /api/public/songs` | Read-only public listing |
-| Video upload | `POST /api/me/videos/upload-intent` | Creates signed R2 PUT URL only; does not create/list/edit/delete video metadata |
+| Video upload/metadata | `POST /api/me/videos/upload-intent`; `GET/POST /api/me/videos`; `PATCH/DELETE /api/me/videos/:id` | Owner-scoped metadata routes are now implemented on the migration branch; automated test added, pending workflow validation. Delete removes only the D1 metadata row and explicitly does not delete the R2 object |
 | Admin videos | `GET/PATCH /api/admin/videos` | Moderation exists; owner-scoped video lifecycle still missing |
 | Promotions | `POST /api/me/promotions` | No complete list/update/cancel lifecycle confirmed |
 | Withdrawals | `POST /api/me/withdrawals` | Admin list exists; user history/status lifecycle incomplete |
@@ -38,9 +38,9 @@ Authentication routes currently include native first-admin registration, passwor
 
 ## Safe implementation order
 
-1. Finish owner-only video metadata routes around the existing D1 `artist_videos` table: list own videos, create metadata only after a successful R2 upload, edit allowed metadata, and delete only the owner's own record. Admin moderation remains separate.
-2. Add tests for owner isolation, invalid IDs, invalid metadata, missing sessions, and ensuring one user cannot mutate another artist's records.
-3. Implement the V101 browser adapter for the routes and verify response shapes against the actual HTML call sites.
+1. Owner-scoped video metadata routes are now present on the migration branch. They list only the authenticated artist's records, create pending metadata only for URLs under that artist's R2 video prefix, restrict thumbnail URLs to that artist's R2 thumbnail prefix, and allow edits only to title/description/thumbnail/social links. Admin moderation remains separate.
+2. A data API test covers unauthenticated access, rejection of an external video URL, creation/listing/editing, prevention of client status/video URL changes, and metadata-only deletion. GitHub Actions validation still needs to confirm the suite passes.
+3. Implement the V101 browser adapter for these routes and verify response shapes against the actual HTML call sites.
 4. Complete audio storage and song lifecycle before replacing the existing Supabase song calls.
 5. Treat marketplace checkout, payments, payouts and privileged admin actions as separate security-critical work. Do not simulate payment success or accept client-supplied prices/roles.
 6. Only after route and UI tests pass, plan a user-approved cutover.

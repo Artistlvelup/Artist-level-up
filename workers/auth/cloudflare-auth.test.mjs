@@ -43,6 +43,9 @@ class AuthD1 {
         throw new Error("Unexpected first SQL: " + sql);
       },
       async all() {
+        if (sql.includes("FROM withdrawals w LEFT JOIN profiles")) {
+          return { results: [{ id: "withdrawal-1", user_id: "d6eaf421-fcad-44ec-beb0-d6a7f676db8a", display_name: "Owner", amount: 2500, bank_name: "Example Bank", account_name: "Owner", account_number: "0123456789", status: "pending", created_at: "2026-10-31T10:00:00.000Z" }] };
+        }
         if (sql.includes("FROM songs s LEFT JOIN artists")) {
           return { results: [{ id: "22222222-2222-4222-8222-222222222222", title: "Test Song", status: "pending", artist_name: "Test Artist" }] };
         }
@@ -305,6 +308,27 @@ test("admin can list and moderate videos; non-admin cannot", async () => {
   assert.equal(denied.status, 401);
 });
 
+
+test("admin can review withdrawals; non-admin and unauthenticated users cannot", async () => {
+  const e = env();
+  const registered = await worker.fetch(post("/auth/register-admin", {
+    email: "owner@example.com", display_name: "Owner",
+    password: "A-Strong-Owner-Password-2026!", bootstrap_secret: e.BOOTSTRAP_SECRET
+  }), e);
+  const { token } = await registered.json();
+  const headers = { Authorization: "Bearer " + token };
+  const list = await worker.fetch(new Request("https://worker.example/api/admin/withdrawals?status=pending", { headers }), e);
+  assert.equal(list.status, 200);
+  const result = await list.json();
+  assert.equal(result.withdrawals.length, 1);
+  assert.equal(result.withdrawals[0].status, "pending");
+  assert.equal(result.withdrawals[0].account_number, "0123456789");
+
+  const invalidStatus = await worker.fetch(new Request("https://worker.example/api/admin/withdrawals?status=processing", { headers }), e);
+  assert.equal(invalidStatus.status, 400);
+  const denied = await worker.fetch(new Request("https://worker.example/api/admin/withdrawals"), e);
+  assert.equal(denied.status, 401);
+});
 
 test("admin can list and moderate songs; non-admin cannot", async () => {
   const e = env();

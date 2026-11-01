@@ -47,7 +47,7 @@ class AuthD1 {
           const u = s && db.users.get(s.user_id);
           const f = s && db.families.get(s.family_id);
           return s && !s.revoked_at && s.expires_at > now && u?.status === "active" && f?.revoked_at === null
-            ? { user_id: s.user_id, expires_at: s.expires_at, role: u.role }
+            ? { user_id: s.user_id, expires_at: s.expires_at, role: db.legacyAdminIds.has(s.user_id) ? "admin" : u.role }
             : null;
         }
         throw new Error("Unexpected first SQL: " + sql);
@@ -408,6 +408,11 @@ test("Supabase bridge links only the verified existing owner and creates a D1 se
     assert.equal(e.DB.users.get(ownerId).is_anonymous, 0);
     assert.equal(e.DB.users.get(ownerId).role, "artist");
     assert.equal(e.DB.sessions.size, 1);
+
+    const adminCheck = await worker.fetch(new Request("https://worker.example/api/admin/marketplace/commissions", {
+      headers: { Authorization: "Bearer " + result.token }
+    }), e);
+    assert.equal(adminCheck.status, 200);
     assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO artist_videos")), false);
     assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO songs")), false);
     assert.equal(e.DB.batchStatements.some(x => x.sql.includes("INSERT INTO picture_posts")), false);

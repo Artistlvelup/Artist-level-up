@@ -1,0 +1,29 @@
+name: Deploy Artist Level Up V101 Worker
+
+on:
+  push:
+    branches:
+      - migration/d1-v101-prep
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artist-level-up-v101-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V101 migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: migration/d1-v101-prep
+
+      - name: Deploy Worker only (no D1 migrations)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.toml

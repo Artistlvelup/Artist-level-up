@@ -66,11 +66,11 @@ Migration rule: import only the active admin/main account and its required linke
 The owner confirmed that the platform has only one intended existing account and authorized a fresh Cloudflare-native rebuild rather than migrating the old Supabase login.
 
 - A byte-for-byte V101 source snapshot was saved on this isolated branch as `V101-BACKUP-BEFORE-CLOUDFLARE-REBUILD-2026-10-31.html`, sourced from the current `main` V101 HTML. The live `main` branch remains unchanged.
-- Migration `0005_cloudflare_native_auth.sql` adds email/password-hash fields to `app_users`, a one-time first-admin claim row, and login throttling storage.
-- The Worker now has a one-time first-admin registration endpoint (`POST /auth/register-admin`) gated by a server-side `BOOTSTRAP_SECRET`, and email/password login (`POST /auth/login`). Passwords use PBKDF2-SHA-256 with per-account random salt; plaintext passwords are never stored. Login sessions use the existing opaque-token/session-family design.
-- The Supabase auth bridge was removed from the Worker. The native-auth tests cover first-admin creation, one-time setup protection, successful login, and invalid-password rejection.
+- Historical design note, superseded on 2026-11-01: the unused native password-auth migration was removed before remote application. The verified owner mapping is now migration `0005_verified_owner_identity.sql`.
+- Superseded on 2026-11-01: the first-admin registration and password-login routes were removed because they could seed content and were not part of the approved account-preservation path.
+- Current status: the Worker contains `POST /auth/bridge/supabase`, which validates the existing Supabase access token server-to-server, allows only the previously verified owner UUID, requires the active D1 admin mapping, and issues a Cloudflare session. Bridge tests now cover success, unknown identity rejection, missing D1 mapping rejection, and absence of bootstrap/password routes.
 - GitHub Actions run `41196708992` completed successfully on 2026-10-31, validating all five D1 migrations and the Worker test suite.
-- This is backend preparation only: the Worker is not deployed, the remote D1 migrations are not applied, and V101 HTML has not yet been switched to the new auth. The current V101 app still contains Supabase data, storage, and edge-function calls that must be replaced before a full cutover.
+- This is backend preparation only: the branch Worker is deployed to workers.dev, remote D1 migrations are not applied, and the V101 HTML changes remain on the migration branch only. The current V101 app still contains Supabase data, storage, and edge-function calls that must be replaced before a full cutover.
 - Supabase remains active and untouched for rollback. The R2 media objects already verified by the owner are to be reused, not re-uploaded.
 
 Next: finish the Cloudflare Worker deployment configuration and the V101-to-Worker data/storage adapter, then test the full V101 flows before any live cutover.
@@ -110,8 +110,8 @@ This section supersedes any conflicting historical migration notes above, includ
 - Do not delete or alter Supabase media or metadata. The owner will handle any desired cleanup separately.
 
 ### Implementation and deployment boundary
-- The existing Worker seed currently includes the owner identity, one song, two selected videos, and three picture posts. Do not expand that seed to the excluded six videos or avatar.
-- The current Worker has native first-admin registration and password login; it does not currently implement the previously proposed Supabase session-bridge endpoint. Do not claim that an existing Supabase session is bridged.
-- Keep Supabase available during development and rollback. Do not deploy the Worker, apply remote D1 migrations, change the live V101 site, or trigger a production cutover without the owner's explicit approval.
+- The former content-seeding bootstrap route and its song/video/picture seed data have been removed. Do not add content seeding or extra media transfer back into the Worker.
+- Current owner-auth path: existing Supabase session -> server-side Supabase Auth verification -> exact UUID and active D1 admin mapping check -> opaque Cloudflare session. The migration HTML calls this bridge before opening the admin view; the bridge still depends on the required Worker variables and the local owner mapping migration.
+- Keep Supabase available during development and rollback. The migration branch auto-deploys its Worker to the workers.dev preview. Do not publish the V101 HTML, apply remote D1 migrations, change the live V101 site, or trigger a production cutover without the owner's explicit approval.
 - Continue development only on `migration/d1-v101-prep`, preserving the V101 backup and leaving `main` and the live Render site unchanged.
 

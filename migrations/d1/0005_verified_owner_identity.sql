@@ -1,4 +1,4 @@
--- V101: import only the previously verified active owner identity mapping.
+-- V101: import only the previously verified active owner identity mapping (display name: Solo Vibes).
 -- Source: read-only Supabase verification on 2026-11-01.
 -- Deliberately excludes auth.users, passwords, sessions, anonymous accounts,
 -- all other profiles, and all media/content rows. The selected owner avatar is
@@ -9,7 +9,7 @@ INSERT OR IGNORE INTO profiles (
   id, display_name, avatar_url, role, created_at, updated_at
 ) VALUES (
   'd6eaf421-fcad-44ec-beb0-d6a7f676db8a',
-  'Solo_vibez',
+  'Solo Vibes',
   NULL,
   'artist',
   '2026-10-11 06:27:51.077386+00:00',
@@ -22,7 +22,7 @@ INSERT OR IGNORE INTO artists (
 ) VALUES (
   '2b2a5bf6-9673-42a1-a33a-d40dab98ad44',
   'd6eaf421-fcad-44ec-beb0-d6a7f676db8a',
-  'Solo_vibez',
+  'Solo Vibes',
   '',
   '',
   'Nigeria',

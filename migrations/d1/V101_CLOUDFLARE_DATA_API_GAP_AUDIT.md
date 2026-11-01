@@ -2,7 +2,7 @@
 
 Branch: `migration/d1-v101-prep`
 Source reviewed: `Artist-Level-Up-LAUNCH-MASTER.html` and `workers/auth/worker.js`
-Status: read-only route coverage audit; no live service or data changed.
+Status: route coverage audit for the isolated migration branch. The branch Worker is deployed to its workers.dev preview URL; production V101 and remote D1 data remain unchanged.
 
 ## Existing Worker routes found
 
@@ -21,7 +21,7 @@ Status: read-only route coverage audit; no live service or data changed.
 | Admin songs | `GET/PATCH /api/admin/songs` | Moderation route exists |
 | Admin commissions | `GET /api/admin/marketplace/commissions` | Read only |
 
-Authentication routes currently include native first-admin registration, password login, anonymous creation, session, refresh and logout. There is no Supabase session bridge route. Do not use anonymous creation or first-admin registration as a substitute for preserving the existing V101 owner identity.
+Authentication routes include the server-verified `POST /auth/bridge/supabase` exchange for the exact existing owner UUID, anonymous creation for non-admin flows, session validation, refresh and logout. The unsafe first-admin registration/content-seeding route and password-login route have been removed. The bridge requires the configured Supabase URL/key and the verified owner mapping migration in D1; those prerequisites are not yet confirmed in remote D1.
 
 ## Supabase operations observed in the V101 HTML
 
@@ -52,4 +52,4 @@ Authentication routes currently include native first-admin registration, passwor
 - Reuse the song, three pictures and two selected videos already placed in R2. Do not upload them again.
 - Do not copy the other six videos or profile avatar to Cloudflare.
 - Do not delete or alter Supabase accounts, rows or media. Exclusion from migration is not permission to delete.
-- Work only on `migration/d1-v101-prep`; preserve the V101 backup. Do not deploy Worker, apply remote D1 migrations, update the live Render site, or push to `main` without explicit approval.
+- Work only on `migration/d1-v101-prep`; preserve the V101 backup. Do not publish the V101 HTML to the live Render site, apply remote D1 migrations, or push to `main` without explicit approval. The branch Worker deploys automatically to its workers.dev preview on branch pushes.

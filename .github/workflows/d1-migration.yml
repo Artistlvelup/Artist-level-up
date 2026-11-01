@@ -65,8 +65,8 @@ jobs:
           ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 32:
-              raise SystemExit(f"Expected 32 tables, found {tables}")
+          if tables != 30:
+              raise SystemExit(f"Expected 30 tables after removing unused password-auth tables, found {tables}")
 
           owner_id = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a"
           artist_id = "2b2a5bf6-9673-42a1-a33a-d40dab98ad44"

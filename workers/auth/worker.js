@@ -1,3 +1,4 @@
+import { registerPasswordAccount, verifyPasswordAccount, loginPasswordAccount } from "./password-auth.js";
 /**
  * Artist Level Up V101 — Cloudflare authentication and D1 API Worker.
  *
@@ -796,6 +797,15 @@ export default {
     try {
       if (url.pathname === "/auth/bridge/supabase") {
         return await bridgeSupabaseSession(request, env);
+      }
+      if (url.pathname === "/auth/register" && request.method === "POST") {
+        return await registerPasswordAccount(request, env, cors);
+      }
+      if (url.pathname === "/auth/verify-email" && request.method === "POST") {
+        return await verifyPasswordAccount(request, env, cors);
+      }
+      if (url.pathname === "/auth/login" && request.method === "POST") {
+        return await loginPasswordAccount(request, env, cors, createUserSession);
       }
       if (url.pathname === "/api/marketplace/beats") {
         const result = await marketplaceRoute(request, env, null, url);

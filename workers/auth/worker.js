@@ -226,6 +226,17 @@ async function songsRoute(request, env, userId, url) {
   return null;
 }
 
+async function publicVideosRoute(request, env, url) {
+  if (request.method !== "GET" || url.pathname !== "/api/public/videos") return null;
+  const rawLimit = Number(url.searchParams.get("limit") || 20);
+  if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
+  const limit = Math.min(50, rawLimit);
+  const rows = await env.DB.prepare(
+    "SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE status IN ('approved', 'published') ORDER BY created_at DESC LIMIT ?"
+  ).bind(limit).all();
+  return json({ videos: rows.results || [] }, 200, corsHeaders(request, env));
+}
+
 async function publicSongsRoute(request, env, url) {
   if (request.method !== "GET" || url.pathname !== "/api/public/songs") return null;
   const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit") || 20)));
@@ -1032,6 +1043,11 @@ export default {
         const result = await promotionRoute(request, env, session.user_id);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname.startsWith("/api/public/videos")) {
+        const result = await publicVideosRoute(request, env, url);
+        if (result) return result;
       }
 
       if (url.pathname.startsWith("/api/public/songs")) {

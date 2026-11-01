@@ -13,6 +13,7 @@ class DataD1 {
   profiles = new Map();
   artists = new Map();
   videos = new Map();
+  songs = new Map();
   prepare(sql) {
     const db = this;
     return {
@@ -50,6 +51,10 @@ class DataD1 {
         }
         if (sql.includes("FROM artist_videos WHERE artist_id")) {
           return { results: [...db.videos.values()].filter(x => x.artist_id === v[0]).map(x => ({ ...x })) };
+        }
+        if (sql.includes("FROM songs WHERE status IN")) {
+          const allowed = new Set(["approved", "published"]);
+          return { results: [...db.songs.values()].filter(x => allowed.has(x.status)).slice(0, v[0]).map(x => ({ ...x })) };
         }
         throw new Error("Unexpected all SQL: " + sql);
       },
@@ -193,4 +198,18 @@ test("public video feed returns only approved or published videos", async () => 
   const videos = (await response.json()).videos;
   assert.deepEqual(videos.map(x => x.id).sort(),["approved-video","published-video"]);
   assert.equal((await worker.fetch(req("/api/public/videos?limit=0","GET",null),e)).status,400);
+});
+
+
+test("public song feed returns only approved or published songs and validates limits", async () => {
+  const e = env();
+  e.DB.songs.set("draft-song", { id:"draft-song", status:"draft", title:"Draft" });
+  e.DB.songs.set("approved-song", { id:"approved-song", status:"approved", title:"Approved" });
+  e.DB.songs.set("published-song", { id:"published-song", status:"published", title:"Published" });
+  const response = await worker.fetch(req("/api/public/songs?limit=10","GET",null),e);
+  assert.equal(response.status,200);
+  const songs = (await response.json()).songs;
+  assert.deepEqual(songs.map(x => x.id).sort(),["approved-song","published-song"]);
+  assert.equal((await worker.fetch(req("/api/public/songs?limit=0","GET",null),e)).status,400);
+  assert.equal((await worker.fetch(req("/api/public/songs?limit=invalid","GET",null),e)).status,400);
 });

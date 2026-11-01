@@ -1,46 +1,24 @@
 /**
- * Artist Level Up V101 — Cloudflare-native authentication and D1 API Worker.
+ * Artist Level Up V101 — Cloudflare authentication and D1 API Worker.
  *
  * Required bindings/secrets:
  *   DB: D1 database binding
  *   SESSION_PEPPER: random secret stored as a Worker secret (minimum 32 chars)
- *   BOOTSTRAP_SECRET: one-time first-owner setup secret (minimum 32 chars)
+ *   SUPABASE_URL and SUPABASE_ANON_KEY: server-side verification of the existing owner session
  *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
  *
  * Owner authentication:
- *   POST /auth/register-admin -> one-time owner setup; seeds the existing owner profile,
- *                               artist record, and verified content metadata.
- *   POST /auth/login          -> email/password login with PBKDF2-SHA-256 password hashes.
- *   GET  /auth/session        -> validate bearer session.
- *   POST /auth/refresh        -> rotate session token.
- *   POST /auth/logout         -> revoke session family.
+ *   POST /auth/bridge/supabase -> verify the existing owner with Supabase Auth and issue a D1 session.
+ *   GET  /auth/session         -> validate bearer session.
+ *   POST /auth/refresh         -> rotate session token.
+ *   POST /auth/logout          -> revoke session family.
  *
- * Data APIs are only partially ported. Do not switch V101 or disable Supabase
- * until every app data, media, admin, and payment flow has a tested Worker route.
+ * There is deliberately no owner-registration/bootstrap route and no content-seeding route.
+ * Data APIs are only partially ported. Do not switch V101 or disable Supabase until every app
+ * data, media, admin, and payment flow has a tested Worker route.
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
-
-// Preserve the existing owner's stable application identity and content links.
-// A fresh password is created during the one-time Cloudflare admin registration.
 const LEGACY_OWNER_USER_ID = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
-const LEGACY_OWNER_ARTIST_ID = "2b2a5bf6-9673-42a1-a33a-d40dab98ad44";
-const OWNER_CONTENT_SEED = {
-  song: {
-    id: "44875219-61a6-46a6-aa3e-3cb6fb579092",
-    title: "Otunba Cash Money Angelina",
-    audio_url: "https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/audio_song_1792505499636_ilmfs-Otunba-Cash-Money-Angelina.mp3",
-    created_at: "2026-10-21T10:25:41.780786+00:00"
-  },
-  videos: [
-    { id:"a8f27e84-cd57-4cdd-8f00-09b865a7bb6d", title:"Learn how to create a good song", description:"Try to become famous\\n\\nArtist level up", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1792306951137_pephg.mp4", created_at:"2026-10-18T07:43:19.125877+00:00" },
-    { id:"66133708-eb56-4a71-8963-a4b8478f910e", title:"Listen to this upcoming artist", description:"", status:"published", video_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/video_1/video_1792488726169_pcp5c.mp4", created_at:"2026-10-20T09:53:01.271945+00:00" }
-  ],
-  pictures: [
-    { id:"1952cd7e-d8b5-4d82-8876-a25d2cec8422", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447538978_2_g0xj0.jpg", created_at:"2026-10-19T22:05:34.866+00:00" },
-    { id:"59d23fda-f22a-4cf2-b858-ec527c0fb9f6", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447535205_0_dqn63.jpg", created_at:"2026-10-19T22:05:34.866+00:00" },
-    { id:"9c29fbbb-d629-4d87-86d1-c6963a8ac35b", image_url:"https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/videos/1/Photo/picture_1792447537185_1_i8vvw.jpg", created_at:"2026-10-19T22:05:34.866+00:00" }
-  ]
-};
 
 function allowedOrigins(env) {
   return new Set(String(env.ALLOWED_ORIGINS || "")
@@ -684,45 +662,6 @@ async function refreshSession(request, env) {
   return json({ token: newSessionToken, expiresAt }, 200, cors);
 }
 
-const PASSWORD_ITERATIONS = 310000;
-const LOGIN_WINDOW_SECONDS = 15 * 60;
-const LOGIN_MAX_ATTEMPTS = 5;
-
-function constantTimeEqual(a, b) {
-  const left = String(a || "");
-  const right = String(b || "");
-  let diff = left.length ^ right.length;
-  const length = Math.max(left.length, right.length);
-  for (let i = 0; i < length; i++) {
-    diff |= (left.charCodeAt(i % (left.length || 1)) || 0) ^
-      (right.charCodeAt(i % (right.length || 1)) || 0);
-  }
-  return diff === 0;
-}
-
-function validEmail(value) {
-  if (typeof value !== "string") return null;
-  const email = value.trim().toLowerCase();
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
-  return email;
-}
-
-async function derivePasswordHash(password, salt, iterations = PASSWORD_ITERATIONS) {
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits({
-    name: "PBKDF2", hash: "SHA-256",
-    salt: Uint8Array.from(atob(salt.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((salt.length + 3) % 4)), c => c.charCodeAt(0)),
-    iterations
-  }, key, 256);
-  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function createPasswordSalt() {
-  return base64url(crypto.getRandomValues(new Uint8Array(16)));
-}
-
 async function createUserSession(env, userId) {
   const token = await newToken();
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
@@ -738,75 +677,6 @@ async function createUserSession(env, userId) {
     ).bind(tokenHash, userId, familyId, now, expiresAt)
   ]);
   return { userId, token, expiresAt };
-}
-
-async function registerFirstAdmin(request, env) {
-  const cors = corsHeaders(request, env);
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  if (!env.BOOTSTRAP_SECRET || String(env.BOOTSTRAP_SECRET).length < 32) {
-    return json({ error: "OWNER_SETUP_NOT_CONFIGURED" }, 503, cors);
-  }
-  const body = await readJson(request);
-  const email = validEmail(body.email);
-  const password = typeof body.password === "string" ? body.password : "";
-  const displayName = cleanText(body.display_name, 80, true);
-  const bootstrapSecret = typeof body.bootstrap_secret === "string" ? body.bootstrap_secret : "";
-  if (!email || password.length < 12 || password.length > 128 || !displayName) {
-    return json({ error: "Enter a valid email, display name and password of at least 12 characters." }, 400, cors);
-  }
-  if (!constantTimeEqual(bootstrapSecret, env.BOOTSTRAP_SECRET)) {
-    return json({ error: "Owner setup key is invalid." }, 403, cors);
-  }
-
-  const salt = await createPasswordSalt();
-  const passwordHash = await derivePasswordHash(password, salt);
-  const userId = LEGACY_OWNER_USER_ID;
-  const now = Math.floor(Date.now() / 1000);
-  const isoNow = new Date().toISOString();
-  const familyId = crypto.randomUUID();
-
-  // D1 batch is transactional. Conditional inserts make the bootstrap one-time,
-  // even if two setup requests arrive together.
-  const results = await env.DB.batch([
-    env.DB.prepare(
-      "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at, email, password_hash, password_salt, password_iterations, role) SELECT ?, 0, 'active', ?, ?, ?, ?, ?, ?, 'admin' WHERE EXISTS (SELECT 1 FROM auth_bootstrap_state WHERE id = 1 AND claimed_at IS NULL) AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_anonymous = 0 AND role = 'admin' AND status = 'active')"
-    ).bind(userId, now, now, email, passwordHash, salt, PASSWORD_ITERATIONS),
-    env.DB.prepare(
-      "UPDATE auth_bootstrap_state SET claimed_at = ? WHERE id = 1 AND claimed_at IS NULL AND EXISTS (SELECT 1 FROM app_users WHERE user_id = ? AND role = 'admin')"
-    ).bind(now, userId),
-    env.DB.prepare(
-      "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) SELECT ?, ?, ?, 'admin', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(userId, displayName, null, isoNow, isoNow, userId),
-    env.DB.prepare(
-      "INSERT INTO platform_admins (user_id, active, created_at) SELECT ?, 1, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(userId, isoNow, userId),
-    env.DB.prepare(
-      "INSERT INTO app_session_families (family_id, user_id, created_at, revoked_at) SELECT ?, user_id, ?, NULL FROM app_users WHERE user_id = ?"
-    ).bind(familyId, now, userId),
-    env.DB.prepare(
-      "INSERT INTO artists (id, user_id, artist_name, bio, genre, country, status, created_at, updated_at, suspended) SELECT ?, ?, 'Solo_vibez', '', '', 'Nigeria', 'pending', ?, ?, 0 WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(LEGACY_OWNER_ARTIST_ID, userId, "2026-10-18T07:00:09.637509+00:00", "2026-10-18T07:00:09.637509+00:00", userId),
-    env.DB.prepare(
-      "INSERT INTO songs (id, artist_id, title, audio_url, status, created_at, updated_at) SELECT ?, ?, ?, ?, 'published', ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(OWNER_CONTENT_SEED.song.id, LEGACY_OWNER_ARTIST_ID, OWNER_CONTENT_SEED.song.title, OWNER_CONTENT_SEED.song.audio_url, OWNER_CONTENT_SEED.song.created_at, OWNER_CONTENT_SEED.song.created_at, userId),
-    ...OWNER_CONTENT_SEED.videos.map(video => env.DB.prepare(
-      "INSERT INTO artist_videos (id, artist_id, title, description, video_url, status, views, likes, created_at) SELECT ?, ?, ?, ?, ?, ?, 0, 0, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(video.id, LEGACY_OWNER_ARTIST_ID, video.title, video.description, video.video_url, video.status, video.created_at, userId)),
-    ...OWNER_CONTENT_SEED.pictures.map(picture => env.DB.prepare(
-      "INSERT INTO picture_posts (id, user_id, image_url, caption, status, created_at, artist_name) SELECT ?, ?, ?, ?, 'published', ?, 'Artist Level Up' WHERE EXISTS (SELECT 1 FROM app_users WHERE user_id = ?)"
-    ).bind(picture.id, userId, picture.image_url, "🎨🔥 Art speaks. Creativity shines. Talent rises! 🚀🌍\\n\\n❤️ Like, 💬 comment, and 🔁 share your favorite artwork!\\n\\n#ArtistLevelUp #CreativeVibes #VisualArt", picture.created_at, userId))
-  ]);
-  if (!results?.[0]?.meta || results[0].meta.changes !== 1) {
-    return json({ error: "OWNER_SETUP_ALREADY_USED" }, 409, cors);
-  }
-
-  const token = await newToken();
-  const tokenHash = await hashToken(token, env.SESSION_PEPPER);
-  const expiresAt = now + SESSION_TTL_SECONDS;
-  await env.DB.prepare(
-    "INSERT INTO app_sessions (token_hash, user_id, family_id, created_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, NULL)"
-  ).bind(tokenHash, userId, familyId, now, expiresAt).run();
-  return json({ userId, token, expiresAt, role: "admin" }, 201, cors);
 }
 
 async function bridgeSupabaseSession(request, env) {
@@ -868,47 +738,6 @@ async function bridgeSupabaseSession(request, env) {
   return json({ ...session, role: "admin" }, 200, cors);
 }
 
-async function loginOwner(request, env) {
-  const cors = corsHeaders(request, env);
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  const body = await readJson(request);
-  const email = validEmail(body.email);
-  const password = typeof body.password === "string" ? body.password : "";
-  if (!email || !password || password.length > 128) {
-    return json({ error: "Invalid email or password." }, 400, cors);
-  }
-  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-  const attemptKey = await hashToken(email + "|" + ip, env.SESSION_PEPPER);
-  const now = Math.floor(Date.now() / 1000);
-  const attempt = await env.DB.prepare(
-    "SELECT attempts, window_started_at, locked_until FROM auth_login_attempts WHERE attempt_key = ? LIMIT 1"
-  ).bind(attemptKey).first();
-  if (attempt?.locked_until && attempt.locked_until > now) {
-    return json({ error: "Too many login attempts. Try again later." }, 429, cors);
-  }
-
-  const user = await env.DB.prepare(
-    "SELECT user_id, password_hash, password_salt, password_iterations, status, role FROM app_users WHERE email = ? AND is_anonymous = 0 LIMIT 1"
-  ).bind(email).first();
-  const salt = user?.password_salt || "MDAwMDAwMDAwMDAwMDAwMA";
-  const expected = user?.password_hash || "0".repeat(64);
-  const actual = await derivePasswordHash(password, salt, user?.password_iterations || PASSWORD_ITERATIONS);
-  if (!user || user.status !== "active" || !constantTimeEqual(actual, expected)) {
-    const freshWindow = !attempt || now - attempt.window_started_at >= LOGIN_WINDOW_SECONDS;
-    const attempts = freshWindow ? 1 : Number(attempt.attempts || 0) + 1;
-    const windowStarted = freshWindow ? now : attempt.window_started_at;
-    const lockedUntil = attempts >= LOGIN_MAX_ATTEMPTS ? now + LOGIN_WINDOW_SECONDS : null;
-    await env.DB.prepare(
-      "INSERT INTO auth_login_attempts (attempt_key, attempts, window_started_at, locked_until) VALUES (?, ?, ?, ?) ON CONFLICT(attempt_key) DO UPDATE SET attempts = excluded.attempts, window_started_at = excluded.window_started_at, locked_until = excluded.locked_until"
-    ).bind(attemptKey, attempts, windowStarted, lockedUntil).run();
-    return json({ error: "Invalid email or password." }, 401, cors);
-  }
-
-  await env.DB.prepare("DELETE FROM auth_login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
-  const session = await createUserSession(env, user.user_id);
-  return json({ ...session, role: user.role }, 200, cors);
-}
-
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
 }
@@ -941,7 +770,7 @@ async function validateSession(request, env) {
   if (!token) return null;
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
   const row = await env.DB.prepare(
-    "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE u.role END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
+    "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'artist' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
   ).bind(tokenHash, Math.floor(Date.now() / 1000)).first();
   return row || null;
 }
@@ -965,12 +794,6 @@ export default {
 
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/auth/register-admin") {
-        return await registerFirstAdmin(request, env);
-      }
-      if (url.pathname === "/auth/login") {
-        return await loginOwner(request, env);
-      }
       if (url.pathname === "/auth/bridge/supabase") {
         return await bridgeSupabaseSession(request, env);
       }

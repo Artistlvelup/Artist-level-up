@@ -64,6 +64,16 @@ class FakeD1 {
         throw new Error("Unexpected SQL in first(): " + sql);
       },
       async run() {
+        if (sql.includes("INSERT INTO app_users") && sql.includes("SELECT ?, 0, 'active'")) {
+          const [userId, createdAt, updatedAt, adminId, profileId] = this.values;
+          if (!db.ownerAdminMapped || !db.ownerProfileExists || adminId !== userId || profileId !== userId) {
+            return { success: true, meta: { changes: 0 } };
+          }
+          if (!db.users.has(userId)) db.users.set(userId, {
+            status: "active", is_anonymous: 0, created_at: createdAt, updated_at: updatedAt
+          });
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("INSERT INTO app_users")) {
           const [userId, isAnonymous, createdAt, updatedAt] = this.values;
           const existing = db.users.get(userId);
@@ -173,6 +183,30 @@ test("bridges only the existing verified non-anonymous owner and issues an admin
     }), env);
     assert.equal(check.status, 200);
     assert.equal((await check.json()).role, "admin");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+
+test("bridge creates only the existing owner identity row when the D1 mapping is present", async () => {
+  const env = setup();
+  env.DB.ownerAdminMapped = true;
+  env.DB.ownerProfileExists = true;
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: OWNER_ID, is_anonymous: false
+  }), { status: 200 });
+  try {
+    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
+    assert.equal(response.status, 200);
+    assert.deepEqual(env.DB.users.get(OWNER_ID), {
+      status: "active", is_anonymous: 0,
+      created_at: env.DB.users.get(OWNER_ID).created_at,
+      updated_at: env.DB.users.get(OWNER_ID).updated_at
+    });
+    assert.equal(env.DB.users.size, 1);
+    assert.equal(env.DB.sessions.size, 1);
   } finally {
     globalThis.fetch = previousFetch;
   }

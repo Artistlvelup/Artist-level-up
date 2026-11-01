@@ -239,8 +239,9 @@ async function publicVideosRoute(request, env, url) {
 
 async function publicSongsRoute(request, env, url) {
   if (request.method !== "GET" || url.pathname !== "/api/public/songs") return null;
-  const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit") || 20)));
-  if (!Number.isInteger(limit)) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
+  const rawLimit = Number(url.searchParams.get("limit") || 20);
+  if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
+  const limit = Math.min(50, rawLimit);
   const rows = await env.DB.prepare(
     "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, created_at FROM songs WHERE status IN ('published', 'approved') ORDER BY created_at DESC LIMIT ?"
   ).bind(limit).all();

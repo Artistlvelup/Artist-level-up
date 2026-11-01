@@ -11,6 +11,7 @@ class FakeD1 {
   users = new Map();
   sessions = new Map();
   families = new Map();
+  artist = null;
 
   prepare(sql) {
     const db = this;
@@ -19,6 +20,7 @@ class FakeD1 {
       values: [],
       bind(...values) { this.values = values; return this; },
       async first() {
+        if (sql.includes("SELECT id FROM artists")) return db.artist;
         if (sql.includes("SELECT status FROM app_users") || sql.includes("SELECT status, is_anonymous FROM app_users")) {
           const [userId] = this.values;
           const user = db.users.get(userId);
@@ -217,4 +219,41 @@ test("rejects refresh attempts without a live session", async () => {
   const env = setup();
   const response = await worker.fetch(request("/auth/refresh", "POST", { Authorization: "Bearer " + "x".repeat(43) }), env);
   assert.equal(response.status, 401);
+});
+
+
+test("creates a separate R2 audio upload intent for an active artist", async () => {
+  const env = setup();
+  env.CLOUDFLARE_ACCOUNT_ID = "a".repeat(32);
+  env.R2_ACCESS_KEY_ID = "test-access";
+  env.R2_SECRET_ACCESS_KEY = "test-secret";
+  env.R2_PUBLIC_BASE_URL = "https://media.example.test";
+  env.DB.artist = { id: "artist-123" };
+  const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
+  const session = await created.json();
+  const upload = await worker.fetch(new Request("https://auth.example.test/api/me/videos/upload-intent", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + session.token, "Content-Type": "application/json" },
+    body: JSON.stringify({ purpose: "audio", filename: "track.mp3", contentType: "audio/mpeg", size: 1024 })
+  }), env);
+  assert.equal(upload.status, 200);
+  const body = await upload.json();
+  assert.match(body.objectKey, /^artist-123\/audio\/[0-9a-f-]+\.mp3$/i);
+  assert.equal(body.contentType, "audio/mpeg");
+  assert.equal(body.expiresIn, 300);
+  assert.match(body.uploadUrl, /^https:\/\//);
+});
+
+test("rejects unsupported audio types and audio files above the size limit", async () => {
+  const env = setup();
+  env.DB.artist = { id: "artist-123" };
+  const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
+  const session = await created.json();
+  const send = (contentType, size) => worker.fetch(new Request("https://auth.example.test/api/me/videos/upload-intent", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + session.token, "Content-Type": "application/json" },
+    body: JSON.stringify({ purpose: "audio", filename: "track.bin", contentType, size })
+  }), env);
+  assert.equal((await send("application/octet-stream", 1024)).status, 415);
+  assert.equal((await send("audio/mpeg", 100 * 1024 * 1024 + 1)).status, 413);
 });

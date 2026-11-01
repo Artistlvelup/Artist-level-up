@@ -44,6 +44,10 @@ class DataD1 {
       },
       async all() {
         const v = this.values;
+        if (sql.includes("FROM artist_videos WHERE status IN")) {
+          const allowed = new Set(["approved", "published"]);
+          return { results: [...db.videos.values()].filter(x => allowed.has(x.status)).slice(0, v[0]).map(x => ({ ...x })) };
+        }
         if (sql.includes("FROM artist_videos WHERE artist_id")) {
           return { results: [...db.videos.values()].filter(x => x.artist_id === v[0]).map(x => ({ ...x })) };
         }
@@ -176,4 +180,17 @@ test("video metadata API is session- and artist-scoped and never deletes the R2 
   assert.equal(deletion.media_object_deleted,false);
   const afterDelete = await worker.fetch(req("/api/me/videos","GET",session.token),e);
   assert.equal((await afterDelete.json()).videos.length,0);
+});
+
+
+test("public video feed returns only approved or published videos", async () => {
+  const e = env();
+  e.DB.videos.set("pending-video", { id:"pending-video", status:"pending", title:"Waiting" });
+  e.DB.videos.set("approved-video", { id:"approved-video", status:"approved", title:"Approved" });
+  e.DB.videos.set("published-video", { id:"published-video", status:"published", title:"Published" });
+  const response = await worker.fetch(req("/api/public/videos?limit=10","GET",null),e);
+  assert.equal(response.status,200);
+  const videos = (await response.json()).videos;
+  assert.deepEqual(videos.map(x => x.id).sort(),["approved-video","published-video"]);
+  assert.equal((await worker.fetch(req("/api/public/videos?limit=0","GET",null),e)).status,400);
 });

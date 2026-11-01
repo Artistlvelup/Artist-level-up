@@ -25,7 +25,22 @@ This branch is isolated from `main`; no live website or Supabase project was cha
 Foreign-key constraints are intentionally omitted from the first SQLite schema pass. The initial metadata export contained constraint names where column names were expected, so those generated clauses were removed rather than risking an incorrect schema. Relationships must be reintroduced from verified column-level metadata in a later reviewed migration before application cutover.
 
 
-## Supabase identity bridge status — NOT IMPLEMENTED
+## Supabase identity bridge status — IMPLEMENTED ON MIGRATION BRANCH
+
+The Worker now includes `POST /auth/bridge/supabase`. It accepts only a Supabase access token, verifies it server-to-server against the configured Supabase Auth `/auth/v1/user` endpoint, and allows only the exact pre-approved owner UUID. Browser-supplied user IDs, email, role, and admin claims are ignored. Anonymous and unknown identities are rejected.
+
+Before creating a D1 session, the route requires the matching active `platform_admins` row and existing `profiles` row in D1. It creates only the `app_users` identity row when missing, preserves an existing active non-anonymous row, and does not seed or rewrite profile, artist, song, video, or picture content. The returned session uses the existing hashed-token/session-family mechanism.
+
+Session validation now derives admin authorization from the active D1 `platform_admins` mapping rather than trusting the profile's `role` value. This matters because the verified existing Supabase profile role is `artist` while its platform-admin mapping is active.
+
+Required Worker settings for the bridge:
+- `SUPABASE_URL`: existing Supabase project URL (HTTPS).
+- `SUPABASE_ANON_KEY`: existing Supabase anon/publishable key.
+- `SESSION_PEPPER`: private Worker secret, at least 32 characters.
+- `ALLOWED_ORIGINS`: exact allowed browser origins.
+- `DB`: D1 binding containing the selected owner profile and active platform-admin mapping.
+
+The V101 browser has not yet been wired to call the bridge. This is bearer-token prototype behavior; secure browser persistence (preferably same-site HttpOnly cookies), CSRF protections, deployment settings, and end-to-end testing on the final hostname remain open. Keep Supabase live. Do not deploy, apply remote D1 migrations, edit the live V101 HTML, or switch over until those remaining steps are reviewed and explicitly approved.
 
 The earlier description of a `POST /auth/bridge/supabase` prototype was inaccurate. A fresh inspection of `workers/auth/worker.js` on this branch confirms that **the route and server-side Supabase token verification function are absent**. Do not call or rely on that endpoint yet.
 

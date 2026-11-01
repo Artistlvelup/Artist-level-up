@@ -24,3 +24,15 @@ Excluded records are not to be copied into Cloudflare D1 or R2. Do not delete or
 ## No-change boundary
 
 This document records the owner's prior selection rules. It does not authorize a live deployment, remote D1 migration, Supabase deletion, or media transfer. Keep the current V101 live site unchanged until the owner explicitly approves cutover.
+
+## Read-only identity verification and D1 import
+
+Verified against the existing Supabase project on 2026-11-01:
+- Auth user `d6eaf421-fcad-44ec-beb0-d6a7f676db8a` exists, is non-anonymous, is not deleted, and is not banned.
+- Matching profile exists with display name `Solo_vibez`; its profile role remains `artist`.
+- Matching artist `2b2a5bf6-9673-42a1-a33a-d40dab98ad44` exists, is `pending`, and is not suspended.
+- Matching `platform_admins` record exists and is active.
+
+The additive, idempotent migration `0006_verified_owner_identity.sql` imports only that profile, artist mapping, and active platform-admin mapping. It intentionally leaves `avatar_url` NULL and does not import Auth credentials, sessions, songs, videos, picture posts, or any other account. The Supabase session bridge creates the D1 `app_users` row only after verifying the live Supabase access token and the imported D1 owner/admin mapping.
+
+The migration is branch-only and must pass the repository validation workflow before it is considered ready. It has not been applied to remote D1.

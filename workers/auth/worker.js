@@ -940,7 +940,7 @@ export default {
         return json({ error: "Method not allowed" }, 405, cors);
       }
 
-      if (url.pathname === "/api/me/videos" || url.pathname.startsWith("/api/me/videos/")) {
+      if (url.pathname === "/api/me/videos" || /^\\/api\\/me\\/videos\\/[0-9a-f-]{36}$/i.test(url.pathname)) {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await myVideosRoute(request, env, session.user_id, url);

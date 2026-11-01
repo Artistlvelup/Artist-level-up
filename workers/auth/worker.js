@@ -303,6 +303,23 @@ async function withdrawalRoute(request, env, userId) {
   }, 201, cors);
 }
 
+async function adminWithdrawalsRoute(request, env, session, url) {
+  const cors = corsHeaders(request, env);
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, cors);
+  const status = url.searchParams.get("status");
+  const allowed = new Set(["pending", "approved", "rejected", "paid"]);
+  if (status && !allowed.has(status)) return json({ error: "Invalid withdrawal status" }, 400, cors);
+  const rawLimit = Number(url.searchParams.get("limit") || 100);
+  if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, cors);
+  const limit = Math.min(100, rawLimit);
+  const query = status
+    ? env.DB.prepare("SELECT w.id, w.user_id, p.display_name, w.amount, w.bank_name, w.account_name, w.account_number, w.status, w.created_at FROM withdrawals w LEFT JOIN profiles p ON p.id = w.user_id WHERE w.status = ? ORDER BY w.created_at DESC LIMIT ?").bind(status, limit)
+    : env.DB.prepare("SELECT w.id, w.user_id, p.display_name, w.amount, w.bank_name, w.account_name, w.account_number, w.status, w.created_at FROM withdrawals w LEFT JOIN profiles p ON p.id = w.user_id ORDER BY w.created_at DESC LIMIT ?").bind(limit);
+  const rows = await query.all();
+  return json({ withdrawals: rows.results || [] }, 200, cors);
+}
+
 async function adminSongsRoute(request, env, session, url) {
   const cors = corsHeaders(request, env);
   if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
@@ -787,6 +804,12 @@ export default {
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await adminVideosRoute(request, env, session, url);
         if (result) return result;
+      }
+
+      if (url.pathname === "/api/admin/withdrawals") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await adminWithdrawalsRoute(request, env, session, url);
       }
 
       if (url.pathname === "/api/admin/marketplace/commissions") {

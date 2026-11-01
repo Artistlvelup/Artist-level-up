@@ -90,3 +90,28 @@ A fresh read-only query of the confirmed main owner account was used to prepare 
 - No remote D1 migration or Worker deployment has been performed. The source HTML still uses Supabase for app data, uploads, moderation, marketplace checkout and payment flows.
 
 This means the R2 content transfer is **not complete**: six video objects and the profile avatar still depend on Supabase Storage. Do not disconnect or pause Supabase until all seven remaining objects have been copied, tested, and their D1 URLs switched to R2.
+
+
+## Current owner correction — authoritative from 2026-10-31 onward
+
+This section supersedes any conflicting historical migration notes above, including statements that remaining Supabase media must be copied to R2 or that excluded Supabase records were deleted.
+
+### Account scope
+- Only the existing active owner/admin account already recognized by V101 is in scope.
+- Preserve its existing user UUID and linked V101 identity.
+- Do not import anonymous accounts, anonymous profiles, unrecognized profiles/accounts, the secondary account, or test/abandoned/duplicate/unused records.
+- Do not create replacement accounts or import additional profiles "just in case".
+- Excluded Supabase records are to remain untouched unless the owner separately authorizes deletion. Exclusion means they are not copied to Cloudflare.
+
+### Media scope
+- Reuse the one song, three picture-post images, and the two selected video objects that the owner has already placed in Cloudflare R2.
+- Do not transfer any other video from Supabase Storage to Cloudflare. In particular, do not copy the six other video objects or the profile avatar.
+- Do not upload the already-moved song, pictures, or selected videos again.
+- Do not delete or alter Supabase media or metadata. The owner will handle any desired cleanup separately.
+
+### Implementation and deployment boundary
+- The existing Worker seed currently includes the owner identity, one song, two selected videos, and three picture posts. Do not expand that seed to the excluded six videos or avatar.
+- The current Worker has native first-admin registration and password login; it does not currently implement the previously proposed Supabase session-bridge endpoint. Do not claim that an existing Supabase session is bridged.
+- Keep Supabase available during development and rollback. Do not deploy the Worker, apply remote D1 migrations, change the live V101 site, or trigger a production cutover without the owner's explicit approval.
+- Continue development only on `migration/d1-v101-prep`, preserving the V101 backup and leaving `main` and the live Render site unchanged.
+

@@ -2,6 +2,25 @@
 
 Status: design document based on direct inspection of the V101 HTML on this migration branch. No live API has been deployed and no production traffic has been switched.
 
+## Implementation checkpoint (2026-11-01)
+
+The isolated Worker currently implements:
+- Native owner bootstrap and email/password login, session validation, refresh and logout.
+- Authenticated profile read/update and artist read/create.
+- Artist-owned song list/create/update and public published-song listing.
+- Authenticated promotion creation and pending-only withdrawal submission.
+- Admin-only song and video review/list endpoints.
+- Admin-only paid marketplace commission report.
+- Public published marketplace beat listing and buyer-owned marketplace order listing.
+- Admin-only withdrawal review listing (read-only).
+
+The admin withdrawal endpoint is `GET /api/admin/withdrawals?status=pending&limit=100`. It returns only withdrawal review fields and joins the display name from profiles. It does not approve, reject, or pay a withdrawal.
+
+The current V101 HTML is **not yet connected to this Worker**. The frontend audit still finds Supabase Auth initialization/anonymous sign-in, PostgREST video fallbacks, Supabase Storage audio upload, TUS video upload, and the Paystack Edge Function checkout call. The Worker has not been deployed and remote D1 migrations have not been applied. The production Render site remains unchanged.
+
+Remaining integration work includes a browser adapter and owner login UI, complete video metadata CRUD and R2 upload flow, audio/cover image upload flow, marketplace checkout plus verified Paystack webhook, owner withdrawal review UI, and end-to-end tests against a staging D1 database. Do not treat the backend endpoints above as proof that the full site has migrated.
+
+
 ## Tables directly referenced by the current V101 HTML
 
 | Table | Observed app operations | Migration handling |

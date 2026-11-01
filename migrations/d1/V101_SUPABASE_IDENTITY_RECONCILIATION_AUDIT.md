@@ -33,6 +33,6 @@ Verified against the existing Supabase project on 2026-11-01:
 - Matching artist `2b2a5bf6-9673-42a1-a33a-d40dab98ad44` exists, is `pending`, and is not suspended.
 - Matching `platform_admins` record exists and is active.
 
-The additive, idempotent migration `0006_verified_owner_identity.sql` imports only that profile, artist mapping, and active platform-admin mapping. It intentionally leaves `avatar_url` NULL and does not import Auth credentials, sessions, songs, videos, picture posts, or any other account. The Supabase session bridge creates the D1 `app_users` row only after verifying the live Supabase access token and the imported D1 owner/admin mapping.
+The additive, idempotent migration `0005_verified_owner_identity.sql` imports only that profile, artist mapping, and active platform-admin mapping. It intentionally leaves `avatar_url` NULL and does not import Auth credentials, sessions, songs, videos, picture posts, or any other account. The Supabase session bridge creates the D1 `app_users` row only after verifying the live Supabase access token and the imported D1 owner/admin mapping.
 
 The migration is branch-only and must pass the repository validation workflow before it is considered ready. It has not been applied to remote D1.

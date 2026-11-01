@@ -12,6 +12,8 @@ class FakeD1 {
   sessions = new Map();
   families = new Map();
   artist = null;
+  ownerAdminMapped = false;
+  ownerProfileExists = false;
 
   prepare(sql) {
     const db = this;
@@ -20,6 +22,20 @@ class FakeD1 {
       values: [],
       bind(...values) { this.values = values; return this; },
       async first() {
+        if (sql.includes("SELECT pa.user_id FROM platform_admins")) {
+          const [userId] = this.values;
+          return db.ownerAdminMapped && db.ownerProfileExists ? { user_id: userId } : null;
+        }
+        if (sql.includes("SELECT user_id, is_anonymous, status FROM app_users")) {
+          const [userId] = this.values;
+          const user = db.users.get(userId);
+          return user ? { user_id: userId, is_anonymous: user.is_anonymous, status: user.status } : null;
+        }
+        if (sql.includes("SELECT user_id FROM app_users WHERE user_id = ? AND is_anonymous = 0")) {
+          const [userId] = this.values;
+          const user = db.users.get(userId);
+          return user?.status === "active" && user.is_anonymous === 0 ? { user_id: userId } : null;
+        }
         if (sql.includes("SELECT id FROM artists")) return db.artist;
         if (sql.includes("SELECT status FROM app_users") || sql.includes("SELECT status, is_anonymous FROM app_users")) {
           const [userId] = this.values;
@@ -42,7 +58,7 @@ class FakeD1 {
           const user = db.users.get(session.user_id);
           const family = db.families.get(session.family_id);
           return user?.status === "active" && family?.revoked_at === null
-            ? { user_id: session.user_id, expires_at: session.expires_at }
+            ? { user_id: session.user_id, expires_at: session.expires_at, role: db.ownerAdminMapped ? "admin" : "artist" }
             : null;
         }
         throw new Error("Unexpected SQL in first(): " + sql);
@@ -116,12 +132,91 @@ function setup() {
   return {
     DB: new FakeD1(),
     SESSION_PEPPER: "test-only-pepper-with-at-least-32-characters",
+    SUPABASE_URL: "https://project.supabase.co",
+    SUPABASE_ANON_KEY: "test-supabase-anon-key",
     ALLOWED_ORIGINS: "https://artistlevelup.com.ng",
   };
 }
 
 const request = (path, method = "GET", headers = {}) =>
   new Request("https://auth.example.test" + path, { method, headers });
+
+
+const OWNER_ID = "d6eaf421-fcad-44ec-beb0-d6a7f676db8a";
+const ownerBridgeRequest = token => new Request("https://auth.example.test/auth/bridge/supabase", {
+  method: "POST",
+  headers: { Origin: "https://artistlevelup.com.ng", "Content-Type": "application/json" },
+  body: JSON.stringify({ access_token: token })
+});
+
+test("bridges only the existing verified non-anonymous owner and issues an admin session", async () => {
+  const env = setup();
+  env.DB.ownerAdminMapped = true;
+  env.DB.ownerProfileExists = true;
+  env.DB.users.set(OWNER_ID, { status: "active", is_anonymous: 0 });
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, "https://project.supabase.co/auth/v1/user");
+    assert.equal(options.headers.Authorization, "Bearer " + "s".repeat(80));
+    assert.equal(options.headers.apikey, "test-supabase-anon-key");
+    return new Response(JSON.stringify({ id: OWNER_ID, is_anonymous: false }), { status: 200 });
+  };
+  try {
+    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.userId, OWNER_ID);
+    assert.equal(body.role, "admin");
+    assert.match(body.token, /^[A-Za-z0-9_-]{40,}$/);
+    const check = await worker.fetch(request("/auth/session", "GET", {
+      Authorization: "Bearer " + body.token
+    }), env);
+    assert.equal(check.status, 200);
+    assert.equal((await check.json()).role, "admin");
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("rejects anonymous or different Supabase identities at the bridge", async () => {
+  const env = setup();
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: "11111111-1111-4111-8111-111111111111", is_anonymous: false
+  }), { status: 200 });
+  try {
+    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
+    assert.equal(response.status, 403);
+    assert.equal(env.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("fails closed when the verified owner mapping is absent from D1", async () => {
+  const env = setup();
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    id: OWNER_ID, is_anonymous: false
+  }), { status: 200 });
+  try {
+    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
+    assert.equal(response.status, 403);
+    assert.equal(env.DB.sessions.size, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("does not expose a bootstrap owner-registration or password-login route", async () => {
+  const env = setup();
+  assert.equal((await worker.fetch(request("/auth/register-admin", "POST", {
+    "Content-Type": "application/json"
+  }), env)).status, 404);
+  assert.equal((await worker.fetch(request("/auth/login", "POST", {
+    "Content-Type": "application/json"
+  }), env)).status, 404);
+});
 
 test("creates an anonymous identity and returns a usable opaque session", async () => {
   const env = setup();

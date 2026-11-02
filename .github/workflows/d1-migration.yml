@@ -127,7 +127,7 @@ jobs:
           # HTMLParser treats '<' inside JavaScript template strings as markup.
           # Extract script bodies with a raw-text-aware regex instead.
           scripts = re.findall(
-              r"<script\\b[^>]*>([\\s\\S]*?)</script\\s*>",
+              r"<script\b[^>]*>([\s\S]*?)</script\s*>",
               html,
               flags=re.IGNORECASE,
           )

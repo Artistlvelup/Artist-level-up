@@ -261,7 +261,7 @@ export async function requestPasswordlessLogin(request, env, cors) {
     await env.DB.prepare(
       "INSERT INTO app_login_link_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
     ).bind(tokenHash, row.user_id, email, now, expiresAt).run();
-    const loginUrl = env.APP_PUBLIC_URL.replace(/\\/$/, "") + "/?auth_login=" + encodeURIComponent(token);
+    const loginUrl = env.APP_PUBLIC_URL.replace(/\/$/, "") + "/?auth_login=" + encodeURIComponent(token);
     try {
       const sent = await fetch("https://api.resend.com/emails", {
         method: "POST",

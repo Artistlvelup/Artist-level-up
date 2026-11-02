@@ -115,6 +115,7 @@ export async function registerPasswordAccount(request, env, cors) {
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = body.password;
   const displayName = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 80) : "";
+  const role = body.role === "artist" ? "artist" : "user";
   if (!validEmail(email) || !validPassword(password) || !displayName) {
     return response({ error: "Use a valid email and a password of at least 12 characters." }, 400, cors);
   }
@@ -150,8 +151,8 @@ export async function registerPasswordAccount(request, env, cors) {
         "INSERT INTO app_credentials (user_id, email_normalized, password_hash, password_salt, password_iterations, email_verified_at, password_changed_at) VALUES (?, ?, ?, ?, ?, NULL, ?)"
       ).bind(userId, email, passwordHash, saltText, PASSWORD_ITERATIONS, now),
       env.DB.prepare(
-        "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, '', 'user', ?, ?)"
-      ).bind(userId, displayName, new Date(now * 1000).toISOString(), new Date(now * 1000).toISOString()),
+        "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, '', ?, ?, ?)"
+      ).bind(userId, displayName, role, new Date(now * 1000).toISOString(), new Date(now * 1000).toISOString()),
       env.DB.prepare(
         "INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
       ).bind(tokenHash, userId, email, now, expiresAt)
@@ -174,6 +175,31 @@ export async function registerPasswordAccount(request, env, cors) {
       : "We could not complete registration. Please try again." }, 503, cors);
   }
   return response({ ok: true, verificationRequired: true }, 202, cors);
+}
+
+export async function registerPasswordlessAccount(request, env, cors) {
+  const body = await readBody(request);
+  if (!body) return response({ error: "INVALID_JSON" }, 400, cors);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const displayName = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 80) : "";
+  if (!validEmail(email) || !displayName) {
+    return response({ error: "Enter a valid email and display name." }, 400, cors);
+  }
+  // V101's existing forms have no password field. Generate a server-only
+  // credential; never treat the short local PIN as an account password.
+  const generatedPassword = encode(crypto.getRandomValues(new Uint8Array(32)));
+  const payload = {
+    email,
+    display_name: displayName,
+    role: body.role === "artist" ? "artist" : "user",
+    password: generatedPassword
+  };
+  const bridgedRequest = new Request(request.url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  return registerPasswordAccount(bridgedRequest, env, cors);
 }
 
 export async function resendPasswordVerification(request, env, cors) {

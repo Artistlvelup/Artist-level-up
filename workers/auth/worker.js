@@ -87,10 +87,13 @@ async function profileRoute(request, env, userId) {
     ).bind(userId).first();
     return json({ profile: row || null }, 200, corsHeaders(request, env));
   }
-  if (request.method !== "PUT") return null;
+  if (request.method !== "PUT" && request.method !== "PATCH") return null;
   const body = await readJson(request);
   const displayName = cleanText(body.display_name, 80);
   const avatarUrl = cleanText(body.avatar_url, 2048);
+  if (request.method === "PATCH" && !Object.hasOwn(body, "display_name") && !Object.hasOwn(body, "avatar_url")) {
+    return json({ error: "No editable profile fields supplied" }, 400, corsHeaders(request, env));
+  }
   const now = new Date().toISOString();
   await env.DB.prepare(
     "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, ?, 'artist', ?, ?) ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, avatar_url = excluded.avatar_url, updated_at = excluded.updated_at"
@@ -108,16 +111,33 @@ async function artistRoute(request, env, userId) {
     ).bind(userId).first();
     return json({ artist: row || null }, 200, corsHeaders(request, env));
   }
-  if (request.method !== "POST") return null;
+  if (request.method !== "POST" && request.method !== "PATCH") return null;
   const body = await readJson(request);
+  const existing = await env.DB.prepare("SELECT id FROM artists WHERE user_id = ? LIMIT 1").bind(userId).first();
+  const now = new Date().toISOString();
+  if (request.method === "PATCH") {
+    if (!existing) return json({ error: "Artist account not found" }, 404, corsHeaders(request, env));
+    const fields = [];
+    const values = [];
+    if (Object.hasOwn(body, "artist_name")) { fields.push("artist_name = ?"); values.push(cleanText(body.artist_name, 100, true)); }
+    if (Object.hasOwn(body, "bio")) { fields.push("bio = ?"); values.push(cleanText(body.bio, 2000)); }
+    if (Object.hasOwn(body, "genre")) { fields.push("genre = ?"); values.push(cleanText(body.genre, 80)); }
+    if (Object.hasOwn(body, "country")) { fields.push("country = ?"); values.push(cleanText(body.country, 80)); }
+    if (!fields.length) return json({ error: "No editable artist fields supplied" }, 400, corsHeaders(request, env));
+    fields.push("updated_at = ?");
+    values.push(now, userId);
+    await env.DB.prepare("UPDATE artists SET " + fields.join(", ") + " WHERE user_id = ?").bind(...values).run();
+    const row = await env.DB.prepare(
+      "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE user_id = ? LIMIT 1"
+    ).bind(userId).first();
+    return json({ artist: row }, 200, corsHeaders(request, env));
+  }
   const artistName = cleanText(body.artist_name, 100, true);
   const bio = cleanText(body.bio, 2000);
   const genre = cleanText(body.genre, 80);
   const country = cleanText(body.country, 80);
-  const existing = await env.DB.prepare("SELECT id FROM artists WHERE user_id = ? LIMIT 1").bind(userId).first();
   if (existing) return json({ error: "Artist account already exists" }, 409, corsHeaders(request, env));
   const id = crypto.randomUUID();
-  const now = new Date().toISOString();
   await env.DB.prepare(
     "INSERT INTO artists (id, user_id, artist_name, bio, genre, country, status, created_at, updated_at, suspended) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, 0)"
   ).bind(id, userId, artistName, bio, genre, country, now, now).run();

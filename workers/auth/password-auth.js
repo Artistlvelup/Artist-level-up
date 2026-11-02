@@ -188,12 +188,22 @@ export async function resendPasswordVerification(request, env, cors) {
   if (row) {
     const token = encode(crypto.getRandomValues(new Uint8Array(32)));
     const tokenHash = await hashToken(token, requirePepper(env));
-    await env.DB.batch([
-      env.DB.prepare("UPDATE app_email_verification_tokens SET consumed_at = ? WHERE user_id = ? AND consumed_at IS NULL").bind(now, row.user_id),
-      env.DB.prepare("INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)").bind(tokenHash, row.user_id, email, now, now + VERIFY_TTL_SECONDS)
-    ]);
-    try { await sendVerificationEmail(env, email, token); }
-    catch (error) { console.error("V101 resend verification error", error?.message || error); }
+    // Keep existing verification links valid until the replacement email is confirmed sent.
+    await env.DB.prepare(
+      "INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, row.user_id, email, now, now + VERIFY_TTL_SECONDS).run();
+    try {
+      await sendVerificationEmail(env, email, token);
+      await env.DB.prepare(
+        "UPDATE app_email_verification_tokens SET consumed_at = ? WHERE user_id = ? AND token_hash <> ? AND consumed_at IS NULL"
+      ).bind(now, row.user_id, tokenHash).run();
+    } catch (error) {
+      // A failed send must not invalidate the user's previous working link.
+      await env.DB.prepare(
+        "UPDATE app_email_verification_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL"
+      ).bind(now, tokenHash).run();
+      console.error("V101 resend verification error", error?.message || error);
+    }
   }
   return response({ ok: true, message: "If the account needs verification, an email will be sent." }, 202, cors);
 }

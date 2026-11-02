@@ -154,6 +154,16 @@ export async function registerPasswordAccount(request, env, cors) {
     ]);
     await sendVerificationEmail(env, email, token);
   } catch (error) {
+    // Roll back only the account created by this request if email delivery fails.
+    try {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM app_email_verification_tokens WHERE user_id = ?").bind(userId),
+        env.DB.prepare("DELETE FROM app_credentials WHERE user_id = ?").bind(userId),
+        env.DB.prepare("DELETE FROM app_users WHERE user_id = ? AND is_anonymous = 0").bind(userId)
+      ]);
+    } catch (cleanupError) {
+      console.error("V101 registration rollback error", cleanupError?.message || cleanupError);
+    }
     console.error("V101 registration delivery error", error?.message || error);
     return response({ error: error?.message === "EMAIL_DELIVERY_NOT_CONFIGURED"
       ? "Email verification is not configured yet."

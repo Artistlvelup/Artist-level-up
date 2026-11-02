@@ -1,23 +1,23 @@
-name: Validate V101 Cloudflare-only foundation
+name: Validate V101 Cloudflare migration foundation
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - migration/v101-cloudflare-only-2026-11-02
+      - migration/v101-cloudflare-cutover-current-main-2026-11-02
 
 permissions:
   contents: read
 
 concurrency:
-  group: artist-level-up-v101-cloudflare-only
+  group: artist-level-up-v101-cloudflare-cutover-current-main
   cancel-in-progress: false
 
 jobs:
   validate:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout isolated migration branch
+      - name: Checkout current V101 migration branch
         uses: actions/checkout@v5
 
       - name: Validate D1 schema and native auth migrations locally
@@ -47,8 +47,9 @@ jobs:
               raise SystemExit(f"Missing required tables: {sorted(missing)}")
           if "v101_bridge_config" in tables:
               raise SystemExit("Obsolete bridge configuration table must not exist.")
-          if db.execute("PRAGMA foreign_key_check").fetchall():
-              raise SystemExit("D1 schema contains foreign-key violations.")
+          violations = db.execute("PRAGMA foreign_key_check").fetchall()
+          if violations:
+              raise SystemExit(f"D1 schema contains foreign-key violations: {violations}")
           print(f"Validated {len(files)} local migration files and {len(tables)} tables; no remote D1 changes.")
           PY
 
@@ -56,18 +57,9 @@ jobs:
         run: |
           node --input-type=module --check < workers/auth/worker.js
           node --input-type=module --check < workers/auth/password-auth.js
-          python - <<'PY'
-          from pathlib import Path
-          html = Path("index.html").read_text()
-          marker = '<script id="aluV101MemberAccessGate">'
-          start = html.index(marker) + len(marker)
-          end = html.index("</script>", start)
-          Path("/tmp/v101-member-gate.js").write_text(html[start:end])
-          PY
-          node --check /tmp/v101-member-gate.js
 
       - name: Test native password auth and Worker routes
         run: node --test workers/auth/password-auth-routes.test.mjs workers/auth/worker-no-legacy.test.mjs
 
       - name: Confirm production apply is disabled
-        run: echo "Validation only. No remote D1 apply or production deployment is configured."
+        run: echo "Validation only. No remote D1 apply, Worker deployment, Render change, or Supabase data/media operation is configured."

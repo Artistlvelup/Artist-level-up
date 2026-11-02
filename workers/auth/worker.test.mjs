@@ -174,14 +174,28 @@ test("rejects every legacy Supabase identity while no Cloudflare account is appr
   }
 });
 
-test("does not expose a bootstrap owner-registration or password-login route", async () => {
+test("keeps owner bootstrap disabled and validates the new password-auth routes", async () => {
   const env = setup();
   assert.equal((await worker.fetch(request("/auth/register-admin", "POST", {
     "Content-Type": "application/json"
   }), env)).status, 404);
-  assert.equal((await worker.fetch(request("/auth/login", "POST", {
-    "Content-Type": "application/json"
-  }), env)).status, 404);
+
+  const login = await worker.fetch(new Request("https://auth.example.test/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: "{"
+  }), env);
+  assert.equal(login.status, 400, "password login route must reject malformed JSON");
+
+  const register = await worker.fetch(new Request("https://auth.example.test/auth/register", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "artist@example.com", password: "a-secure-password-123" })
+  }), env);
+  assert.equal(register.status, 503, "registration must fail closed until email delivery is configured");
+
+  const verify = await worker.fetch(new Request("https://auth.example.test/auth/verify-email", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: "too-short" })
+  }), env);
+  assert.equal(verify.status, 400, "verification route must reject invalid tokens");
 });
 
 test("creates an anonymous identity and returns a usable opaque session", async () => {

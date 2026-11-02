@@ -120,40 +120,23 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          from html.parser import HTMLParser
+          import re
           from pathlib import Path
 
-          class Scripts(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.inside = False
-                  self.parts = []
-                  self.current = []
-
-              def handle_starttag(self, tag, attrs):
-                  if tag.lower() == "script":
-                      self.inside = True
-                      self.current = []
-
-              def handle_data(self, data):
-                  if self.inside:
-                      self.current.append(data)
-
-              def handle_endtag(self, tag):
-                  if tag.lower() == "script" and self.inside:
-                      source = "".join(self.current)
-                      if source.strip():
-                          self.parts.append(source)
-                      self.inside = False
-                      self.current = []
-
-          parser = Scripts()
-          parser.feed(Path("Artist-Level-Up-LAUNCH-MASTER.html").read_text())
-          if not parser.parts:
+          html = Path("Artist-Level-Up-LAUNCH-MASTER.html").read_text()
+          # HTMLParser treats '<' inside JavaScript template strings as markup.
+          # Extract script bodies with a raw-text-aware regex instead.
+          scripts = re.findall(
+              r"<script\\b[^>]*>([\\s\\S]*?)</script\\s*>",
+              html,
+              flags=re.IGNORECASE,
+          )
+          parts = [source for source in scripts if source.strip()]
+          if not parts:
               raise SystemExit("No inline JavaScript found in V101 HTML.")
-          for index, source in enumerate(parser.parts, 1):
+          for index, source in enumerate(parts, 1):
               Path(f"/tmp/alu-v101-script-{index}.js").write_text(source)
-          print(f"Extracted {len(parser.parts)} inline script blocks for syntax checking.")
+          print(f"Extracted {len(parts)} inline script blocks for syntax checking.")
           PY
           for script in /tmp/alu-v101-script-*.js; do node --check "$script"; done
 

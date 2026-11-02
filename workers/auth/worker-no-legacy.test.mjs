@@ -72,3 +72,22 @@ test("streaming release uploads are signed, release-scoped, and verified before 
   assert.ok(source.includes('WHERE id = ? AND user_id = ? AND status = \'draft\''));
   assert.ok(source.includes("R2 upload service is not configured"));
 });
+
+
+test("profile and artist APIs support authenticated partial updates without changing create semantics", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
+  const profileStart = source.indexOf("async function profileRoute");
+  const artistStart = source.indexOf("async function artistRoute");
+  const songsStart = source.indexOf("async function songsRoute");
+  assert.ok(profileStart >= 0 && artistStart > profileStart && songsStart > artistStart);
+  const profile = source.slice(profileStart, artistStart);
+  const artist = source.slice(artistStart, songsStart);
+  assert.match(profile, /request\.method !== "PUT" && request\.method !== "PATCH"/);
+  assert.match(profile, /No editable profile fields supplied/);
+  assert.match(profile, /ON CONFLICT\(id\) DO UPDATE/);
+  assert.match(artist, /request\.method !== "POST" && request\.method !== "PATCH"/);
+  assert.match(artist, /if \(request\.method === "PATCH"\)/);
+  assert.match(artist, /UPDATE artists SET .* WHERE user_id = \?/);
+  assert.match(artist, /Artist account already exists/);
+});

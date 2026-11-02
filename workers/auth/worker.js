@@ -1,4 +1,4 @@
-import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAccount, loginPasswordAccount } from "./password-auth.js";
+import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAccount, loginPasswordAccount, requestPasswordlessLogin, verifyPasswordlessLogin } from "./password-auth.js";
 /**
  * Artist Level Up V101 — Cloudflare-native Worker.
  * D1 stores application data and password identities.
@@ -959,6 +959,12 @@ export default {
       }
       if (url.pathname === "/auth/verify-email" && request.method === "POST") {
         return await verifyPasswordAccount(request, env, cors);
+      }
+      if (url.pathname === "/auth/request-login-link" && request.method === "POST") {
+        return await requestPasswordlessLogin(request, env, cors);
+      }
+      if (url.pathname === "/auth/verify-login-link" && request.method === "POST") {
+        return await verifyPasswordlessLogin(request, env, cors, createUserSession);
       }
       if (url.pathname === "/auth/login" && request.method === "POST") {
         return await loginPasswordAccount(request, env, cors, createUserSession);

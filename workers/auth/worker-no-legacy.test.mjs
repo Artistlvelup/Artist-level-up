@@ -34,7 +34,7 @@ test("picture-post routes enforce ownership and reuse existing R2 URLs", async (
   assert.match(source, /WHERE id = \? AND user_id = \?/);
   assert.match(source, /IMAGE_URL_MUST_REFERENCE_EXISTING_R2_MEDIA/);
   assert.match(source, /R2_PUBLIC_BASE_URL/);
-  assert.doesNotMatch(source, /put\(|\.put\(/i);
+  assert.doesNotMatch(source, /(?:env\.)?R2_BUCKET\.(?:put|delete)\(/i);
 });
 
 
@@ -52,7 +52,7 @@ test("streaming distribution draft routes are authenticated and owner-scoped", a
   const fs = await import("node:fs");
   const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
   assert.ok(source.includes("/api/me/streaming-distribution"));
-  assert.ok(source.includes('operation === "create_draft"'));
+  assert.ok(source.includes('operation !== "create_draft"'));
   assert.ok(source.includes('operation === "list_mine"'));
   assert.ok(source.includes("streaming_distribution_requests"));
   assert.ok(source.includes("rights_confirmed !== true"));

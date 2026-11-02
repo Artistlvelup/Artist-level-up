@@ -1,6 +1,9 @@
 name: Prepare Artist Level Up V101 D1
 
 on:
+  push:
+    branches:
+      - migration/v101-cloudflare-cutover-from-main-2026-11-02
   workflow_dispatch:
     inputs:
       apply_remote:

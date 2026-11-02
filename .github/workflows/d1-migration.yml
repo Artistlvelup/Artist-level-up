@@ -31,8 +31,8 @@ jobs:
           db.execute("PRAGMA foreign_keys = ON")
           migrations = sorted(Path("migrations/d1").glob("[0-9][0-9][0-9][0-9]_*.sql"))
           numbers = [migration.name[:4] for migration in migrations]
-          if numbers != ["0001", "0002", "0003", "0004", "0005"]:
-              raise SystemExit(f"Expected migrations 0001–0005 exactly once, found {numbers}")
+          if numbers != ["0001", "0002", "0003", "0004", "0005", "0006"]:
+              raise SystemExit(f"Expected migrations 0001–0006 exactly once, found {numbers}")
 
           for migration in migrations:
               if migration.name == "0003_move_published_song_to_r2.sql":
@@ -66,8 +66,40 @@ jobs:
           ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 30:
-              raise SystemExit(f"Expected 30 tables after removing unused password-auth tables, found {tables}")
+          if tables != 33:
+              raise SystemExit(f"Expected 33 tables including native password-auth tables, found {tables}")
+
+          auth_tables = {
+              "app_users", "app_sessions", "app_session_families",
+              "app_credentials", "app_email_verification_tokens", "app_auth_rate_limits",
+          }
+          actual_tables = {
+              row[0] for row in db.execute(
+                  "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+              )
+          }
+          missing_auth_tables = auth_tables - actual_tables
+          if missing_auth_tables:
+              raise SystemExit(f"Missing native auth tables: {sorted(missing_auth_tables)}")
+
+          credential_columns = {
+              row[1] for row in db.execute("PRAGMA table_info(app_credentials)")
+          }
+          required_credential_columns = {
+              "user_id", "email_normalized", "password_hash", "password_salt",
+              "password_iterations", "email_verified_at", "password_changed_at",
+          }
+          if not required_credential_columns.issubset(credential_columns):
+              raise SystemExit("Native credential schema is missing required columns.")
+
+          for table in ("app_credentials", "app_email_verification_tokens"):
+              foreign_keys = db.execute(f"PRAGMA foreign_key_list({table})").fetchall()
+              if not any(row[2] == "app_users" and row[6].upper() == "CASCADE" for row in foreign_keys):
+                  raise SystemExit(f"{table} must cascade-delete with its D1 user.")
+
+          email_indexes = db.execute("PRAGMA index_list(app_credentials)").fetchall()
+          if not any(row[2] for row in email_indexes):
+              raise SystemExit("Normalized account email must be unique.")
 
           owner = db.execute("SELECT count(*) FROM profiles").fetchone()[0]
           artists = db.execute("SELECT count(*) FROM artists").fetchone()[0]
@@ -81,7 +113,7 @@ jobs:
               raise SystemExit("Identity migration must not seed video metadata.")
           if db.execute("SELECT count(*) FROM picture_posts").fetchone()[0] != 0:
               raise SystemExit("Identity migration must not seed picture posts.")
-          print(f"Validated {len(migrations)} migrations and {tables} tables; no accounts imported and no foreign-key violations.")
+          print(f"Validated {len(migrations)} migrations and {tables} tables, including native password auth; no accounts imported and no foreign-key violations.")
           PY
 
       - name: Check V101 inline JavaScript syntax

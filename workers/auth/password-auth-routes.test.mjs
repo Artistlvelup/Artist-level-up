@@ -41,3 +41,10 @@ test("login rejects malformed credentials before touching D1", async () => {
   }), env());
   assert.equal(response.status, 400);
 });
+
+test("passwordless login rejects malformed email and invalid callback token without D1 access", async () => {
+  const badEmail = await worker.fetch(post("/auth/request-login-link", { email: "not-an-email" }), env());
+  assert.equal(badEmail.status, 400);
+  const badToken = await worker.fetch(post("/auth/verify-login-link", { token: "short" }), env());
+  assert.equal(badToken.status, 400);
+});

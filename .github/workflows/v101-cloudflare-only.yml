@@ -16,6 +16,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Checkout current V101 migration branch
         uses: actions/checkout@v5
@@ -55,8 +56,10 @@ jobs:
 
       - name: Check Worker JavaScript syntax
         run: |
-          node --input-type=module --check < workers/auth/worker.js
-          node --input-type=module --check < workers/auth/password-auth.js
+          cp workers/auth/worker.js /tmp/worker.mjs
+          cp workers/auth/password-auth.js /tmp/password-auth.mjs
+          node --check /tmp/worker.mjs
+          node --check /tmp/password-auth.mjs
 
       - name: Test native password auth and Worker routes
         run: node --test workers/auth/password-auth-routes.test.mjs workers/auth/worker-no-legacy.test.mjs

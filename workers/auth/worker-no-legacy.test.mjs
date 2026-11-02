@@ -24,3 +24,15 @@ test("worker source does not contain external legacy auth/database references", 
   const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /supabase|\/auth\/bridge/i);
 });
+
+
+test("picture-post routes enforce ownership and reuse existing R2 URLs", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
+  assert.match(source, /\/api\/public\/picture-posts/);
+  assert.match(source, /\/api\/me\/picture-posts/);
+  assert.match(source, /WHERE id = \? AND user_id = \?/);
+  assert.match(source, /IMAGE_URL_MUST_REFERENCE_EXISTING_R2_MEDIA/);
+  assert.match(source, /R2_PUBLIC_BASE_URL/);
+  assert.doesNotMatch(source, /put\(|\.put\(/i);
+});

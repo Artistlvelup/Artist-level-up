@@ -958,7 +958,7 @@ export default {
         return await resendPasswordVerification(request, env, cors);
       }
       if (url.pathname === "/auth/verify-email" && request.method === "POST") {
-        return await verifyPasswordAccount(request, env, cors);
+        return await verifyPasswordAccount(request, env, cors, createUserSession);
       }
       if (url.pathname === "/auth/request-login-link" && request.method === "POST") {
         return await requestPasswordlessLogin(request, env, cors);
@@ -1104,7 +1104,10 @@ export default {
       if (url.pathname === "/auth/session" && request.method === "GET") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
-        return json({ userId: session.user_id, expiresAt: session.expires_at, role: session.role }, 200, cors);
+        const identity = await env.DB.prepare(
+          "SELECT email_normalized FROM app_credentials WHERE user_id = ? LIMIT 1"
+        ).bind(session.user_id).first();
+        return json({ userId: session.user_id, email: identity?.email_normalized || null, expiresAt: session.expires_at, role: session.role }, 200, cors);
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {

@@ -250,6 +250,77 @@ async function streamingDistributionRoute(request, env, userId) {
     return json({ ok: true, requests }, 200, cors);
   }
 
+  if (operation === "upload_intent") {
+    const requestId = cleanText(body.request_id, 36, true);
+    const purpose = cleanText(body.purpose, 16, true);
+    if (!["audio", "artwork"].includes(purpose)) return json({ ok: false, error: "Invalid upload purpose" }, 400, cors);
+    const draft = await env.DB.prepare(
+      "SELECT id FROM streaming_distribution_requests WHERE id = ? AND user_id = ? AND status = 'draft' LIMIT 1"
+    ).bind(requestId, userId).first();
+    if (!draft) return json({ ok: false, error: "Draft not found or no longer editable" }, 404, cors);
+    const filename = cleanText(body.filename, 180, true);
+    const contentType = cleanText(body.contentType, 100, true).toLowerCase();
+    const size = Number(body.size);
+    const allowed = purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
+    const maxBytes = purpose === "audio" ? 262144000 : 15728640;
+    if (!allowed.has(contentType)) return json({ ok: false, error: "Unsupported file type" }, 415, cors);
+    if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes) return json({ ok: false, error: "Invalid file size" }, 413, cors);
+    const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+    const key = userId + "/streaming-releases/" + requestId + "/" + purpose + "/" + crypto.randomUUID() + "." + extension;
+    try {
+      const signed = await presignR2Put(env, key, contentType);
+      return json({ ok: true, ...signed, size }, 200, cors);
+    } catch (error) {
+      if (error?.message === "R2_NOT_CONFIGURED" || error?.message === "R2_PUBLIC_URL_NOT_CONFIGURED") {
+        return json({ ok: false, error: "R2 upload service is not configured" }, 503, cors);
+      }
+      throw error;
+    }
+  }
+
+  if (operation === "submit") {
+    const requestId = cleanText(body.request_id, 36, true);
+    const draft = await env.DB.prepare(
+      "SELECT id, status FROM streaming_distribution_requests WHERE id = ? AND user_id = ? LIMIT 1"
+    ).bind(requestId, userId).first();
+    if (!draft) return json({ ok: false, error: "Draft not found" }, 404, cors);
+    if (draft.status !== "draft") return json({ ok: false, error: "This request has already been submitted" }, 409, cors);
+    const audioFiles = body.audio_files;
+    if (!Array.isArray(audioFiles) || audioFiles.length < 1 || audioFiles.length > 50) {
+      return json({ ok: false, error: "At least one valid audio file is required" }, 400, cors);
+    }
+    if (audioFiles.some(file => !file || typeof file !== "object" ||
+      typeof file.name !== "string" || file.name.length > 180 ||
+      !Number.isSafeInteger(Number(file.size)) || Number(file.size) < 1 ||
+      Number(file.size) > 262144000 || typeof file.type !== "string" ||
+      !file.type.toLowerCase().startsWith("audio/") ||
+      typeof file.path !== "string" || !trustedExistingR2Url(file.path, env) ||
+      !file.path.includes("/" + userId + "/streaming-releases/" + requestId + "/audio/"))) {
+      return json({ ok: false, error: "Audio files must be uploaded to this release's Cloudflare R2 folder" }, 400, cors);
+    }
+    const artworkPath = cleanText(body.artwork_path, 2048, true);
+    if (!trustedExistingR2Url(artworkPath, env) ||
+        !artworkPath.includes("/" + userId + "/streaming-releases/" + requestId + "/artwork/")) {
+      return json({ ok: false, error: "Artwork must be uploaded to this release's Cloudflare R2 folder" }, 400, cors);
+    }
+    for (const file of [...audioFiles, { path: artworkPath }]) {
+      let head;
+      try { head = await fetch(file.path, { method: "HEAD", redirect: "error" }); }
+      catch { return json({ ok: false, error: "Could not verify uploaded release files in Cloudflare R2" }, 400, cors); }
+      if (!head.ok) return json({ ok: false, error: "A release file is missing from Cloudflare R2" }, 400, cors);
+      const actualSize = Number(head.headers.get("content-length") || 0);
+      if (file.size && actualSize && actualSize !== Number(file.size)) {
+        return json({ ok: false, error: "Uploaded file size does not match the declared file size" }, 400, cors);
+      }
+    }
+    const now = new Date().toISOString();
+    const result = await env.DB.prepare(
+      "UPDATE streaming_distribution_requests SET audio_files = ?, artwork_path = ?, status = 'submitted', submitted_at = ?, updated_at = ? WHERE id = ? AND user_id = ? AND status = 'draft'"
+    ).bind(JSON.stringify(audioFiles), artworkPath, now, now, requestId, userId).run();
+    if (!result.meta?.changes) return json({ ok: false, error: "Draft could not be submitted" }, 409, cors);
+    return json({ ok: true, request: { id: requestId, status: "submitted" } }, 200, cors);
+  }
+
   if (operation !== "create_draft") {
     return json({ ok: false, error: "Unsupported distribution operation" }, 400, cors);
   }

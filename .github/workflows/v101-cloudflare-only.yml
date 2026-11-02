@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: artist-level-up-v101-cloudflare-cutover-current-main
+  group: artist-level-up-v101-cloudflare-cutover-current-main-v2
   cancel-in-progress: false
 
 jobs:

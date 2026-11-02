@@ -1016,7 +1016,7 @@ export default {
         if (result) return result;
       }
 
-      if (url.pathname === "/api/me/picture-posts" || /^\\/api\\/me\\/picture-posts\\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+      if (url.pathname === "/api/me/picture-posts" || /^\/api\/me\/picture-posts\/[0-9a-f-]{36}$/i.test(url.pathname)) {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await picturePostsRoute(request, env, session.user_id, url);

@@ -6690,7 +6690,7 @@ async function cfRequest(path,options){
   return data;
 }
 function memberAuthRedirectUrl(){return 'https://artistlevelup.com.ng/'}
-function emailOK(e){return /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(e)}
+function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 function makeEphemeralPassword(){
   if(!window.crypto?.getRandomValues)throw new Error('Secure account creation is unavailable in this browser. Please reopen Artist Level Up in a supported browser.');
   var bytes=new Uint8Array(32);window.crypto.getRandomValues(bytes);

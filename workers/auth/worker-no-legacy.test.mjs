@@ -47,3 +47,16 @@ test("music routes require artist-owned Cloudflare R2 audio and cover objects", 
   assert.match(source, /audio_url, cover_url, duration_seconds/);
   assert.match(source, /"audio"\s*\)/);
 });
+
+test("streaming distribution draft routes are authenticated and owner-scoped", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
+  assert.ok(source.includes("/api/me/streaming-distribution"));
+  assert.ok(source.includes('operation === "create_draft"'));
+  assert.ok(source.includes('operation === "list_mine"'));
+  assert.ok(source.includes("streaming_distribution_requests"));
+  assert.ok(source.includes("rights_confirmed !== true"));
+  assert.ok(source.includes("WHERE id = ? AND user_id = ?"));
+  assert.ok(source.includes('status !== "draft"'));
+  assert.doesNotMatch(source, /supabase|\/auth\/bridge/i);
+});

@@ -394,6 +394,75 @@ async function marketplaceRoute(request, env, userId, url) {
 }
 
 
+
+function trustedExistingR2Url(value, env) {
+  const base = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  if (!base || !/^https:\/\//i.test(base)) return false;
+  try {
+    const candidate = new URL(value), root = new URL(base);
+    const prefix = root.pathname.replace(/\/$/, "") + "/";
+    return candidate.origin === root.origin && !candidate.username && !candidate.password &&
+      !candidate.search && !candidate.hash && candidate.pathname.startsWith(prefix) &&
+      candidate.pathname.length > prefix.length;
+  } catch { return false; }
+}
+
+async function picturePostsRoute(request, env, userId, url) {
+  const cors = corsHeaders(request, env);
+  if (url.pathname === "/api/public/picture-posts" && request.method === "GET") {
+    const rawLimit = Number(url.searchParams.get("limit") || 30);
+    if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, cors);
+    const rows = await env.DB.prepare(
+      "SELECT p.id, p.user_id, p.image_url, p.caption, p.created_at, p.sound_song_id, p.sound_audio_url, p.sound_title, p.artist_name, pr.display_name, pr.avatar_url FROM picture_posts p LEFT JOIN profiles pr ON pr.id = p.user_id WHERE p.status = 'published' ORDER BY p.created_at DESC LIMIT ?"
+    ).bind(Math.min(60, rawLimit)).all();
+    return json({ posts: rows.results || [] }, 200, cors);
+  }
+  if (url.pathname === "/api/me/picture-posts" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, user_id, image_url, caption, status, created_at, sound_song_id, sound_audio_url, sound_title, artist_name FROM picture_posts WHERE user_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(userId).all();
+    return json({ posts: rows.results || [] }, 200, cors);
+  }
+  if (url.pathname === "/api/me/picture-posts" && request.method === "POST") {
+    const body = await readJson(request);
+    const imageUrl = cleanText(body.image_url, 2048, true);
+    if (!trustedExistingR2Url(imageUrl, env)) return json({ error: "IMAGE_URL_MUST_REFERENCE_EXISTING_R2_MEDIA" }, 400, cors);
+    const caption = cleanText(body.caption, 2200);
+    const soundSongId = body.sound_song_id == null ? null : cleanText(body.sound_song_id, 36);
+    const soundAudioUrl = body.sound_audio_url == null ? null : cleanText(body.sound_audio_url, 2048);
+    const soundTitle = body.sound_title == null ? null : cleanText(body.sound_title, 160);
+    const artistName = body.artist_name == null ? null : cleanText(body.artist_name, 120);
+    const id = crypto.randomUUID(), now = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO picture_posts (id, user_id, image_url, caption, status, created_at, sound_song_id, sound_audio_url, sound_title, artist_name) VALUES (?, ?, ?, ?, 'published', ?, ?, ?, ?, ?)"
+    ).bind(id, userId, imageUrl, caption, now, soundSongId, soundAudioUrl, soundTitle, artistName).run();
+    const post = await env.DB.prepare(
+      "SELECT id, user_id, image_url, caption, status, created_at, sound_song_id, sound_audio_url, sound_title, artist_name FROM picture_posts WHERE id = ? AND user_id = ? LIMIT 1"
+    ).bind(id, userId).first();
+    return json({ post }, 201, cors);
+  }
+  const match = /^\/api\/me\/picture-posts\/([0-9a-f-]{36})$/i.exec(url.pathname);
+  if (!match) return null;
+  const existing = await env.DB.prepare("SELECT id FROM picture_posts WHERE id = ? AND user_id = ? LIMIT 1")
+    .bind(match[1], userId).first();
+  if (!existing) return json({ error: "Picture post not found" }, 404, cors);
+  if (request.method === "PATCH") {
+    const body = await readJson(request);
+    if (!Object.hasOwn(body, "caption")) return json({ error: "Caption is required" }, 400, cors);
+    await env.DB.prepare("UPDATE picture_posts SET caption = ? WHERE id = ? AND user_id = ?")
+      .bind(cleanText(body.caption, 2200), match[1], userId).run();
+    const post = await env.DB.prepare(
+      "SELECT id, user_id, image_url, caption, status, created_at, sound_song_id, sound_audio_url, sound_title, artist_name FROM picture_posts WHERE id = ? AND user_id = ? LIMIT 1"
+    ).bind(match[1], userId).first();
+    return json({ post }, 200, cors);
+  }
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM picture_posts WHERE id = ? AND user_id = ?").bind(match[1], userId).run();
+    return json({ ok: true, id: match[1] }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+
 const VIDEO_SOCIAL_FIELDS = ["tiktok_url", "instagram_url", "facebook_url", "youtube_url"];
 
 function trustedR2ObjectUrl(value, env, artistId, folder) {
@@ -775,6 +844,19 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await marketplaceRoute(request, env, session.user_id, url);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/public/picture-posts") {
+        const result = await picturePostsRoute(request, env, null, url);
+        if (result) return result;
+      }
+
+      if (url.pathname === "/api/me/picture-posts" || /^\\/api\\/me\\/picture-posts\\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await picturePostsRoute(request, env, session.user_id, url);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
       }

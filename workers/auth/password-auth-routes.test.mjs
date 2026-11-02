@@ -24,7 +24,7 @@ test("registration rejects malformed JSON and weak passwords before touching D1"
 
 test("registration fails closed when verification email delivery is not configured", async () => {
   const response = await worker.fetch(post("/auth/register", {
-    email: "artist@example.com", password: "a-long-secure-password-123"
+    email: "artist@example.com", display_name: "Test Artist", password: "a-long-secure-password-123"
   }), env());
   assert.equal(response.status, 503);
   assert.match((await response.json()).error, /email verification is not configured/i);

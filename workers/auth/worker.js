@@ -232,6 +232,76 @@ async function publicSongsRoute(request, env, url) {
   return json({ songs: rows.results || [] }, 200, corsHeaders(request, env));
 }
 
+async function streamingDistributionRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return null;
+  const body = await readJson(request);
+  const operation = cleanText(body.operation, 32, true);
+
+  if (operation === "list_mine") {
+    const rows = await env.DB.prepare(
+      "SELECT id, artist_name, release_title, release_type, genre, preferred_release_date, explicit_content, notes, platforms, audio_files, artwork_path, status, quote_amount_minor, quote_currency, admin_note, submitted_at, reviewed_at, created_at, updated_at, portal_transfer_status FROM streaming_distribution_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(userId).all();
+    const requests = (rows.results || []).map(row => ({
+      ...row,
+      platforms: (() => { try { const v = JSON.parse(row.platforms || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } })(),
+      audio_files: (() => { try { const v = JSON.parse(row.audio_files || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } })()
+    }));
+    return json({ ok: true, requests }, 200, cors);
+  }
+
+  if (operation !== "create_draft") {
+    return json({ ok: false, error: "Unsupported distribution operation" }, 400, cors);
+  }
+  const artistName = cleanText(body.artist_name, 160, true);
+  const releaseTitle = cleanText(body.release_title, 160, true);
+  const releaseType = cleanText(body.release_type, 20, true);
+  if (!["Single", "EP", "Album"].includes(releaseType)) return json({ ok: false, error: "Invalid release type" }, 400, cors);
+  const genre = cleanText(body.genre, 80) || "Afrobeats";
+  const releaseDate = body.preferred_release_date == null || body.preferred_release_date === ""
+    ? null : cleanText(body.preferred_release_date, 10);
+  if (releaseDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(releaseDate)) return json({ ok: false, error: "Invalid preferred release date" }, 400, cors);
+  const explicitContent = cleanText(body.explicit_content, 8) || "No";
+  if (!["Yes", "No"].includes(explicitContent)) return json({ ok: false, error: "Invalid explicit content value" }, 400, cors);
+  const notes = cleanText(body.notes, 4000) || "";
+  const platforms = body.platforms;
+  const audioFiles = body.audio_files;
+  if (!Array.isArray(platforms) || platforms.length < 1 || platforms.length > 30 ||
+      platforms.some(p => typeof p !== "string" || !p.trim() || p.length > 80)) {
+    return json({ ok: false, error: "Choose at least one valid streaming platform" }, 400, cors);
+  }
+  if (!Array.isArray(audioFiles) || audioFiles.length > 50 ||
+      audioFiles.some(file => !file || typeof file !== "object" ||
+        typeof file.name !== "string" || file.name.length > 180 ||
+        !Number.isSafeInteger(Number(file.size)) || Number(file.size) < 1 ||
+        Number(file.size) > 262144000 || typeof file.type !== "string" ||
+        !file.type.toLowerCase().startsWith("audio/"))) {
+    return json({ ok: false, error: "Invalid audio file details" }, 400, cors);
+  }
+  if (body.rights_confirmed !== true) return json({ ok: false, error: "Confirm that you own or control the rights to distribute this release" }, 400, cors);
+
+  const now = new Date().toISOString();
+  const requestId = body.request_id == null || body.request_id === "" ? null : cleanText(body.request_id, 36, true);
+  if (requestId) {
+    const existing = await env.DB.prepare(
+      "SELECT id, status FROM streaming_distribution_requests WHERE id = ? AND user_id = ? LIMIT 1"
+    ).bind(requestId, userId).first();
+    if (!existing) return json({ ok: false, error: "Draft not found" }, 404, cors);
+    if (existing.status !== "draft") return json({ ok: false, error: "This request has already been submitted and can no longer be edited" }, 409, cors);
+    await env.DB.prepare(
+      "UPDATE streaming_distribution_requests SET artist_name = ?, release_title = ?, release_type = ?, genre = ?, preferred_release_date = ?, explicit_content = ?, notes = ?, platforms = ?, audio_files = ?, updated_at = ? WHERE id = ? AND user_id = ? AND status = 'draft'"
+    ).bind(artistName, releaseTitle, releaseType, genre, releaseDate, explicitContent, notes,
+      JSON.stringify([...new Set(platforms.map(p => p.trim()))]), JSON.stringify(audioFiles), now, requestId, userId).run();
+    return json({ ok: true, request: { id: requestId } }, 200, cors);
+  }
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    "INSERT INTO streaming_distribution_requests (id, user_id, artist_name, release_title, release_type, genre, preferred_release_date, explicit_content, notes, platforms, audio_files, status, submitted_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', NULL, ?, ?)"
+  ).bind(id, userId, artistName, releaseTitle, releaseType, genre, releaseDate, explicitContent,
+    notes, JSON.stringify([...new Set(platforms.map(p => p.trim()))]), JSON.stringify(audioFiles), now, now).run();
+  return json({ ok: true, request: { id } }, 201, cors);
+}
+
 async function promotionRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST") return null;
@@ -899,6 +969,14 @@ export default {
         const result = await withdrawalRoute(request, env, session.user_id);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/streaming-distribution") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ ok: false, error: "Invalid or expired session" }, 401, cors);
+        const result = await streamingDistributionRoute(request, env, session.user_id);
+        if (result) return result;
+        return json({ ok: false, error: "Method not allowed" }, 405, cors);
       }
 
       if (url.pathname === "/api/me/promotions") {

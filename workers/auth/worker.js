@@ -265,7 +265,7 @@ async function streamingDistributionRoute(request, env, userId) {
     const maxBytes = purpose === "audio" ? 262144000 : 15728640;
     if (!allowed.has(contentType)) return json({ ok: false, error: "Unsupported file type" }, 415, cors);
     if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes) return json({ ok: false, error: "Invalid file size" }, 413, cors);
-    const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+    const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
     const key = userId + "/streaming-releases/" + requestId + "/" + purpose + "/" + crypto.randomUUID() + "." + extension;
     try {
       const signed = await presignR2Put(env, key, contentType);
@@ -331,7 +331,7 @@ async function streamingDistributionRoute(request, env, userId) {
   const genre = cleanText(body.genre, 80) || "Afrobeats";
   const releaseDate = body.preferred_release_date == null || body.preferred_release_date === ""
     ? null : cleanText(body.preferred_release_date, 10);
-  if (releaseDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(releaseDate)) return json({ ok: false, error: "Invalid preferred release date" }, 400, cors);
+  if (releaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(releaseDate)) return json({ ok: false, error: "Invalid preferred release date" }, 400, cors);
   const explicitContent = cleanText(body.explicit_content, 8) || "No";
   if (!["Yes", "No"].includes(explicitContent)) return json({ ok: false, error: "Invalid explicit content value" }, 400, cors);
   const notes = cleanText(body.notes, 4000) || "";

@@ -26,6 +26,11 @@ jobs:
       - name: Checkout migration branch
         uses: actions/checkout@v4
 
+      - name: Set up Node.js for Worker tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Validate complete SQLite migration sequence
         shell: bash
         run: |
@@ -70,6 +75,9 @@ jobs:
               raise SystemExit(f"Foreign-key violations: {violations}")
           print(f"Validated all {len(files)} migrations and {len(tables)} tables; required tables present; no foreign-key violations.")
           PY
+
+      - name: Run Cloudflare Worker tests
+        run: node --test workers/auth/*.test.mjs
 
   apply:
     needs: validate

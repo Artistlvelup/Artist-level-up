@@ -33,6 +33,7 @@ jobs:
               Path("migrations/d1/0002_identity_sessions.sql"),
               Path("migrations/d1/0004_persistent_session_families.sql"),
               Path("migrations/d1/0006_password_auth.sql"),
+              Path("migrations/d1/0007_passwordless_login_links.sql"),
           ]
           for path in files:
               if not path.exists():
@@ -40,7 +41,7 @@ jobs:
               db.executescript(path.read_text())
               print(f"Validated {path}")
           tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
-          required = {"profiles","artists","songs","artist_videos","picture_posts","marketplace_beats","marketplace_orders","app_users","app_sessions","app_session_families","app_credentials","app_email_verification_tokens","app_auth_rate_limits"}
+          required = {"profiles","artists","songs","artist_videos","picture_posts","marketplace_beats","marketplace_orders","app_users","app_sessions","app_session_families","app_credentials","app_email_verification_tokens","app_login_link_tokens","app_auth_rate_limits"}
           missing = required - tables
           if missing:
               raise SystemExit(f"Missing required tables: {sorted(missing)}")
@@ -55,6 +56,15 @@ jobs:
         run: |
           node --input-type=module --check < workers/auth/worker.js
           node --input-type=module --check < workers/auth/password-auth.js
+          python - <<'PY'
+          from pathlib import Path
+          html = Path("index.html").read_text()
+          marker = '<script id="aluV101MemberAccessGate">'
+          start = html.index(marker) + len(marker)
+          end = html.index("</script>", start)
+          Path("/tmp/v101-member-gate.js").write_text(html[start:end])
+          PY
+          node --check /tmp/v101-member-gate.js
 
       - name: Test native password auth and Worker routes
         run: node --test workers/auth/password-auth-routes.test.mjs workers/auth/worker-no-legacy.test.mjs

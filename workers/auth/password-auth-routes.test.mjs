@@ -48,3 +48,22 @@ test("passwordless login rejects malformed email and invalid callback token with
   const badToken = await worker.fetch(post("/auth/verify-login-link", { token: "short" }), env());
   assert.equal(badToken.status, 400);
 });
+
+
+test("existing V101 account fields can register without turning the short PIN into a password", async () => {
+  const invalid = await worker.fetch(post("/auth/register-link", {
+    email: "not-an-email", display_name: "Test Artist", role: "artist"
+  }), env());
+  assert.equal(invalid.status, 400);
+
+  const missingName = await worker.fetch(post("/auth/register-link", {
+    email: "artist@example.com", role: "artist"
+  }), env());
+  assert.equal(missingName.status, 400);
+
+  const configuredLater = await worker.fetch(post("/auth/register-link", {
+    email: "artist@example.com", display_name: "Test Artist", role: "artist"
+  }), env());
+  assert.equal(configuredLater.status, 503);
+  assert.match((await configuredLater.json()).error, /email verification is not configured/i);
+});

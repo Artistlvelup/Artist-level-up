@@ -232,7 +232,9 @@ export async function verifyPasswordAccount(request, env, cors, createSession) {
       "UPDATE app_email_verification_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL"
     ).bind(now, tokenHash)
   ]);
-  return response({ ok: true, verified: true }, 200, cors);
+  // Complete the existing passwordless registration journey with a native session.
+  const session = await createSession(env, row.user_id);
+  return response({ ok: true, verified: true, ...session }, 200, cors);
 }
 
 

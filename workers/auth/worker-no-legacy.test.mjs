@@ -36,3 +36,14 @@ test("picture-post routes enforce ownership and reuse existing R2 URLs", async (
   assert.match(source, /R2_PUBLIC_BASE_URL/);
   assert.doesNotMatch(source, /put\(|\.put\(/i);
 });
+
+
+test("music routes require artist-owned Cloudflare R2 audio and cover objects", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
+  assert.match(source, /\/api\/me\/songs\/upload-intent/);
+  assert.match(source, /AUDIO_URL_MUST_BE_AN_OWNED_R2_UPLOAD/);
+  assert.match(source, /COVER_URL_MUST_BE_AN_OWNED_R2_UPLOAD/);
+  assert.match(source, /audio_url, cover_url, duration_seconds/);
+  assert.match(source, /"audio"\s*\)/);
+});

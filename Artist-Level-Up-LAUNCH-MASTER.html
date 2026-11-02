@@ -2655,4 +2655,42 @@ if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arg
     try{await stableSyncSongs();save();return true}catch(e){console.warn('Music cloud retry failed:',e);return false}
   };
 })();
+
+<script id="v101EmailVerificationReturn">
+/* D1 email verification return handler. This confirms the email only; it does not
+   replace or alter the existing Supabase artist/profile session. */
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('auth_verify');
+  if(!token)return;
+  params.delete('auth_verify');
+  const cleanQuery=params.toString();
+  const cleanUrl=window.location.pathname+(cleanQuery?'?'+cleanQuery:'')+window.location.hash;
+  try{window.history.replaceState({},document.title,cleanUrl)}catch(_){}
+  const worker='https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
+  async function verify(){
+    try{
+      const response=await fetch(worker+'/auth/verify-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token}),
+        cache:'no-store',
+        credentials:'omit'
+      });
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok||payload.ok!==true||payload.verified!==true){
+        throw new Error(payload.error||'This verification link is invalid or has expired. Request a new email and try again.');
+      }
+      if(typeof toast==='function')toast('Email verified successfully ✓ You can now continue to Artist Level Up.');
+      else window.alert('Email verified successfully. You can now continue to Artist Level Up.');
+    }catch(error){
+      console.warn('V101 email verification failed:',error);
+      const message=error?.message||'Email verification could not be completed. Please try again.';
+      if(typeof toast==='function')toast(message);
+      else window.alert(message);
+    }
+  }
+  void verify();
+})();
+</script>
 </script></body></html>

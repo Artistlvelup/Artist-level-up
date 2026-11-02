@@ -1,0 +1,63 @@
+name: Validate V101 Cloudflare-only foundation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - migration/v101-cloudflare-only-2026-11-02
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artist-level-up-v101-cloudflare-only
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout isolated migration branch
+        uses: actions/checkout@v5
+
+      - name: Validate D1 schema and native auth migrations locally
+        shell: bash
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db = sqlite3.connect(":memory:")
+          db.execute("PRAGMA foreign_keys = ON")
+          files = [
+              Path("migrations/d1/0001_initial_schema.sql"),
+              Path("migrations/d1/0002_identity_sessions.sql"),
+              Path("migrations/d1/0004_persistent_session_families.sql"),
+              Path("migrations/d1/0006_password_auth.sql"),
+          ]
+          for path in files:
+              if not path.exists():
+                  raise SystemExit(f"Missing migration: {path}")
+              db.executescript(path.read_text())
+              print(f"Validated {path}")
+          tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+          required = {"profiles","artists","songs","artist_videos","picture_posts","marketplace_beats","marketplace_orders","app_users","app_sessions","app_session_families","app_credentials","app_email_verification_tokens","app_auth_rate_limits"}
+          missing = required - tables
+          if missing:
+              raise SystemExit(f"Missing required tables: {sorted(missing)}")
+          if "v101_bridge_config" in tables:
+              raise SystemExit("Obsolete bridge configuration table must not exist.")
+          if db.execute("PRAGMA foreign_key_check").fetchall():
+              raise SystemExit("D1 schema contains foreign-key violations.")
+          print(f"Validated {len(files)} local migration files and {len(tables)} tables; no remote D1 changes.")
+          PY
+
+      - name: Check Worker JavaScript syntax
+        run: |
+          node --input-type=module --check < workers/auth/worker.js
+          node --input-type=module --check < workers/auth/password-auth.js
+
+      - name: Test native password auth and Worker routes
+        run: node --test workers/auth/password-auth-routes.test.mjs workers/auth/worker-no-legacy.test.mjs
+
+      - name: Confirm production apply is disabled
+        run: echo "Validation only. No remote D1 apply or production deployment is configured."

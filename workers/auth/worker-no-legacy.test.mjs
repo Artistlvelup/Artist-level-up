@@ -60,3 +60,15 @@ test("streaming distribution draft routes are authenticated and owner-scoped", a
   assert.ok(source.includes('status !== "draft"'));
   assert.doesNotMatch(source, /supabase|\/auth\/bridge/i);
 });
+
+test("streaming release uploads are signed, release-scoped, and verified before submission", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("./worker.js", import.meta.url), "utf8");
+  assert.ok(source.includes('operation === "upload_intent"'));
+  assert.ok(source.includes('operation === "submit"'));
+  assert.ok(source.includes('"/streaming-releases/" + requestId'));
+  assert.ok(source.includes('method: "HEAD"'));
+  assert.ok(source.includes('status = \'submitted\''));
+  assert.ok(source.includes('WHERE id = ? AND user_id = ? AND status = \'draft\''));
+  assert.ok(source.includes("R2 upload service is not configured"));
+});

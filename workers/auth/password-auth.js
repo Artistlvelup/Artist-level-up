@@ -114,7 +114,8 @@ export async function registerPasswordAccount(request, env, cors) {
   if (!body) return response({ error: "INVALID_JSON" }, 400, cors);
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = body.password;
-  if (!validEmail(email) || !validPassword(password)) {
+  const displayName = typeof body.display_name === "string" ? body.display_name.trim().slice(0, 80) : "";
+  if (!validEmail(email) || !validPassword(password) || !displayName) {
     return response({ error: "Use a valid email and a password of at least 12 characters." }, 400, cors);
   }
   if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM || !env.APP_PUBLIC_URL) {
@@ -148,6 +149,9 @@ export async function registerPasswordAccount(request, env, cors) {
       env.DB.prepare(
         "INSERT INTO app_credentials (user_id, email_normalized, password_hash, password_salt, password_iterations, email_verified_at, password_changed_at) VALUES (?, ?, ?, ?, ?, NULL, ?)"
       ).bind(userId, email, passwordHash, saltText, PASSWORD_ITERATIONS, now),
+      env.DB.prepare(
+        "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, '', 'user', ?, ?)"
+      ).bind(userId, displayName, new Date(now * 1000).toISOString(), new Date(now * 1000).toISOString()),
       env.DB.prepare(
         "INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
       ).bind(tokenHash, userId, email, now, expiresAt)
@@ -208,7 +212,7 @@ export async function resendPasswordVerification(request, env, cors) {
   return response({ ok: true, message: "If the account needs verification, an email will be sent." }, 202, cors);
 }
 
-export async function verifyPasswordAccount(request, env, cors) {
+export async function verifyPasswordAccount(request, env, cors, createSession) {
   const body = await readBody(request);
   const token = typeof body?.token === "string" ? body.token : "";
   if (token.length < 40 || token.length > 128) {

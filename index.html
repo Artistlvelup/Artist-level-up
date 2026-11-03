@@ -7857,3 +7857,32 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 #globalDiscoveryFeedV77 .g77-picture-carousel .g77-picture-media{display:block;flex:0 0 100%;width:100%;height:100%;min-width:100%;max-height:100%;object-fit:contain;scroll-snap-align:start;background:#08090c}
 @media(max-height:620px){#globalDiscoveryFeedV77 .g77-picture-carousel{height:calc(100dvh - 150px);max-height:calc(100dvh - 150px)}}
 </style>
+
+<script id="aluV101GlobalRefreshRouteGuard">
+/* V101 global route persistence: save the real active room at navigation/page exit and restore after every startup script has finished. */
+(function(){
+  'use strict';
+  var KEY='alu_last_page_v101', SESSION_KEY='alu_v101_route_session', ready=false;
+  function pageById(id){var p=id&&document.getElementById(id);return p&&p.classList.contains('page')?p:null;}
+  function activeId(){var p=document.querySelector('.app > .page.active')||document.querySelector('.page.active');return p&&p.id||'';}
+  function save(id){if(!pageById(id)||['admin','ownerDashboard','commissionEarningsPage'].indexOf(id)>=0)return;try{localStorage.setItem(KEY,id)}catch(_){}try{sessionStorage.setItem(SESSION_KEY,id)}catch(_){}window.ALU_ACTIVE_PAGE=id;}
+  function restore(){
+    try{
+      var hash=String(location.hash||'').replace(/^#/,'');
+      if(hash.indexOf('discover-post=')===0)return;
+      var saved='';try{saved=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(KEY)||''}catch(_){}
+      var target=pageById(hash)?hash:(pageById(saved)?saved:'home');
+      if((!hash||hash==='home')&&pageById(saved))target=saved;
+      if(pageById(target)&&typeof window.go==='function')window.go(target,false);
+      ready=true;save(activeId()||target);
+    }catch(e){console.warn('V101 global route restore deferred:',e)}
+  }
+  var baseGo=window.go;
+  if(typeof baseGo==='function')window.go=function(id){var result=baseGo.apply(this,arguments);setTimeout(function(){save(activeId()||id)},0);return result};
+  window.addEventListener('pagehide',function(){save(activeId())});
+  window.addEventListener('beforeunload',function(){save(activeId())});
+  function schedule(){setTimeout(restore,1200)}
+  if(document.readyState==='complete')schedule();else window.addEventListener('load',schedule,{once:true});
+  window.addEventListener('pageshow',function(){if(ready)setTimeout(function(){var id=activeId();if(id)save(id)},0)});
+})();
+</script>

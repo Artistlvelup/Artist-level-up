@@ -1,9 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
-import { readFileSync } from "node:fs";
-const workerSource = readFileSync(new URL("./worker.js", import.meta.url), "utf8");
-const { default: worker } = await import("data:text/javascript;base64," + Buffer.from(workerSource).toString("base64"));
+import { loadWorker } from "./worker-test-loader.mjs";
+const worker = await loadWorker(import.meta.url);
 
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 

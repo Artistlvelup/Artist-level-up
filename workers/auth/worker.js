@@ -4,13 +4,9 @@ import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAcco
  *
  * Required bindings/secrets:
  *   DB: D1 database binding
- *   SESSION_PEPPER: random secret stored as a Worker secret (minimum 32 chars)
- *   SUPABASE_URL and SUPABASE_ANON_KEY: server-side verification of the existing owner session
- *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
+ *   SESSION_PEPPER: random secret stored as a Worker secret (minimum 32 chars) *   ALLOWED_ORIGINS: comma-separated exact HTTPS origins
  *
- * Owner authentication:
- *   POST /auth/bridge/supabase -> verify the existing owner with Supabase Auth and issue a D1 session.
- *   GET  /auth/session         -> validate bearer session.
+ * Owner authentication: *   GET  /auth/session         -> validate bearer session.
  *   POST /auth/refresh         -> rotate session token.
  *   POST /auth/logout          -> revoke session family.
  *
@@ -680,64 +676,6 @@ async function createUserSession(env, userId) {
   return { userId, token, expiresAt };
 }
 
-async function bridgeSupabaseSession(request, env) {
-  const cors = corsHeaders(request, env);
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  const supabaseUrl = String(env.SUPABASE_URL || "").replace(/\/$/, "");
-  const anonKey = String(env.SUPABASE_ANON_KEY || "");
-  if (!/^https:\/\/[a-z0-9.-]+$/i.test(supabaseUrl) || !anonKey) {
-    return json({ error: "SUPABASE_BRIDGE_NOT_CONFIGURED" }, 503, cors);
-  }
-
-  const body = await readJson(request);
-  const accessToken = typeof body.access_token === "string" ? body.access_token.trim() : "";
-  if (accessToken.length < 40 || accessToken.length > 8192 || !/^[A-Za-z0-9._-]+$/.test(accessToken)) {
-    return json({ error: "Valid Supabase access token required" }, 400, cors);
-  }
-
-  let legacyUser;
-  try {
-    const response = await fetch(supabaseUrl + "/auth/v1/user", {
-      method: "GET",
-      headers: { apikey: anonKey, Authorization: "Bearer " + accessToken },
-      cache: "no-store"
-    });
-    if (!response.ok) return json({ error: "Supabase session is invalid or expired" }, 401, cors);
-    legacyUser = await response.json();
-  } catch {
-    return json({ error: "Supabase identity verification unavailable" }, 503, cors);
-  }
-
-  // Only the exact pre-approved, existing owner identity can cross this bridge.
-  // Do not accept a user ID, role, email, or admin flag supplied by the browser.
-  if (!legacyUser || legacyUser.id !== LEGACY_OWNER_USER_ID || legacyUser.is_anonymous !== false) {
-    return json({ error: "This Supabase identity is not authorized for V101 migration" }, 403, cors);
-  }
-
-  const trustedAdmin = await env.DB.prepare(
-    "SELECT pa.user_id FROM platform_admins pa JOIN profiles p ON p.id = pa.user_id WHERE pa.user_id = ? AND pa.active = 1 LIMIT 1"
-  ).bind(LEGACY_OWNER_USER_ID).first();
-  if (!trustedAdmin) return json({ error: "Existing owner admin mapping is not present in D1" }, 403, cors);
-
-  const existing = await env.DB.prepare(
-    "SELECT user_id, is_anonymous, status FROM app_users WHERE user_id = ? LIMIT 1"
-  ).bind(LEGACY_OWNER_USER_ID).first();
-  if (existing && (existing.is_anonymous !== 0 || existing.status !== "active")) {
-    return json({ error: "Existing D1 identity is not eligible for session bridging" }, 409, cors);
-  }
-  if (!existing) {
-    await env.DB.prepare(
-      "INSERT INTO app_users (user_id, is_anonymous, status, created_at, updated_at) SELECT ?, 0, 'active', ?, ? WHERE EXISTS (SELECT 1 FROM platform_admins WHERE user_id = ? AND active = 1) AND EXISTS (SELECT 1 FROM profiles WHERE id = ?) ON CONFLICT(user_id) DO NOTHING"
-    ).bind(LEGACY_OWNER_USER_ID, Math.floor(Date.now() / 1000), Math.floor(Date.now() / 1000), LEGACY_OWNER_USER_ID, LEGACY_OWNER_USER_ID).run();
-  }
-  const verifiedD1User = await env.DB.prepare(
-    "SELECT user_id FROM app_users WHERE user_id = ? AND is_anonymous = 0 AND status = 'active' LIMIT 1"
-  ).bind(LEGACY_OWNER_USER_ID).first();
-  if (!verifiedD1User) return json({ error: "Existing owner identity could not be linked safely" }, 409, cors);
-
-  const session = await createUserSession(env, LEGACY_OWNER_USER_ID);
-  return json({ ...session, role: "admin" }, 200, cors);
-}
 
 function validConfig(env) {
   return Boolean(env.DB && env.SESSION_PEPPER && String(env.SESSION_PEPPER).length >= 32);
@@ -795,9 +733,6 @@ export default {
 
     const url = new URL(request.url);
     try {
-      if (url.pathname === "/auth/bridge/supabase") {
-        return await bridgeSupabaseSession(request, env);
-      }
       if (url.pathname === "/auth/register" && request.method === "POST") {
         return await registerPasswordAccount(request, env, cors);
       }

@@ -348,3 +348,16 @@ test("rejects unsupported audio types and audio files above the size limit", asy
   assert.equal((await send("application/octet-stream", 1024)).status, 415);
   assert.equal((await send("audio/mpeg", 100 * 1024 * 1024 + 1)).status, 413);
 });
+
+
+test("exposes a read-only Worker health endpoint with the configured site CORS origin", async () => {
+  const env = setup();
+  const response = await worker.fetch(new Request("https://auth.example.test/health", {
+    method: "GET", headers: { Origin: "https://artistlevelup.com.ng" }
+  }), env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://artistlevelup.com.ng");
+  assert.deepEqual(await response.json(), {
+    ok: true, service: "artist-level-up-v101", status: "online"
+  });
+});

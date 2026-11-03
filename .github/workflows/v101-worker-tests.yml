@@ -1,0 +1,33 @@
+name: V101 Cloudflare Worker tests
+
+on:
+  push:
+    branches:
+      - V101-launch-hardening-2026-10-13
+    paths:
+      - "workers/auth/**"
+      - "cloudflare/migrations/**"
+      - "wrangler.toml"
+      - ".github/workflows/v101-worker-tests.yml"
+  pull_request:
+    branches:
+      - V101-launch-hardening-2026-10-13
+    paths:
+      - "workers/auth/**"
+      - "cloudflare/migrations/**"
+      - "wrangler.toml"
+      - ".github/workflows/v101-worker-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run V101 Worker tests
+        run: node --test workers/auth/*.test.mjs

@@ -497,56 +497,9 @@ body.g77-open{overflow:hidden}
 </div>
 <div class="card commission-sales"><div class="row between"><div><span class="pill">📊 SALES</span><h2 style="margin-top:8px">Marketplace earnings</h2></div><button class="btn" data-action="refreshCommission">↻ Refresh</button></div><div id="commissionEarningsStatus" class="tiny muted" style="margin-top:8px"></div><div id="commissionEarningsList" style="margin-top:10px"></div></div>
 </section>
-<script id="commissionEarningsV91">
-(function(){
-  const SUPABASE_URL=window.ALU_SUPABASE_URL;
-  function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
-  function escE(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
-  async function loadCommission(){
-    const status=document.getElementById('commissionEarningsStatus'), list=document.getElementById('commissionEarningsList');
-    if(!status||!list)return;
-    status.textContent='Loading completed sales…'; list.innerHTML='';
-    try{
-      const client=window.ALU_CLOUD?.client;
-      if(!client) throw new Error('Supabase connection is not ready.');
-      const {data,error}=await client.from('marketplace_orders').select('beat_title,producer_name,amount_ngn,status,platform_fee_percent,platform_fee_ngn,producer_payout_ngn,paid_at,paystack_reference').eq('status','paid').order('paid_at',{ascending:false});
-      if(error)throw error;
-      const rows=data||[], total=rows.reduce((a,r)=>a+Number(r.platform_fee_ngn||0),0);
-      document.getElementById('earningsTotalCommission').textContent=money(total);
-      document.getElementById('earningsPaidSales').textContent=String(rows.length);
-      status.textContent=rows.length?`${rows.length} completed sale${rows.length===1?'':'s'} recorded.`:'No completed marketplace sales yet.';
-      if(!rows.length){list.innerHTML='<p class="muted">Your commission earnings will appear here after a beat sale is successfully paid.</p>';return;}
-      list.innerHTML=rows.map(r=>`<div class="listrow"><div class="grow"><b>${escE(r.beat_title||'Beat sale')}</b><div class="tiny muted">${escE(r.producer_name||'Producer')} · ${escE(r.paid_at?new Date(r.paid_at).toLocaleString('en-NG'):'Paid')}</div><div class="tiny muted">Ref: ${escE(r.paystack_reference||'—')}</div></div><div style="text-align:right"><b>${money(r.platform_fee_ngn)}</b><div class="tiny muted">10% of ${money(r.amount_ngn)}</div></div></div>`).join('');
-    }catch(e){console.error(e);status.textContent='Could not load earnings: '+(e?.message||e);document.getElementById('earningsTotalCommission').textContent='₦0';document.getElementById('earningsPaidSales').textContent='0';}
-  }
-  window.ALU_COMMISSION_EARNINGS={load:loadCommission};
-  document.addEventListener('click',e=>{
-    const el=e.target.closest?.('[data-action="refreshCommission"],[data-go="commissionEarningsPage"]');
-    if(!el)return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    if(el.matches('[data-go="commissionEarningsPage"]')){
-      document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-      document.getElementById('commissionEarningsPage')?.classList.add('active');
-      setTimeout(loadCommission,50);
-    } else loadCommission();
-  },true);
-  const oldGo=window.go;
-  if(typeof oldGo==='function')window.go=function(id){if(id==='commissionEarningsPage'){if(!state?.adminAuthenticated){toast('Unlock Admin Control Center first 🔒');return;}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('commissionEarningsPage')?.classList.add('active');setTimeout(loadCommission,50);return;}const r=oldGo.apply(this,arguments);return r};
-  window.addEventListener('load',()=>setTimeout(loadCommission,300));
-})();
-</script>
 <div class="player" id="player"><div class="player-head"><button aria-label="Close player" class="player-cancel" data-action="closePlayer">✕</button></div><div class="row"><div class="cover" id="playerCover">🎵</div><div class="grow"><b id="playerTitle">Nothing playing</b><div class="muted" id="playerArtist">Artist Level Up</div></div><button class="iconbtn" data-action="prev">⏮</button><button class="iconbtn" data-action="play">▶</button><button class="iconbtn" data-action="next">⏭</button></div><div class="progress"><i id="playerProgress"></i></div></div>
 <nav class="nav"><button class="active" data-go="home"><span>⌂</span>Home</button><button data-go="discover"><span>🔎</span>Discover</button><button data-go="create"><span>＋</span>Create</button><button data-go="library"><span>📚</span>Library</button><button data-go="marketplace"><span>🛒</span>Market</button><button data-go="promote"><span>🚀</span>Promote</button><button data-go="growthCenter"><span>📈</span>Growth</button><button data-go="course"><span>🎓</span>Course</button><button data-action="openNotifications" type="button"><span>🔔</span>Alerts</button><button data-action="ownerLogin" id="ownerAdminNav" type="button"><span>👑</span>Admin</button></nav>
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script id="aluSupabaseConfig">
-window.ALU_SUPABASE_URL='https://wmtddmaxwulypvhjjntz.supabase.co';
-window.ALU_SUPABASE_PUBLISHABLE_KEY='sb_publishable_Nyf4sJQHvTIQSBQXbV2Rtw_VSbZjia8';
-window.ALU_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGRkbWF4d3VseXB2aGpqbnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNDAzMjgsImV4cCI6MjEwNTgxNjMyOH0.LaaIG2gfiN-XXEJawEztZ7L9Hc62UZkBzT-sR3LbB94';
-window.ALU_SUPABASE_BUCKET='music';
-window.ALU_SUPABASE_CLIENT=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(window.ALU_SUPABASE_URL,window.ALU_SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-</script>
-
 <script>
 const KEY='alu_full_v1';
 const seedSongs=[
@@ -713,28 +666,7 @@ body>button[onclick="openUpload()"]{display:none!important}
 window.ALU_ACTIVE_PAGE=window.ALU_ACTIVE_PAGE||((location.hash||'#home').slice(1)||'home');
 const ALU_DB='artist_level_up_audio_v1';
 function aluOpenDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-async function aluPutAudio(key,file){
-  if(window.ALU_SUPABASE_CLIENT){
-    if(window.ALU_CLOUD?.ensureSession){
-      const uid=await window.ALU_CLOUD.ensureSession();
-      if(!uid) throw new Error('Supabase sign-in failed before music upload.');
-    }
-    const safe=String(file?.name||'audio.mp3').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
-    const path='songs/'+String(key)+'-'+safe;
-    const ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
-    const rawType=String(file?.type||'').toLowerCase();
-    const normalizedType=(ext==='m4a'||rawType==='audio/x-m4a'||rawType==='audio/m4a')?'audio/mp4':(rawType.startsWith('audio/')?rawType:'audio/mpeg');
-    const uploadFile=(normalizedType===rawType||!file)?file:new File([file],file.name||('audio.'+ext),{type:normalizedType,lastModified:file.lastModified||Date.now()});
-    const {error}=await window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).upload(path,uploadFile,{cacheControl:'31536000',upsert:false,contentType:normalizedType});
-    if(error) throw new Error('Supabase Storage: '+(error.message||'upload failed'));
-    const {data}=window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).getPublicUrl(path);
-    const publicUrl=String(data?.publicUrl||'').trim() || (String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'')+'/storage/v1/object/public/'+encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'))+'/'+String(path).split('/').map(encodeURIComponent).join('/'));
-    if(!/^https?:\/\//i.test(publicUrl)) throw new Error('Supabase Storage upload succeeded but no public audio URL was returned.');
-    return {remote:true,path,url:publicUrl};
-  }
-  const db=await aluOpenDB();
-  return new Promise((res,rej)=>{let done=false;try{const tx=db.transaction('audio','readwrite');const store=tx.objectStore('audio');const blob=(file instanceof Blob)?file:new Blob([file],{type:file?.type||'audio/mpeg'});const req=store.put(blob,key);req.onerror=()=>{if(!done){done=true;rej(req.error||new Error('Audio storage failed'))}};tx.oncomplete=()=>{if(!done){done=true;res({remote:false})}};tx.onerror=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction failed'))}};tx.onabort=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction aborted'))}}}catch(e){if(!done){done=true;rej(e)}}});
-}
+async function aluPutAudio(key,file){const db=await aluOpenDB();return new Promise((res,rej)=>{let done=false;try{const tx=db.transaction('audio','readwrite');const store=tx.objectStore('audio');const blob=(file instanceof Blob)?file:new Blob([file],{type:file?.type||'audio/mpeg'});const req=store.put(blob,key);req.onerror=()=>{if(!done){done=true;rej(req.error||new Error('Audio storage failed'))}};tx.oncomplete=()=>{if(!done){done=true;res({remote:false})}};tx.onerror=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction failed'))}};tx.onabort=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction aborted'))}}}catch(e){if(!done){done=true;rej(e)}}});}
 async function aluGetAudio(key){const db=await aluOpenDB();return new Promise((res,rej)=>{const tx=db.transaction('audio');const r=tx.objectStore('audio').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 const aluAudioUrlCache=new Map();
 async function aluWarmAudioCache(){try{for(const s of (state.songs||[])){if(!s.audioKey||aluAudioUrlCache.has(String(s.audioKey)))continue;const blob=await aluGetAudio(s.audioKey);if(blob)aluAudioUrlCache.set(String(s.audioKey),URL.createObjectURL(blob));}}catch(e){console.warn('Audio cache warm failed',e)}}
@@ -760,7 +692,7 @@ document.getElementById('player').addEventListener('click',e=>{
 document.addEventListener('click',e=>{const fa=e.target.closest('[data-full-action]');if(fa){const a=fa.dataset.fullAction;if(a==='close')closeFull();else if(a==='minimize')minimizeFull();else if(a==='toggle')fullToggle();else if(a==='like'){if(current)toggleLike(current.id);syncFullPlayer()}else if(a==='next'||a==='prev'){const arr=state.songs;let i=Math.max(0,arr.findIndex(x=>x.id===current?.id));let ni=a==='next'?(i+1)%arr.length:(i-1+arr.length)%arr.length;play(arr[ni].id)}return}const row=e.target.closest('.song');if(row&&!e.target.closest('button')){const b=row.querySelector('[data-play]');if(b)play(b.dataset.play)}});
 document.getElementById('closeMoneyBreakdown')?.addEventListener('click',()=>{const box=document.getElementById('moneyBreakdown');if(box)box.style.display='none';});document.getElementById('campaignDuration')?.addEventListener('change',()=>renderAll());document.getElementById('campaignBudget')?.addEventListener('change',()=>renderAll());
 const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
-const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();if(remoteAudio?.remote&&window.ALU_CLOUD?.syncSongs){try{await window.ALU_CLOUD.syncSongs();save()}catch(e){console.warn('Floating upload cloud sync failed:',e)}}closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
+const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){
@@ -796,15 +728,7 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const
       if(audioFile.size<=3500000){try{const du=await aluFileToDataURL(audioFile);aluTryInlineAudio(state.songs[0],du)}catch(e){console.warn('Inline audio copy skipped',e)}}
       let stateSaved=true;
       try{save()}catch(saveErr){stateSaved=false;console.warn('Song metadata save failed; keeping uploaded song in the current session.',saveErr)}
-      if(remoteAudio?.remote && remoteAudio?.url && window.ALU_CLOUD?.syncSongs){
-        try{await window.ALU_CLOUD.syncSongs(); save();}
-        catch(cloudErr){
-          /* Storage upload succeeded. Do NOT delete the song because database sync failed.
-             Keep it locally and let the cloud retry layer handle the database record. */
-          console.error('Immediate song cloud sync deferred:',cloudErr);
-          try{newSong.cloudSyncPending=true;newSong.cloudSyncError=String(cloudErr?.message||cloudErr||'Cloud sync failed').slice(0,500);save()}catch(_){}
-        }
-      }
+      
       const t=document.getElementById('songTitle'),a=document.getElementById('audioFile'),c=document.getElementById('audioCoverFile');
       if(t)t.value='';if(a)a.value='';if(c)c.value='';
       const preview=document.getElementById('audioCoverPreview');if(preview)preview.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';
@@ -1095,158 +1019,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   else resetFreshOpen();
 })();
 </script>
-<script id="aluSupabasePersistenceV14">
-(function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client) return;
-  window.ALU_CLOUD={ready:false,userId:null,artistId:null,client:client};
-
-  async function ensureSession(){
-    try{
-      let {data}=await client.auth.getSession();
-      let session=data?.session||null;
-      // A cached browser session can exist while its access token is no longer
-      // usable. Validate it before moderation; if it is stale, replace it.
-      if(session){
-        const check=await client.auth.getUser(session.access_token);
-        if(check.error||!check.data?.user?.id){
-          try{await client.auth.signOut()}catch(_){}
-          session=null;
-        }
-      }
-      if(!session){
-        const r=await client.auth.signInAnonymously();
-        if(r.error) throw r.error;
-        session=r.data?.session||null;
-      }
-      if(!session?.user?.id) throw new Error('No Supabase user session');
-      window.ALU_CLOUD.ready=true;
-      window.ALU_CLOUD.userId=session.user.id;
-      return session.user.id;
-    }catch(e){
-      console.warn('Supabase session unavailable:',e);
-      window.ALU_CLOUD.ready=false;
-      return null;
-    }
-  }
-
-  window.ALU_CLOUD.ensureSession=ensureSession;
-
-  async function ensureArtist(){
-    const uid=await ensureSession(); if(!uid) return null;
-    const profile=state.profile||{};
-    if(!state.artistRegistered || !profile.name) return null;
-    let {data,error}=await client.from('artists').select('id').eq('user_id',uid).maybeSingle();
-    if(error) throw error;
-    if(data?.id){window.ALU_CLOUD.artistId=data.id;return data.id;}
-    const r=await client.from('artists').insert({user_id:uid,artist_name:profile.name,bio:'',genre:'',country:profile.country||'Nigeria',status:'pending'}).select('id').single();
-    if(r.error) throw r.error;
-    window.ALU_CLOUD.artistId=r.data.id;
-    return r.data.id;
-  }
-
-  async function syncProfile(){
-    const uid=await ensureSession(); if(!uid) return;
-    const p=state.profile||{};
-    const r=await client.from('profiles').upsert({id:uid,display_name:p.name||state.userAccount?.name||'Artist Level Up',avatar_url:null,role:state.artistRegistered?'artist':'user'},{onConflict:'id'});
-    if(r.error) throw r.error;
-    if(state.artistRegistered) await ensureArtist();
-  }
-
-  async function syncSongs(){
-    const artistId=await ensureArtist();
-    if(!artistId) throw new Error('Cloud artist account is not ready.');
-    for(const s of (state.songs||[])){
-      if(!s.local) continue;
-      let audioUrl=/^https?:\/\//i.test(String(s.audioRemoteUrl||''))?String(s.audioRemoteUrl):'';
-      if(!audioUrl && s.audioStoragePath){
-        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-        const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-        const path=String(s.audioStoragePath).split('/').map(encodeURIComponent).join('/');
-        if(base && path) audioUrl=base+'/storage/v1/object/public/'+bucket+'/'+path;
-      }
-      if(!audioUrl){
-        console.warn('Skipping cloud song sync because no durable cloud audio URL exists:',s.title||'Untitled');
-        continue;
-      }
-      s.audioRemoteUrl=audioUrl;
-      const row={artist_id:artistId,title:s.title,genre:s.genre||'Music',audio_url:audioUrl,cover_url:s.coverArt||null,duration_seconds:null,status:(s.status==='Published'?'published':s.status==='Approved'?'approved':s.status==='Archived'?'archived':'draft')};
-      if(s.remoteSongId){
-        const r=await client.from('songs').update({title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:row.cover_url,status:row.status}).eq('id',s.remoteSongId).eq('artist_id',artistId).select('id').single();
-        if(r.error) throw new Error('Cloud song update failed: '+r.error.message);
-        s.cloudSaved=true;
-        continue;
-      }
-      const r=await client.from('songs').insert(row).select('id').single();
-      if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-      s.remoteSongId=r.data.id;
-      s.cloudSaved=true;
-    }
-    return true;
-  }
-
-  window.ALU_CLOUD.ensureArtist=ensureArtist;
-   window.ALU_CLOUD.syncSongs=syncSongs;
-  window.ALU_CLOUD.syncProfile=syncProfile;
-
-  async function syncCampaign(c){
-    if(!c || c.remotePromotionId) return;
-    const artistId=await ensureArtist().catch(()=>null);
-    const row={artist_id:artistId||null,title:c.name||(c.targetType==='video'?'Video campaign':'Music campaign'),description:(c.goal||'More Streams')+' · '+(c.audience||'Worldwide')+' · '+(c.targetType==='video'?'Video: '+(c.videoTitle||'Untitled'):'Song: '+(c.songTitle||'Untitled')),budget:Number(c.budget?.replace(/[^0-9.]/g,'')||0),status:'pending',target_type:c.targetType||'music',video_id:c.targetType==='video'?c.videoId:null};
-    const r=await client.from('promotions').insert(row).select('id').single();
-    if(r.error) throw r.error;
-    if(!r.data?.id) throw new Error('Cloud promotion record was not created.');
-    c.remotePromotionId=r.data.id;
-  }
-
-  async function syncWithdrawal(t){
-    const uid=await ensureSession(); if(!uid||!t) return;
-    if(t.remoteWithdrawalId) return;
-    const r=await client.from('withdrawals').insert({user_id:uid,amount:Number(t.amountNum||0),bank_name:t.payeeBank||'',account_name:t.payeeName||'',account_number:String(t.payeeAccount||''),status:'pending'}).select('id').single();
-    if(r.error) throw r.error;
-    t.remoteWithdrawalId=r.data.id;
-  }
-
-  async function cloudBootstrap(){
-    try{
-      await syncProfile();
-      const artistId=await ensureArtist();
-      if(artistId){
-        const q=await client.from('songs').select('id,artist_id,title,genre,audio_url,cover_url,status').eq('artist_id',artistId).order('created_at',{ascending:false});
-        if(!q.error && Array.isArray(q.data)){
-          for(const r of q.data){
-            const existing=(state.songs||[]).find(x=>x.remoteSongId===r.id || (x.title===r.title && x.artist===state.profile?.name));
-            if(existing){existing.remoteSongId=r.id;existing.status=(existing.status==='Published' && r.status==='approved')?'Published':(r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='archived'?'Archived':(existing.status||'Pending Review'));existing.audioRemoteUrl=r.audio_url||existing.audioRemoteUrl||'';existing.coverArt=r.cover_url||existing.coverArt||'';}
-            else state.songs.push({id:'cloud_'+r.id,remoteSongId:r.id,title:r.title,genre:r.genre||'Music',artist:state.profile?.name||'Artist Level Up',country:state.profile?.country||'Nigeria',streams:0,plays:0,likes:0,status:r.status==='published'?'Published':r.status==='approved'?'Approved':'Pending Review',local:true,audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',cloudSaved:true});
-          }
-        }
-      }
-      localStorage.setItem(KEY,JSON.stringify(state));
-      renderAll();
-    }catch(e){console.warn('Supabase bootstrap failed:',e)}
-  }
-
-  const baseAction=window.action;
-  window.action=async function(a,el){
-    const beforeSongs=state.songs?.length||0, beforeCampaigns=state.campaigns?.length||0, beforeTx=state.transactions?.length||0;
-    const result=await baseAction(a,el);
-    try{
-      if(a==='registerArtist'||a==='saveProfile'||a==='saveUserRegister') await syncProfile();
-      else if(a==='upload' && (state.songs?.length||0)>beforeSongs) await syncSongs();
-      else if(a==='campaign' && (state.campaigns?.length||0)>beforeCampaigns) await syncCampaign(state.campaigns[0]);
-      else if(a==='withdraw' && (state.transactions?.length||0)>beforeTx){const t=state.transactions.find(x=>x.type==='Withdrawal request'&&!x.remoteWithdrawalId);if(t) await syncWithdrawal(t);}
-      else if(a==='saveProfile') await syncProfile();
-      localStorage.setItem(KEY,JSON.stringify(state));
-      renderAll();
-    }catch(e){console.warn('Supabase sync failed:',e);toast('Saved on this device · cloud sync will retry');}
-    return result;
-  };
-
-  window.addEventListener('online',()=>cloudBootstrap());
-  setTimeout(cloudBootstrap,700);
-})();
-</script>
-
 <script id="ownerPinButtonHardFix">
 (function(){
  function wire(){document.querySelectorAll('[data-action="ownerLogin"],[data-action="unlockOwnerPin"],[data-action="createOwnerPin"]').forEach(function(btn){if(btn.dataset.pinHardWired==='1')return;btn.dataset.pinHardWired='1';btn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();if(typeof window.action==='function')window.action(btn.dataset.action,btn);},true);});}
@@ -1305,30 +1077,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     return base.apply(this,arguments);
   };
 })();</script>
-<script id="musicReviewCloudSync">(function(){
-  async function syncModerationStatus(song,status){
-    try{
-      const client=window.ALU_SUPABASE_CLIENT;
-      if(!client || !song || !song.remoteSongId) return;
-      const remote=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'archived':'draft';
-      const r=await client.from('songs').update({status:remote}).eq('id',song.remoteSongId);
-      if(r.error) console.warn('Music moderation cloud sync failed:',r.error);
-      else song.cloudStatus=remote;
-    }catch(e){console.warn('Music moderation cloud sync failed:',e)}
-  }
-  const baseAction=window.action;
-  window.action=async function(a,el){
-    const before=Array.isArray(state.songs)?state.songs.map(s=>({id:s.id,status:s.status})):[];
-    const result=await baseAction(a,el);
-    if(['approveSong','publishSong','rejectSong'].includes(a)){
-      const id=String(el?.dataset?.songId||'');
-      const song=(state.songs||[]).find(s=>String(s.id)===id);
-      if(song) await syncModerationStatus(song,song.status);
-      try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
-    }
-    return result;
-  };
-})();</script>
 <script id="musicPersistenceRepairV2">
 (function(){
   /* Keep published music playable after approval/publish and preserve cover art.
@@ -1380,86 +1128,12 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }catch(err){console.warn('Durable playback failed',err);playing=false;syncFullPlayer();toast('Audio could not load. Please re-upload the song.');}
   };
   /* If cloud data says Approved while the local moderation state is Published, do not roll the UI backwards. */
-  const oldBootstrap=window.ALU_CLOUD?.cloudBootstrap;
   window.ALU_PRESERVE_PUBLISHED=true;
   // Re-render covers from the durable local song object after any cloud refresh.
   const oldRenderAll=window.renderAll;
   if(typeof oldRenderAll==='function'){window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);try{(state.songs||[]).forEach(function(s){document.querySelectorAll('[data-song-id="'+CSS.escape(String(s.id))+'"]').forEach(function(el){const art=s.coverArt||s.coverUrl||s.coverImage||'';const img=el.querySelector('.admin-thumb,.song-art img');if(art&&img)img.src=art;});});}catch(e){}return r;};}
 })();
 </script>
-<script id="cloudAudioUrlBridgeV24">
-/* V24 CLOUD AUDIO BRIDGE — repairs the Storage URL -> songs.audio_url handoff only. */
-(function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client || !window.ALU_CLOUD) return;
-  function validUrl(v){ return /^https?:\/\//i.test(String(v||'')); }
-  function makePublicUrl(path){
-    const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-    const clean=String(path||'').replace(/^\/+/, '');
-    if(!base || !clean) return '';
-    return base+'/storage/v1/object/public/'+bucket+'/'+clean.split('/').map(encodeURIComponent).join('/');
-  }
-  async function resolveAudioUrl(song){
-    if(validUrl(song?.audioRemoteUrl)) return String(song.audioRemoteUrl);
-    if(song?.audioStoragePath){
-      const u=makePublicUrl(song.audioStoragePath);
-      if(validUrl(u)) return u;
-    }
-    /* If an older local song lost its path, locate its uploaded object by audioKey. */
-    if(song?.audioKey){
-      try{
-        const r=await client.storage.from(window.ALU_SUPABASE_BUCKET||'music').list('songs',{limit:100,search:String(song.audioKey)});
-        if(!r.error && Array.isArray(r.data)){
-          const hit=r.data.find(x=>String(x?.name||'').startsWith(String(song.audioKey)+'-'));
-          if(hit?.name){
-            const path='songs/'+hit.name;
-            song.audioStoragePath=path;
-            const u=makePublicUrl(path);
-            if(validUrl(u)){song.audioRemoteUrl=u;return u;}
-          }
-        }
-      }catch(e){ console.warn('Cloud audio object lookup skipped:',e); }
-    }
-    return '';
-  }
-  const oldSync=window.ALU_CLOUD.syncSongs;
-  window.ALU_CLOUD.syncSongs=async function(){
-    const artistId=await window.ALU_CLOUD.ensureArtist();
-    if(!artistId) throw new Error('Cloud artist account is not ready.');
-    for(const s of (state.songs||[])){
-      if(!s.local) continue;
-      const audioUrl=await resolveAudioUrl(s);
-      if(!audioUrl){
-        console.warn('V24: no cloud audio object found for',s.title||'Untitled');
-        continue;
-      }
-      s.audioRemoteUrl=audioUrl;
-      const row={
-        artist_id:artistId,
-        title:s.title,
-        genre:s.genre||'Music',
-        audio_url:audioUrl,
-        cover_url:s.coverArt||null,
-        duration_seconds:null,
-        status:(s.status==='Published'?'published':s.status==='Approved'?'approved':s.status==='Archived'?'archived':'draft')
-      };
-      let r;
-      if(s.remoteSongId){
-        r=await client.from('songs').update({title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:row.cover_url,status:row.status}).eq('id',s.remoteSongId).eq('artist_id',artistId).select('id').single();
-      }else{
-        r=await client.from('songs').insert(row).select('id').single();
-      }
-      if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-      if(r.data?.id) s.remoteSongId=r.data.id;
-      s.cloudSaved=true;
-    }
-    return true;
-  };
-  window.ALU_RESOLVE_CLOUD_AUDIO_URL=resolveAudioUrl;
-})();
-</script>
-
 <script id="v26UnifiedMusicUpload">
 /* V26 — ONE music-upload path for both Create Music and the floating uploader. */
 (function(){
@@ -1482,10 +1156,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     state.songs=Array.isArray(state.songs)?state.songs:[];
     state.songs.unshift(song);
     try{save()}catch(e){console.warn('Local metadata save failed',e)}
-    if(remote?.remote && window.ALU_CLOUD?.syncSongs){
-      await window.ALU_CLOUD.syncSongs();
-      try{save()}catch(e){}
-    }
     if(typeof finish==='function') finish(song);
     return song;
   }
@@ -1853,354 +1523,52 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   setInterval(function(){setFullArt();fixPreviews();},1200);
 })();
 </script>
-<script id="artistVideoHubV54">(function(){
-  const KEY='artistLevelUpState';
-  function getState(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
-  function saveState(st){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
-  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-  function toastMsg(m){if(typeof window.toast==='function')window.toast(m);else{const t=document.querySelector('.toast');if(t){t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}}}
-  function stateVideos(st){st.videos=Array.isArray(st.videos)?st.videos:[];return st.videos}
-  function durableVideoPublicUrl(v){
-    const direct=String(v?.videoUrl||'').trim(); if(/^https?:\/\//i.test(direct)) return direct;
-    const path=String(v?.storagePath||'').trim(); const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-    if(base&&path) return base+'/storage/v1/object/public/'+bucket+'/'+path.split('/').map(encodeURIComponent).join('/');
-    return '';
-  }
-  function repairVideoDurableUrls(st){
-    let changed=false; for(const v of stateVideos(st)){ const u=durableVideoPublicUrl(v); if(u && v.videoUrl!==u){v.videoUrl=u;changed=true;} }
-    if(changed) saveState(st); return changed;
-  }
-  function mediaSrc(v){return String(durableVideoPublicUrl(v)||v?.localUrl||'').trim()}
-  function thumbSrc(v){return String(v?.thumbnailUrl||v?.thumbnail||'').trim()}
-  function statusLabel(v){return v.status||'Pending Review'}
-  function renderVideos(){
-    const box=document.getElementById('aluVideoFeed');if(!box)return;
-    const st=getState()||{};const vs=stateVideos(st);
-    if(!vs.length){box.innerHTML='<div class="card"><p class="muted">No videos yet. Tap <b>Upload Video Now</b> above to add your first video.</p></div>';return}
-    box.innerHTML=vs.filter(v=>['Approved','Published','Pending Review','Pending'].includes(statusLabel(v))).slice(0,20).map(v=>{
-      const src=mediaSrc(v),thumb=thumbSrc(v);
-      const poster=thumb?` poster="${esc(thumb)}"`:'';
-      const pending=['Pending Review','Pending'].includes(statusLabel(v));
-      const cloudPending=!!v.localOnly&&!v.cloudSaved;
-      let cloudText='';
-      if(cloudPending){
-        cloudText=v.cloudStatus==='blocked_size'?'💾 Saved on this device · Cloud limit is 50 MB.':'💾 Saved on this device · Cloud will retry.';
-      }else if(v.cloudSaved&&['Pending Review','Pending'].includes(statusLabel(v))){
-        cloudText='☁️ Saved to cloud · Waiting for Admin review';
-      }else if(statusLabel(v)==='Approved'){
-        cloudText='☁️ Approved by Admin · Ready for Video Hub';
-      }else if(statusLabel(v)==='Published'){
-        cloudText='☁️ Published to Video Hub · Ready for viewers';
-      }
-      const retryBtn=cloudPending&&v.cloudStatus!=='blocked_size'?`<button class="btn" type="button" data-action="retryVideoCloud" data-video-id="${esc(v.id)}">☁️ Retry Cloud Upload</button>`:'';
-      return `<div class="card" style="padding:10px;margin:10px 0"><div style="position:relative;background:#050608;border-radius:14px;overflow:hidden">${src?`<video controls playsinline preload="metadata"${poster} src="${esc(src)}" style="width:100%;max-height:330px;display:block;background:#050608"></video>`:`<div style="padding:40px 16px;text-align:center" class="muted">Video preview is not available on this device yet.</div>`}</div><div class="row" style="margin-top:10px"><div class="grow"><h3>${esc(v.title||'Untitled video')}</h3><div class="tiny muted">${esc(statusLabel(v))} · ${Number(v.views||0).toLocaleString()} views</div></div>${!pending?`<button class="btn primary" data-action="promoteVideo" data-video-id="${esc(v.id)}">🚀 Promote</button>`:''}</div>${cloudText?`<p class="tiny muted" style="margin:8px 0;color:var(--gold)">${cloudText}</p>`:''}${retryBtn}<p class="muted" style="margin:7px 0">${esc(v.description||'')}</p><div class="tiny muted">${[['TikTok',v.tiktok],['Instagram',v.instagram],['Facebook',v.facebook],['YouTube',v.youtube]].filter(x=>x[1]).map(x=>`<a href="${esc(x[1])}" target="_blank" rel="noopener" style="color:var(--gold);margin-right:8px">${x[0]}</a>`).join('')}</div></div>`
-    }).join('');
-  }
-  function videoFormatLabel(ratio){return ratio==='9:16'?'📱 9:16 Vertical':'🖥️ 16:9 Landscape'}
-  function setupVideoFormatPreview(){
-    const input=document.getElementById('aluVideoFile'), box=document.getElementById('aluVideoFormatPreview'), player=document.getElementById('aluVideoUploadPreview');
-    if(!input||!box||!player||input.dataset.formatPreviewBound)return;
-    input.dataset.formatPreviewBound='1';
-    input.addEventListener('change',()=>{
-      const file=input.files?.[0]; if(!file){box.style.display='none';player.removeAttribute('src');player.load();return;}
-      const url=URL.createObjectURL(file); player.src=url; box.style.display='block';
-      player.onloadedmetadata=()=>{
-        const w=Number(player.videoWidth||0),h=Number(player.videoHeight||0); if(!w||!h)return;
-        const ratio=w/h, selected=document.getElementById('aluVideoFormat')?.value||'9:16';
-        const actual=Math.abs(ratio-9/16)<=Math.abs(ratio-16/9)?'9:16':'16:9';
-        const badge=document.getElementById('aluVideoFormatBadge'),dims=document.getElementById('aluVideoDimensions'),rb=document.getElementById('aluVideoRatioBadge'),msg=document.getElementById('aluVideoRatioMessage');
-        if(badge)badge.textContent=videoFormatLabel(actual);
-        if(dims)dims.textContent=`${w} × ${h}px`;
-        if(rb)rb.textContent=actual;
-        if(msg){
-          if(actual===selected) msg.textContent=`✓ This video matches the selected ${selected} format.`;
-          else msg.textContent=`⚠️ This file is ${actual}, but you selected ${selected}. You can still upload it, but choose the matching format for the best display.`;
-        }
-      };
-    });
-    document.getElementById('aluVideoFormat')?.addEventListener('change',()=>input.dispatchEvent(new Event('change')));
-  }
-  setupVideoFormatPreview();
-  async function aluTusUploadVideo(client,bucket,path,file,contentType,onProgress){
-    let tus;
-    try{ tus=await import('https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm'); }
-    catch(e){ throw new Error('Resumable uploader could not load. Please check your internet connection and try again.'); }
-    let session=null;
-    try{ const r=await client.auth.getSession(); session=r?.data?.session||null; }catch(e){}
-    const token=session?.access_token||window.ALU_SUPABASE_PUBLISHABLE_KEY||'';
-    const endpoint='https://'+String(window.ALU_SUPABASE_URL||'').replace(/^https?:\/\//,'').split('.')[0]+'.storage.supabase.co/storage/v1/upload/resumable';
-    return await new Promise((resolve,reject)=>{
-      const upload=new tus.Upload(file,{
-        endpoint,
-        retryDelays:[0,1000,3000,5000],
-        chunkSize:6*1024*1024,
-        headers:{authorization:'Bearer '+token,apikey:String(window.ALU_SUPABASE_PUBLISHABLE_KEY||'')},
-        metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:'31536000'},
-        onError:(err)=>reject(err),
-        onProgress:(bytesUploaded,bytesTotal)=>{ if(onProgress) onProgress(bytesUploaded,bytesTotal); },
-        onSuccess:()=>resolve(true)
-      });
-      upload.findPreviousUploads().then(previous=>{
-        if(previous.length) upload.resumeFromPreviousUpload(previous[0]);
-        upload.start();
-      }).catch(reject);
-    });
-  }
-  const ALU_VIDEO_DB_NAME='ALU_VIDEO_QUEUE_DB', ALU_VIDEO_DB_VERSION=1, ALU_VIDEO_STORE='videos', ALU_FREE_VIDEO_LIMIT=50*1024*1024;
-  function aluVideoDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_VIDEO_DB_NAME,ALU_VIDEO_DB_VERSION);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(ALU_VIDEO_STORE))db.createObjectStore(ALU_VIDEO_STORE,{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Device storage is unavailable.'));});}
-  async function aluVideoQueuePut(item){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).put(item);tx.oncomplete=()=>{db.close();resolve(item)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not save video on this device.'))}})}
-  async function aluVideoQueueGet(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
-  async function aluVideoQueueAll(){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).getAll();r.onsuccess=()=>{db.close();resolve(r.result||[])};r.onerror=()=>{db.close();reject(r.error)}})}
-  async function aluVideoQueueDelete(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).delete(id);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-  function aluVideoQueueIsRetryable(item){return item && item.status!=='cloud_synced' && item.status!=='blocked_size';}
-  function aluVideoQueueMessage(item){if(item?.status==='blocked_size')return 'Saved on this device · Cloud needs a video under 50 MB.';if(item?.status==='uploading'||item?.status==='retrying')return 'Saved on this device · Cloud upload is retrying…';return 'Saved on this device · Cloud will retry.';}
-  function aluVideoLocalRecord(item){return {id:item.id,title:item.title,description:item.description||'',localUrl:item.localUrl||'',videoUrl:item.videoUrl||'',storagePath:item.storagePath||'',thumbnailUrl:item.thumbnailUrl||item.thumbnailData||'',status:'Pending',views:0,likes:0,tiktok:item.tiktok||'',instagram:item.instagram||'',facebook:item.facebook||'',youtube:item.youtube||'',createdAt:item.createdAt,format:item.format||'9:16',remoteVideoId:item.remoteVideoId||'',cloudSaved:item.status==='cloud_synced',localOnly:true,cloudStatus:item.status||'pending'};}
-  async function aluVideoQueueRenderLocals(){
-    try{const items=await aluVideoQueueAll();const st=getState()||{};const vs=stateVideos(st);let changed=false;
-      for(const item of items){if(item.status==='cloud_synced')continue;let v=vs.find(x=>String(x.id)===String(item.id));
-        if(!v){let localUrl='';try{localUrl=URL.createObjectURL(item.blob)}catch(e){} item.localUrl=localUrl;v=aluVideoLocalRecord(item);v.localUrl=localUrl;vs.unshift(v);changed=true;}
-        else if(!v.localUrl&&item.blob){try{v.localUrl=URL.createObjectURL(item.blob);changed=true}catch(e){}}
-        if(item.thumbnailData&&!v.thumbnailUrl){v.thumbnailUrl=item.thumbnailData;changed=true;}
-      }
-      if(changed)saveState(st);renderVideos();
-    }catch(e){console.warn('Local video queue restore skipped:',e)}
-  }
-  async function aluVideoUploadQueueItem(item){
-    const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const apiKey=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-    if(!base||!apiKey)throw new Error('Supabase cloud configuration is missing.');
-    const client=window.ALU_CLOUD?.client||null;
-    const file=item.blob;if(!file)throw new Error('The saved video copy is missing from device storage.');
-    if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='Supabase Free project limit is 50 MB.';await aluVideoQueuePut(item);return {blocked:true};}
-    item.status='uploading';item.attempts=Number(item.attempts||0)+1;item.lastAttemptAt=new Date().toISOString();await aluVideoQueuePut(item);
-    const ext=(item.filename?.split('.').pop()||'mp4').toLowerCase();const storagePath=item.storagePath||('videos/'+item.id+'.'+ext);item.storagePath=storagePath;
-    const detectedType=item.mimeType||'video/mp4';
-    const progressText=(done,total)=>{const pct=total?Math.round(done/total*100):0;toastMsg(`Cloud upload… ${pct}%`)};
-    try{
-      // Direct REST upload: this does not depend on the Supabase JS CDN loading in Chrome.
-      const storageUrl=base+'/storage/v1/object/'+encodeURIComponent('music')+'/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      const uploadRes=await fetch(storageUrl,{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
-      if(!uploadRes.ok){let detail='';try{detail=await uploadRes.text()}catch(e){};throw new Error('Storage upload '+uploadRes.status+': '+(detail||uploadRes.statusText||'failed'));}
-      item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      if(item.thumbnailBlob&&!item.thumbnailUrl){const tp='video-thumbnails/'+item.id+'.jpg';const thumbRes=await fetch(base+'/storage/v1/object/music/'+tp,{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':item.thumbnailMime||'image/jpeg','x-upsert':'false'},body:item.thumbnailBlob});if(thumbRes.ok)item.thumbnailUrl=base+'/storage/v1/object/public/music/'+tp.split('/').map(encodeURIComponent).join('/');}
-      const row={artist_id:null,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:item.thumbnailUrl||item.thumbnailData||null,status:'pending',tiktok_url:item.tiktok||'',instagram_url:item.instagram||'',facebook_url:item.facebook||'',youtube_url:item.youtube||''};
-      let recordRes;
-      if(item.remoteVideoId){
-        recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
-      }else{
-        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{apikey:apiKey,authorization:'Bearer '+apiKey,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
-      }
-      if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}
-      const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
-      if(!item.remoteVideoId){
-        item.remoteVideoId=Array.isArray(recordData)?String(recordData?.[0]?.id||''):String(recordData?.id||'');
-        /* Some Supabase/PostgREST responses can be empty/non-JSON even after a successful insert. Verify by the unique video URL before treating it as a failure. */
-        if(!item.remoteVideoId){
-          try{
-            const verify=await fetch(base+'/rest/v1/artist_videos?select=id,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&order=created_at.desc&limit=1',{headers:{apikey:apiKey,authorization:'Bearer '+apiKey}});
-            const verifyText=await verify.text().catch(()=>''), verifyData=(()=>{try{return verifyText?JSON.parse(verifyText):[]}catch(_){return []}})();
-            if(verify.ok&&Array.isArray(verifyData)&&verifyData[0]?.id)item.remoteVideoId=String(verifyData[0].id);
-          }catch(_){ }
-        }
-      }
-      if(!item.remoteVideoId)throw new Error('Cloud video record could not be confirmed. The video is still saved on this device and will retry.');
-      item.status='cloud_synced';item.cloudSaved=true;item.syncedAt=new Date().toISOString();await aluVideoQueuePut(item);
-      const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,thumbnailUrl:item.thumbnailUrl||item.thumbnailData||'',remoteVideoId:item.remoteVideoId,cloudSaved:true,localOnly:false,status:'Pending Review',cloudStatus:'cloud_synced'});saveState(st);renderVideos();
-      return {success:true};
-    }catch(e){
-      const msg=String(e?.message||e?.statusText||e||'Unknown upload error');item.status=/size|exceed|too large|payload/i.test(msg)?'blocked_size':'pending';item.lastError=msg.slice(0,500);await aluVideoQueuePut(item);throw e;
-    }
-  }
-  let aluVideoRetryRunning=false;
-  async function retryPendingVideoUploads(){
-    if(aluVideoRetryRunning||!navigator.onLine)return;aluVideoRetryRunning=true;
-    try{const items=await aluVideoQueueAll();for(const item of items.filter(aluVideoQueueIsRetryable)){try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Cloud sync complete ✓')}catch(e){console.warn('Video cloud retry failed:',e)}}await aluVideoQueueRenderLocals();}
-    finally{aluVideoRetryRunning=false;}
-  }
-  async function retryVideoCloud(id){const item=await aluVideoQueueGet(id);if(!item){toastMsg('Saved video copy was not found on this device.');return}if(item.status==='blocked_size'){toastMsg('This video is over the current 50 MB cloud limit. It remains saved on this device.');return}try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to cloud ✓')}catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual cloud retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120));}await aluVideoQueueRenderLocals();}
-  window.ALU_RETRY_VIDEO_CLOUD=retryVideoCloud;
-  window.addEventListener('online',()=>{retryPendingVideoUploads();});
-  setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);
-  async function uploadVideo(){
-    const file=document.getElementById('aluVideoFile')?.files?.[0], thumbFile=document.getElementById('aluVideoThumb')?.files?.[0];
-    const title=document.getElementById('aluVideoTitle')?.value.trim();
-    if(!file){toastMsg('Choose a video file first.');return} if(!title){toastMsg('Enter the video title first.');return}
-    if(!(file.type.startsWith('video/')||/\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(file.name||''))){toastMsg('Please choose a valid video file (MP4, WebM, MOV, M4V, AVI or MKV).');return}
-    const id='video_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),localUrl=URL.createObjectURL(file);
-    let thumbnailData='';let thumbnailBlob=null;let thumbnailMime='image/jpeg';
-    if(thumbFile){try{thumbnailData=await imageToDataURL(thumbFile,1000,.86);thumbnailBlob=thumbFile;thumbnailMime=thumbFile.type||'image/jpeg'}catch(e){console.warn('Thumbnail conversion failed',e)}}
-    const item={id,title,description:document.getElementById('aluVideoDescription')?.value.trim()||'',blob:file,filename:file.name,mimeType:file.type||'video/mp4',size:file.size,thumbnailBlob,thumbnailData,thumbnailMime,status:file.size>ALU_FREE_VIDEO_LIMIT?'blocked_size':'pending',attempts:0,lastError:file.size>ALU_FREE_VIDEO_LIMIT?'Supabase Free project limit is 50 MB.':'',storagePath:'',videoUrl:'',thumbnailUrl:'',tiktok:document.getElementById('aluTikTok')?.value.trim()||'',instagram:document.getElementById('aluInstagram')?.value.trim()||'',facebook:document.getElementById('aluFacebook')?.value.trim()||'',youtube:document.getElementById('aluYouTube')?.value.trim()||'',createdAt:new Date().toISOString(),format:document.getElementById('aluVideoFormat')?.value||'9:16',localUrl};
-    try{await aluVideoQueuePut(item);}catch(e){try{URL.revokeObjectURL(localUrl)}catch(_){}toastMsg('Could not save this video on the device. Please allow browser storage and try again.');return}
-    const st=getState()||{},vs=stateVideos(st);vs.unshift(aluVideoLocalRecord(item));saveState(st);renderVideos();
-    ['aluVideoTitle','aluVideoDescription'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''});['aluVideoFile','aluVideoThumb'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''});if(document.getElementById('aluVideoFormat'))document.getElementById('aluVideoFormat').value='9:16';if(document.getElementById('aluVideoFormatPreview'))document.getElementById('aluVideoFormatPreview').style.display='none';
-    if(item.status==='blocked_size'){toastMsg(`Saved on this device · Cloud needs a video under 50 MB. Your video is ${(file.size/1048576).toFixed(1)} MB.`);return}
-    if(!navigator.onLine){toastMsg('Saved on this device · You are offline. Cloud will retry when you reconnect.');return}
-    try{
-      const result=await aluVideoUploadQueueItem(item);
-      if(result?.blocked){toastMsg('Saved on this device · Cloud needs a video under 50 MB.');return}
-      toastMsg('🎬 Video saved to cloud ✓ — waiting for Admin review');
-    }catch(e){
-      const msg=String(e?.message||e||'Cloud upload failed');
-      toastMsg('Saved on this device · Cloud upload failed: '+msg.slice(0,140));
-    }
-    await aluVideoQueueRenderLocals();
-  }
-  async function refreshVideos(){
-    const st=getState()||{}; repairVideoDurableUrls(st); let remote=[];
-    try{if(window.ALU_CLOUD?.client){const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').in('status',['pending','approved','published']).order('created_at',{ascending:false}).limit(20);if(!q.error)remote=q.data||[];else console.warn('Video feed sync failed:',q.error)}}catch(e){console.warn('Video feed sync skipped:',e)}
-    const locals=stateVideos(st); const remoteIds=new Set(remote.map(r=>String(r.id)));
-    const merged=remote.map(r=>{const existing=locals.find(v=>String(v.remoteVideoId||'')===String(r.id));return {...(existing||{}),id:existing?.id||'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||existing?.videoUrl||'',storagePath:existing?.storagePath||'',thumbnailUrl:r.thumbnail_url||existing?.thumbnailUrl||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||existing?.tiktok||'',instagram:r.instagram_url||existing?.instagram||'',facebook:r.facebook_url||existing?.facebook||'',youtube:r.youtube_url||existing?.youtube||'',createdAt:r.created_at||existing?.createdAt||''};});
-    // Cloud records are authoritative for uploaded videos. Do not keep stale local copies
-    // of a cloud video after Admin deletes it; only genuinely local/offline uploads survive.
-    const keepLocal=locals.filter(v=>!v.remoteVideoId); st.videos=merged.concat(keepLocal); repairVideoDurableUrls(st); saveState(st); renderVideos();
-  }
-  async function refreshAdminVideos(){
-    const st=getState()||{};let remote=[];
-    try{if(window.ALU_CLOUD?.client){const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').in('status',['pending','approved','published','rejected']).order('created_at',{ascending:false}).limit(100);if(!q.error)remote=q.data||[];else console.warn('Admin video query failed:',q.error)}}catch(e){console.warn('Admin video query failed:',e)}
-    /* Direct REST fallback keeps Admin review working even if the Supabase JS client is unavailable. */
-    if(!remote.length){
-      try{
-        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-        if(base&&key){const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&order=created_at.desc&limit=100',{headers:{apikey:key,authorization:'Bearer '+key}});if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];if(Array.isArray(data))remote=data.filter(x=>['pending','approved','published','rejected'].includes(String(x.status||'')))}catch(_){}}}
-      }catch(e){console.warn('Admin video REST fallback failed:',e)}
-    }
-    const locals=stateVideos(st);const byRemote=new Map(remote.map(r=>[String(r.id),r]));
-    const merged=remote.map(r=>({id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''}));
-    locals.filter(v=>v.remoteVideoId&&!byRemote.has(String(v.remoteVideoId))||!v.remoteVideoId).forEach(v=>merged.push(v));
-    st.videos=merged;saveState(st);renderAdminVideoQueue();renderVideos();toastMsg(remote.length?'Video review queue refreshed ✓':'No cloud video records found.');
-  }
-  function renderAdminVideoQueue(){
-    const box=document.getElementById('adminVideoQueue');if(!box)return;const st=getState()||{};const all=stateVideos(st);const filter=window.adminVideoFilter||'all';
-    const vs=all.filter(v=>filter==='all'||(filter==='pending'&&['Pending Review','Pending'].includes(statusLabel(v)))||(filter==='approved'&&['Approved','Published'].includes(statusLabel(v)))||(filter==='rejected'&&statusLabel(v)==='Rejected'));
-    if(!vs.length){box.innerHTML='<p class="muted">No videos in this filter.</p>';return}
-    box.innerHTML=vs.slice(0,50).map(v=>{const src=mediaSrc(v),thumb=thumbSrc(v),pending=['Pending Review','Pending'].includes(statusLabel(v));return `<div class="card" style="padding:10px;margin:10px 0;border-color:${pending?'var(--gold)':'var(--line)'}"><div class="row"><div class="grow"><b>${esc(v.title||'Untitled video')}</b><div class="tiny muted">${esc(v.artist||st.profile?.name||'Artist')} · ${esc(statusLabel(v))}</div></div><span class="pill">${Number(v.views||0).toLocaleString()} views</span></div>${thumb?`<img src="${esc(thumb)}" alt="Video thumbnail" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin-top:10px;background:#050608">`:''}${src?`<video controls playsinline preload="metadata"${thumb?` poster="${esc(thumb)}"`:''} src="${esc(src)}" style="width:100%;max-height:360px;display:block;border-radius:12px;margin-top:10px;background:#050608"></video>`:'<div class="card" style="text-align:center;margin-top:10px"><b>⚠️ No playable video URL</b><p class="tiny muted">This upload needs to be re-uploaded to cloud storage before it can be reviewed from another device.</p></div>'}<p class="muted" style="margin:8px 0">${esc(v.description||'No description')}</p><div class="tiny muted" style="margin-bottom:8px">${[['TikTok',v.tiktok],['Instagram',v.instagram],['Facebook',v.facebook],['YouTube',v.youtube]].filter(x=>x[1]).map(x=>`<a href="${esc(x[1])}" target="_blank" rel="noopener" style="color:var(--gold);margin-right:8px">${x[0]}</a>`).join('')}</div>${pending?`<div class="grid"><button class="btn primary" data-action="approveArtistVideo" data-video-id="${esc(v.id)}">✅ Approve Video</button><button class="btn red" data-action="rejectArtistVideo" data-video-id="${esc(v.id)}">❌ Reject</button></div>`:statusLabel(v)==='Approved'?`<button class="btn primary full" data-action="publishArtistVideo" data-video-id="${esc(v.id)}">📢 Publish to Video Hub</button>`:statusLabel(v)==='Published'?'<span class="pill">Published ✓</span>':''}<button class="btn red full" style="margin-top:8px" data-action="deleteArtistVideo" data-video-id="${esc(v.id)}">🗑️ Remove Video Permanently</button></div>`}).join('');
-  }
-  function videoStoragePathFromUrl(v){
-    const direct=String(v?.storagePath||'').trim(); if(direct)return direct;
-    const u=String(v?.videoUrl||'').trim();
-    if(!u)return '';
-    try{
-      const url=new URL(u,location.href); const m=url.pathname.match(/\/storage\/v1\/object\/(?:public\/)?([^/]+)\/(.+)$/i);
-      if(m && decodeURIComponent(m[1])==='music') return decodeURIComponent(m[2]);
-    }catch(_){ }
-    return '';
-  }
-  async function deleteArtistVideo(id){
-    const st=getState()||{}; const v=stateVideos(st).find(x=>String(x.id)===String(id));
-    if(!v){toastMsg('Video not found');return false;}
-    const title=v.title||'this video';
-    if(!confirm(`Remove “${title}” permanently?\n\nThis will remove the video record and, when permitted, its uploaded Storage file. This cannot be undone.`))return false;
-    const remoteId=v.remoteVideoId||String(v.id).replace(/^cloud_/,'');
-    if(window.ALU_CLOUD?.client&&remoteId&&/^[0-9a-f-]{20,}$/i.test(remoteId)){
-      try{
-        if(typeof window.ALU_CLOUD.ensureSession==='function'){
-          const uid=await window.ALU_CLOUD.ensureSession(); if(!uid){toastMsg('Admin cloud session could not be established.');return false;}
-        }
-        const path=videoStoragePathFromUrl(v);
-        if(path){
-          const sr=await window.ALU_CLOUD.client.storage.from('music').remove([path]);
-          if(sr.error)console.warn('Video Storage delete failed:',sr.error);
-        }
-        const dr=await window.ALU_CLOUD.client.from('artist_videos').delete().eq('id',remoteId).select('id').maybeSingle();
-        if(dr.error){console.warn('Video record delete failed:',dr.error);toastMsg('Cloud delete failed: '+String(dr.error.message||dr.error).slice(0,140));return false;}
-        if(dr.data && String(dr.data.id)!==String(remoteId)){toastMsg('Cloud delete did not remove this video.');return false;}
-      }catch(err){console.warn('Video permanent delete failed:',err);toastMsg('Cloud delete failed: '+String(err?.message||err).slice(0,140));return false;}
-    }
-    const next=stateVideos(st).filter(x=>String(x.id)!==String(id)&&String(x.remoteVideoId||'')!==String(remoteId));
-    st.videos=next;saveState(st);renderAdminVideoQueue();renderVideos();toastMsg('🗑️ Video removed permanently ✓');return true;
-  }
-  async function setVideoStatus(id,status){
-    const st=getState()||{};const v=stateVideos(st).find(x=>String(x.id)===String(id));if(!v)return false;
-    const remoteId=v.remoteVideoId||String(v.id).replace(/^cloud_/,'');
-    const nextStatus=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'rejected':'pending';
-    if(window.ALU_CLOUD?.client&&remoteId&&/^[0-9a-f-]{20,}$/i.test(remoteId)){
-      try{
-        // Admin moderation uses the authenticated Supabase role. The old code wrote
-        // directly with the anonymous role, so RLS correctly rejected the UPDATE and
-        // a later refresh changed the local "Approved/Published" label back to Pending.
-        if(typeof window.ALU_CLOUD.ensureSession==='function'){
-          const uid=await window.ALU_CLOUD.ensureSession();
-          if(!uid){toastMsg('Admin cloud session could not be established.');return false;}
-        }
-        const r=await window.ALU_CLOUD.client.from('artist_videos').update({status:nextStatus}).eq('id',remoteId).select('id,status').maybeSingle();
-        if(r.error){console.warn('Video moderation sync failed:',r.error);toastMsg('Cloud moderation failed: '+String(r.error.message||r.error).slice(0,120));return false;}
-        if(!r.data||String(r.data.id)!==String(remoteId)||String(r.data.status)!==String(nextStatus)){
-          console.warn('Video moderation updated 0 rows or returned an unexpected status:',r.data);
-          toastMsg('Cloud moderation did not change this video. Refresh and try again.');
-          return false;
-        }
-      }catch(err){console.warn('Video moderation sync failed:',err);toastMsg('Cloud moderation failed: '+String(err?.message||err).slice(0,120));return false;}
-    }
-    v.status=status;saveState(st);renderAdminVideoQueue();renderVideos();return true;
-  }
-  window.ALU_RENDER_VIDEOS=renderVideos;window.ALU_RENDER_ADMIN_VIDEOS=renderAdminVideoQueue;window.ALU_REFRESH_ADMIN_VIDEOS=refreshAdminVideos;window.ALU_REFRESH_VIDEOS=refreshVideos;
-  async function refreshPromotionVideos(){
-    try{await refreshVideos()}catch(e){console.warn('Promotion video refresh skipped:',e)}
-    const stored=getState()||{};
-    if(Array.isArray(stored.videos)){
-      state.videos=stored.videos;
-      try{saveState(state)}catch(e){}
-    }
-    const sel=document.getElementById('campaignVideo');
-    if(!sel)return;
-    const current=sel.value||JSON.parse(localStorage.getItem('aluVideoToPromote')||'null')?.id||'';
-    const vids=(state.videos||[]).filter(v=>['Published','Approved','published','approved'].includes(String(v.status||'')));
-    sel.innerHTML='<option value="">Choose a video</option>'+vids.map(v=>`<option value="${esc(v.id)}">${esc(v.title||'Untitled video')}</option>`).join('');
-    if(vids.some(v=>String(v.id)===String(current)))sel.value=String(current);
-    if(!sel.value && vids.length===1)sel.value=String(vids[0].id);
-  }
-  window.refreshPromotionVideos=refreshPromotionVideos;
-  const oldGo=window.go;if(typeof oldGo==='function'){window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='videos'){setTimeout(()=>{renderVideos();refreshVideos()},30)}if(id==='promote'){setTimeout(async()=>{await refreshPromotionVideos();if(typeof window.applyPromotionTypeUI==='function')window.applyPromotionTypeUI()},30)}if(id==='admin'){setTimeout(()=>{renderAdminVideoQueue();refreshAdminVideos()},30)}return r}}
-  const baseAction=window.action;window.action=async function(a,el){
-    if(a==='focusArtistVideoUpload'){window.go?.('videos');setTimeout(()=>document.getElementById('aluVideoTitle')?.focus(),80);return}
-    if(a==='refreshAdminVideos'){await refreshAdminVideos();return}
-    if(a==='deleteArtistVideo'){await deleteArtistVideo(String(el?.dataset?.videoId||''));return}
-    if(a==='approveArtistVideo'||a==='publishArtistVideo'||a==='rejectArtistVideo'){
-      const id=String(el?.dataset?.videoId||'');
-      const st=getState()||{}; let v=(st.videos||[]).find(x=>String(x.id)===id);
-      /* Admin queue can render a cloud-only record as cloud_<uuid>. Recover that
-         record from Supabase before showing the misleading 'Video not found'. */
-      if(!v){
-        const remoteId=id.replace(/^cloud_/,'');
-        if(/^[0-9a-f-]{20,}$/i.test(remoteId)){
-          try{
-            let r=null;
-            if(window.ALU_CLOUD?.client){
-              const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').eq('id',remoteId).maybeSingle();
-              if(!q.error)r=q.data||null;
-            }
-            if(!r){
-              const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-              const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-              if(base&&key){
-                const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&id=eq.'+encodeURIComponent(remoteId),{headers:{apikey:key,authorization:'Bearer '+key}});
-                if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];r=Array.isArray(data)?(data[0]||null):data}catch(_) {}}
-              }
-            }
-            if(r){
-              v={id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''};
-              st.videos=Array.isArray(st.videos)?st.videos:[];st.videos.push(v);saveState(st);
-            }
-          }catch(err){console.warn('Admin video recovery failed:',err)}
-        }
-      }
-      if(!v){toastMsg('Video not found');return}
-      if(a==='rejectArtistVideo'){const reason=prompt('Reason for rejecting this video:','Please review the video and upload again.');if(reason===null)return;v.rejectionReason=reason.trim()||'Rejected by Admin';saveState(getState()||{});await setVideoStatus(id,'Rejected');toastMsg('Video rejected ✓');return}
-      const next=a==='approveArtistVideo'?'Approved':'Published';if(next==='Published'&&statusLabel(v)!=='Approved'){toastMsg('Approve the video before publishing it.');return}await setVideoStatus(id,next);toastMsg(next==='Approved'?'Video approved ✓ — ready to publish':'🎬 Video published to Video Hub ✓');return
-    }
-    return baseAction.apply(this,arguments);
-  };
-  document.addEventListener('change',function(e){if(e.target?.id==='campaignSong')renderPromotionSongPreview();if(e.target?.id==='campaignVideo')renderPromotionVideoPreview();},true);
-  document.addEventListener('click',function(e){const el=e.target.closest('[data-admin-video-filter]');if(!el)return;window.adminVideoFilter=el.dataset.adminVideoFilter||'all';renderAdminVideoQueue();},true);
-  function getPicturePosts(){try{const x=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');return Array.isArray(x)?x:[]}catch(e){return []}}
-  function savePicturePosts(list){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)));return true}catch(e){toastMsg('Picture could not be saved on this device.');return false}}
-
-
-
-
-  document.addEventListener('click',function(e){const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;if(a==='publishPicturePost'){e.preventDefault();publishPicturePost();return;}if(a==='uploadArtistVideo'){e.preventDefault();uploadVideo();}else if(a==='retryVideoCloud'){e.preventDefault();retryVideoCloud(el.dataset.videoId);}else if(a==='refreshArtistVideos'){e.preventDefault();refreshVideos();}else if(a==='promoteVideo'){e.preventDefault();const st=getState()||{};const v=(st.videos||[]).find(x=>String(x.id)===String(el.dataset.videoId));if(v){localStorage.setItem('aluVideoToPromote',JSON.stringify(v));state.promotionTargetType='video';saveState(st);window.go?.('promote');setTimeout(()=>window.applyPromotionTypeUI?.(),30);toastMsg('Video selected for promotion. Choose your campaign settings.')}}},true);
-  setTimeout(()=>{renderVideos();renderAdminVideoQueue()},100);
+<script id="artistVideoHubV54">
+(function(){
+ const KEY='artistLevelUpState', DB='ALU_LOCAL_VIDEO_LIBRARY', STORE='videos';
+ const getState=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(_){return {}}};
+ const saveState=st=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(_){}};
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const toastMsg=m=>{if(typeof window.toast==='function')window.toast(m);else{const t=document.querySelector('.toast');if(t){t.textContent=m;t.classList.add('show')}}};
+ function db(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+ async function put(item){const d=await db();return new Promise((res,rej)=>{const tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).put(item);tx.oncomplete=()=>{d.close();res(true)};tx.onerror=()=>{d.close();rej(tx.error)}})}
+ async function all(){const d=await db();return new Promise((res,rej)=>{const tx=d.transaction(STORE,'readonly'),q=tx.objectStore(STORE).getAll();q.onsuccess=()=>{d.close();res(q.result||[])};q.onerror=()=>{d.close();rej(q.error)}})}
+ async function del(id){const d=await db();return new Promise((res,rej)=>{const tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=()=>{d.close();res(true)};tx.onerror=()=>{d.close();rej(tx.error)}})}
+ const list=st=>{st.videos=Array.isArray(st.videos)?st.videos:[];return st.videos};
+ function status(v){return v.status||'Pending Review'}
+ function renderVideos(){
+  const box=document.getElementById('aluVideoFeed');if(!box)return;
+  const st=getState(),vs=list(st).filter(v=>['Approved','Published','Pending Review','Pending'].includes(status(v)));
+  if(!vs.length){box.innerHTML='<div class="card"><p class="muted">No videos yet. Tap <b>Upload Video Now</b> above to add your first video.</p></div>';return}
+  box.innerHTML=vs.slice(0,30).map(v=>{const src=v.localUrl||v.videoUrl||'',thumb=v.thumbnailUrl||v.thumbnail||'',pending=['Pending Review','Pending'].includes(status(v));return '<div class="card" style="padding:10px;margin:10px 0"><div style="background:#050608;border-radius:14px;overflow:hidden">'+(src?'<video controls playsinline preload="metadata" '+(thumb?'poster="'+esc(thumb)+'" ':'')+'src="'+esc(src)+'" style="width:100%;max-height:330px;display:block"></video>':'<p class="muted">Video preview unavailable. Select the file again on this device.</p>')+'</div><div class="row" style="margin-top:10px"><div class="grow"><h3>'+esc(v.title||'Untitled video')+'</h3><div class="tiny muted">'+esc(status(v))+' · '+Number(v.views||0).toLocaleString()+' views</div></div>'+(!pending?'<button class="btn primary" data-action="promoteVideo" data-video-id="'+esc(v.id)+'">🚀 Promote</button>':'')+'</div><p class="muted">'+esc(v.description||'')+'</p><div class="tiny muted">'+[['TikTok',v.tiktok],['Instagram',v.instagram],['Facebook',v.facebook],['YouTube',v.youtube]].filter(x=>x[1]).map(x=>'<a href="'+esc(x[1])+'" target="_blank" rel="noopener">'+x[0]+'</a>').join(' · ')+'</div></div>'}).join('');
+ }
+ function renderAdmin(){
+  const box=document.getElementById('adminVideoQueue');if(!box)return;
+  const st=getState(),filter=window.adminVideoFilter||'all',vs=list(st).filter(v=>filter==='all'||(filter==='pending'&&['Pending','Pending Review'].includes(status(v)))||(filter==='approved'&&['Approved','Published'].includes(status(v)))||(filter==='rejected'&&status(v)==='Rejected'));
+  if(!vs.length){box.innerHTML='<p class="muted">No videos in this filter.</p>';return}
+  box.innerHTML=vs.map(v=>'<div class="card" style="padding:10px;margin:10px 0"><b>'+esc(v.title||'Untitled video')+'</b><div class="tiny muted">'+esc(st.profile?.name||'Artist')+' · '+esc(status(v))+'</div>'+(v.localUrl?'<video controls playsinline preload="metadata" src="'+esc(v.localUrl)+'" style="width:100%;max-height:320px;margin-top:8px"></video>':'')+'<p>'+esc(v.description||'')+'</p>'+(['Pending','Pending Review'].includes(status(v))?'<button class="btn primary" data-action="approveArtistVideo" data-video-id="'+esc(v.id)+'">✅ Approve Video</button><button class="btn red" data-action="rejectArtistVideo" data-video-id="'+esc(v.id)+'">❌ Reject</button>':status(v)==='Approved'?'<button class="btn primary" data-action="publishArtistVideo" data-video-id="'+esc(v.id)+'">📢 Publish to Video Hub</button>':'<span class="pill">'+esc(status(v))+'</span>')+'<button class="btn red full" data-action="deleteArtistVideo" data-video-id="'+esc(v.id)+'">🗑️ Remove Video</button></div>').join('');
+ }
+ async function refreshVideos(){try{const files=await all(),st=getState(),vs=list(st);for(const f of files){let v=vs.find(x=>String(x.id)===String(f.id));const url=URL.createObjectURL(f.blob);if(v){if(v.localUrl&&v.localUrl.startsWith('blob:'))URL.revokeObjectURL(v.localUrl);Object.assign(v,{localUrl:url,thumbnailUrl:f.thumbnailUrl||v.thumbnailUrl||''})}else vs.unshift({id:f.id,title:f.title,description:f.description||'',localUrl:url,thumbnailUrl:f.thumbnailUrl||'',status:f.status||'Pending Review',tiktok:f.tiktok||'',instagram:f.instagram||'',facebook:f.facebook||'',youtube:f.youtube||'',createdAt:f.createdAt})}saveState(st);renderVideos();renderAdmin();}catch(e){console.warn('Local video library could not be opened',e)}}
+ async function uploadVideo(){
+  const file=document.getElementById('aluVideoFile')?.files?.[0],thumbFile=document.getElementById('aluVideoThumb')?.files?.[0],title=document.getElementById('aluVideoTitle')?.value.trim();
+  if(!file){toastMsg('Choose a video file first.');return}if(!title){toastMsg('Enter the video title first.');return}
+  if(!(file.type.startsWith('video/')||/\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(file.name||''))){toastMsg('Please choose a valid video file.');return}
+  let thumbnailUrl='';if(thumbFile){try{thumbnailUrl=await imageToDataURL(thumbFile,1000,.86)}catch(_){}}
+  const id='video_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),item={id,title,description:document.getElementById('aluVideoDescription')?.value.trim()||'',blob:file,thumbnailUrl,status:'Pending Review',tiktok:document.getElementById('aluTikTok')?.value.trim()||'',instagram:document.getElementById('aluInstagram')?.value.trim()||'',facebook:document.getElementById('aluFacebook')?.value.trim()||'',youtube:document.getElementById('aluYouTube')?.value.trim()||'',createdAt:new Date().toISOString()};
+  try{await put(item)}catch(e){toastMsg('Could not save this video on this device. Check available storage.');return}
+  const st=getState();list(st).unshift({id,title:item.title,description:item.description,thumbnailUrl,status:item.status,tiktok:item.tiktok,instagram:item.instagram,facebook:item.facebook,youtube:item.youtube,createdAt:item.createdAt});saveState(st);
+  ['aluVideoTitle','aluVideoDescription','aluVideoFile','aluVideoThumb','aluTikTok','aluInstagram','aluFacebook','aluYouTube'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''});
+  await refreshVideos();toastMsg('Video saved on this device. Admin review is local to this device.');
+ }
+ async function setStatus(id,next){const st=getState(),v=list(st).find(x=>String(x.id)===String(id));if(!v)return;v.status=next;saveState(st);try{const files=await all(),f=files.find(x=>String(x.id)===String(id));if(f){f.status=next;await put(f)}}catch(_){}renderVideos();renderAdmin();toastMsg('Video status updated.')}
+ async function removeVideo(id){const st=getState(),v=list(st).find(x=>String(x.id)===String(id));if(v?.localUrl?.startsWith('blob:'))URL.revokeObjectURL(v.localUrl);st.videos=list(st).filter(x=>String(x.id)!==String(id));saveState(st);await del(id).catch(()=>{});renderVideos();renderAdmin();toastMsg('Video removed from this device.')}
+ window.ALU_RENDER_VIDEOS=renderVideos;window.ALU_RENDER_ADMIN_VIDEOS=renderAdmin;window.ALU_REFRESH_ADMIN_VIDEOS=refreshVideos;window.ALU_REFRESH_VIDEOS=refreshVideos;
+ window.refreshPromotionVideos=async function(){await refreshVideos();const sel=document.getElementById('campaignVideo');if(!sel)return;const vids=(getState().videos||[]).filter(v=>['Published','Approved'].includes(v.status));sel.innerHTML='<option value="">Choose a video</option>'+vids.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.title)+'</option>').join('')};
+ const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const out=oldGo.apply(this,arguments);if(['videos','admin','promote'].includes(id))setTimeout(()=>{refreshVideos();if(id==='promote')window.refreshPromotionVideos()},40);return out};
+ const baseAction=window.action;window.action=async function(a,el){const id=String(el?.dataset?.videoId||'');if(a==='focusArtistVideoUpload'){window.go?.('videos');setTimeout(()=>document.getElementById('aluVideoTitle')?.focus(),80);return}if(a==='refreshAdminVideos'||a==='refreshArtistVideos'){await refreshVideos();return}if(a==='uploadArtistVideo'){await uploadVideo();return}if(a==='deleteArtistVideo'){await removeVideo(id);return}if(a==='approveArtistVideo'){await setStatus(id,'Approved');return}if(a==='publishArtistVideo'){const v=list(getState()).find(x=>String(x.id)===id);if(v?.status!=='Approved'){toastMsg('Approve the video before publishing.');return}await setStatus(id,'Published');return}if(a==='rejectArtistVideo'){const reason=prompt('Reason for rejecting this video:','Please review and upload again.');if(reason===null)return;const st=getState(),v=list(st).find(x=>String(x.id)===id);if(v){v.rejectionReason=reason;saveState(st)}await setStatus(id,'Rejected');return}return baseAction?.apply(this,arguments)};
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(!el)return;const a=el.dataset.action;if(a==='publishPicturePost'){e.preventDefault();if(typeof window.publishPicturePost==='function')window.publishPicturePost();return}if(a==='uploadArtistVideo'){e.preventDefault();uploadVideo()}else if(a==='refreshArtistVideos'||a==='refreshAdminVideos'){e.preventDefault();refreshVideos()}else if(a==='promoteVideo'){e.preventDefault();const v=list(getState()).find(x=>String(x.id)===String(el.dataset.videoId));if(v){localStorage.setItem('aluVideoToPromote',JSON.stringify(v));window.go?.('promote');setTimeout(()=>window.applyPromotionTypeUI?.(),30)}}},true);
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-admin-video-filter]');if(el){window.adminVideoFilter=el.dataset.adminVideoFilter||'all';renderAdmin()}},true);
+ setTimeout(refreshVideos,100);
 })();</script>
 
 <script id="globalDiscoveryV76">
@@ -2426,9 +1794,8 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const songs=Array.isArray(state?.songs)?state.songs:[];const songId=v.song_id||v.songId;let match=songId?songs.find(x=>String(x.id)===String(songId)):null;let artistId=String(v.artist_id||v.artistId||'').trim();let artistName=String(v.artist_name||v.artistName||'').trim();
     if(!match&&v.title)match=songs.find(x=>String(x.title||'').trim().toLowerCase()===String(v.title||'').trim().toLowerCase());
     if(match){artistId=artistId||String(match.artist_id||'').trim();artistName=artistName||String(match.artist||'').trim()}
-    if(!artistId&&window.ALU_CLOUD?.artistId)artistId=String(window.ALU_CLOUD.artistId).trim();if(!artistName&&state?.profile?.name)artistName=String(state.profile.name).trim();
+    if(!artistName&&state?.profile?.name)artistName=String(state.profile.name).trim();
     const showArtistMusic=(rows,name)=>{const list=(rows||[]).filter(x=>{const st=String(x.status||'').toLowerCase();return !st||['published','approved'].includes(st)});if(typeof go==='function')go('discover');setTimeout(()=>{const el=document.getElementById('discoverSongs');if(el){el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">This artist has no published songs yet.</p>';el.scrollIntoView({behavior:'smooth',block:'start'})}if(typeof toastMsg==='function')toastMsg(name?`🎵 ${name} · ${list.length} song${list.length===1?'':'s'}`:'🎵 Artist music opened')},80)};
-    if(artistId&&window.ALU_CLOUD?.client){window.ALU_CLOUD.client.from('songs').select('id,artist_id,title,genre,audio_url,cover_url,status').eq('artist_id',artistId).in('status',['published','approved']).order('created_at',{ascending:false}).then(({data,error})=>{if(!error&&Array.isArray(data)){const mapped=data.map(r=>({id:r.id,remoteSongId:r.id,title:r.title,genre:r.genre||'Music',artist:artistName||'Artist',audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',status:r.status==='published'?'Published':'Approved'}));state.songs=[...mapped,...songs.filter(x=>String(x.artist_id||'')!==artistId)];save();showArtistMusic(mapped,artistName)}else showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName)}).catch(()=>showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName));return}
     showArtistMusic(artistId?songs.filter(x=>String(x.artist_id||'')===artistId):(artistName?songs.filter(x=>String(x.artist||'').trim().toLowerCase()===artistName.toLowerCase()):songs),artistName);
    }catch(err){console.warn('Artist music navigation failed',err);if(typeof go==='function')go('discover')}return;
   }
@@ -2456,7 +1823,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       localSaved=true;
     }catch(e){console.error('Local artist registration save failed',e);toast('Artist account could not be saved on this device. Please try again.');}
     if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud registration will retry:',e)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
     }
@@ -2488,7 +1854,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       localSaved=true;
     }catch(e){console.error('Local profile save failed',e);toast('Profile could not be saved on this device. Please try again.');}
     if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud profile sync will retry:',e)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('👤 Artist profile saved ✓');
     }
@@ -2509,116 +1874,88 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
 
 <script id="aluMarketplaceV78">
 (function(){
-  const FN='marketplace-paystack-checkout';
-  let marketBeats=[]; let marketFilter='all';
-  function escM(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function naira(v){return '₦'+Number(v||0).toLocaleString('en-NG',{maximumFractionDigits:0});}
-  function licensePrice(base,lic){base=Number(base||0);return lic==='Basic'?Math.max(1000,Math.round(base*.72)):lic==='Exclusive'?Math.max(base,Math.round(base*1.75)):Math.round(base);}
-  function profileEmail(){return String(state?.profile?.email||'').trim();}
-  function setEmail(){const i=document.getElementById('marketplaceEmail');if(i&&!i.value)i.value=profileEmail();}
-  async function loadBeats(){
-    const status=document.getElementById('marketplaceStatus');
-    if(status)status.textContent='Loading published beats…';
-    try{
-      if(!window.ALU_CLOUD?.client) throw new Error('Supabase connection is not ready.');
-      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status').eq('status','published').order('created_at',{ascending:false});
-      if(q.error)throw q.error;
-      marketBeats=Array.isArray(q.data)?q.data:[]; renderBeats();
-      if(status)status.textContent=marketBeats.length?marketBeats.length+' published beat'+(marketBeats.length===1?'':'s')+' available.':'No published beats are available yet.';
-    }catch(e){console.error('Marketplace load failed',e);marketBeats=[];renderBeats();if(status)status.textContent='Marketplace could not load: '+(e?.message||e);}
-  }
-  function renderBeats(){
-    const box=document.getElementById('marketplaceList'); if(!box)return;
-    const q=String(document.getElementById('marketplaceSearch')?.value||'').trim().toLowerCase();
-    const list=marketBeats.filter(b=>marketFilter==='all'||String(b.genre||'')===marketFilter).filter(b=>!q||[b.title,b.producer_name,b.genre,b.mood].some(x=>String(x||'').toLowerCase().includes(q)));
-    if(!list.length){box.innerHTML='<div class="card"><p class="muted">No beats match this search/filter.</p></div>';return;}
-    box.innerHTML=list.map(b=>`<div class="marketbeat"><div class="row"><div class="grow"><h3>${escM(b.title)}</h3><div class="muted">Produced by ${escM(b.producer_name||'Producer')}</div><div class="marketmeta"><span>🎵 ${escM(b.genre||'Music')}</span><span>🌙 ${escM(b.mood||'')}</span>${b.bpm?`<span>⚡ ${escM(b.bpm)} BPM</span>`:''}</div></div><div class="pricebox">${naira(b.price_ngn)}</div></div><div class="tiny muted">Default licence: ${escM(b.default_license||'Premium')}</div>${b.audio_preview_url?`<audio controls preload="none" src="${escM(b.audio_preview_url)}" style="width:100%;margin-top:10px"></audio>`:'<div class="tiny muted" style="margin-top:8px">Preview not uploaded for this beat yet.</div>'}<div class="licence-row"><button class="btn" data-market-buy="${escM(b.id)}" data-market-license="Basic">Basic · ${naira(licensePrice(b.price_ngn,'Basic'))}</button><button class="btn primary" data-market-buy="${escM(b.id)}" data-market-license="Premium">Premium · ${naira(licensePrice(b.price_ngn,'Premium'))}</button><button class="btn" data-market-buy="${escM(b.id)}" data-market-license="Exclusive">Exclusive · ${naira(licensePrice(b.price_ngn,'Exclusive'))}</button></div></div>`).join('');
-  }
-  async function buy(id,license){
-    const beat=marketBeats.find(x=>String(x.id)===String(id)); if(!beat)return;
-    const email=String(document.getElementById('marketplaceEmail')?.value||profileEmail()).trim().toLowerCase();
-    if(!/^\S+@\S+\.\S+$/.test(email)){document.getElementById('marketplaceEmail')?.focus();toast('Enter a valid customer email before checkout.');return;}
-    state.profile=state.profile||{};state.profile.email=email;state.profile.saved=true;save();
-    const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Starting secure Paystack checkout…';
-    try{
-      if(!window.ALU_CLOUD?.client)throw new Error('Supabase connection is not ready.');
-      const {data,error}=await window.ALU_CLOUD.client.functions.invoke(FN,{body:{beat_id:beat.id,license,email,callback_url:location.href}});
-      if(error)throw new Error(error.message||'Checkout request failed.');
-      if(!data?.ok)throw new Error(data?.error||'Checkout could not be started.');
-      if(status)status.textContent='Checkout ready. Opening Paystack…';
-      window.location.href=data.authorization_url;
-    }catch(e){console.error('Marketplace checkout failed',e);if(status)status.textContent='Checkout error: '+(e?.message||e);toast('Marketplace checkout failed — see the message on screen.');}
-  }
-  function init(){setEmail();const i=document.getElementById('marketplaceSearch');if(i&&!i.dataset.bound){i.dataset.bound='1';i.addEventListener('input',renderBeats)};loadBeats();}
-  // MARKETPLACE CLICK SAFETY: handle marketplace controls in capture phase so other
-  // global click handlers cannot swallow the tap on mobile browsers.
-  document.addEventListener('click',e=>{
-    const target=e.target?.closest?.('[data-go="marketplace"],[data-market-filter],[data-market-buy],[data-action="marketplaceRefresh"]');
-    if(!target)return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    if(target.matches('[data-go="marketplace"]')){
-      if(typeof window.go==='function') window.go('marketplace');
-      else { const page=document.getElementById('marketplace'); document.querySelectorAll('.page').forEach(x=>x.classList.remove('active')); page?.classList.add('active'); }
-      setTimeout(init,60);
-      return;
-    }
-    if(target.matches('[data-market-filter]')){marketFilter=target.dataset.marketFilter||'all';renderBeats();return;}
-    if(target.matches('[data-market-buy]')){void buy(target.dataset.marketBuy,target.dataset.marketLicense);return;}
-    if(target.matches('[data-action="marketplaceRefresh"]')){void loadBeats();return;}
-  },true);
-  const oldGo=window.go;
-if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='marketplace')setTimeout(init,40);return r};
-  window.ALU_MARKETPLACE={load:loadBeats,buy};
-})();
+ let marketBeats=[],marketFilter='all';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const naira=v=>'₦'+Number(v||0).toLocaleString('en-NG',{maximumFractionDigits:0});
+ const licensePrice=(base,lic)=>lic==='Basic'?Math.max(1000,Math.round(Number(base||0)*.72)):lic==='Exclusive'?Math.max(Number(base||0),Math.round(Number(base||0)*1.75)):Number(base||0);
+ function render(){const box=document.getElementById('marketplaceList');if(!box)return;const q=String(document.getElementById('marketplaceSearch')?.value||'').trim().toLowerCase();const items=marketBeats.filter(b=>marketFilter==='all'||String(b.genre||'')===marketFilter).filter(b=>!q||[b.title,b.producer_name,b.genre,b.mood].some(x=>String(x||'').toLowerCase().includes(q)));box.innerHTML=items.length?items.map(b=>'<div class="marketbeat"><h3>'+esc(b.title)+'</h3><div class="muted">Produced by '+esc(b.producer_name||'Producer')+'</div><div class="marketmeta">'+esc(b.genre||'Music')+' · '+esc(b.mood||'')+'</div><div class="pricebox">'+naira(b.price_ngn)+'</div><div class="tiny muted">Default licence: '+esc(b.default_license||'Premium')+'</div>'+(b.audio_preview_url?'<audio controls preload="none" src="'+esc(b.audio_preview_url)+'" style="width:100%"></audio>':'')+'<p class="tiny muted">Checkout is currently unavailable.</p></div>').join(''):'<div class="card"><p class="muted">Marketplace listings are not connected yet.</p></div>'}
+ function init(){const i=document.getElementById('marketplaceSearch');if(i&&!i.dataset.bound){i.dataset.bound='1';i.addEventListener('input',render)}const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Marketplace is awaiting its new payment and listing connection.';render()}
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-go="marketplace"],[data-market-filter],[data-market-buy],[data-action="marketplaceRefresh"]');if(!el)return;if(el.matches('[data-go="marketplace"]'))setTimeout(init,50);else if(el.matches('[data-market-filter]')){marketFilter=el.dataset.marketFilter||'all';render()}else if(el.matches('[data-market-buy]')){e.preventDefault();if(typeof window.toast==='function')window.toast('Checkout is not available yet.');}else if(el.matches('[data-action="marketplaceRefresh"]'))init()},true);
+ const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const out=oldGo.apply(this,arguments);if(id==='marketplace')setTimeout(init,40);return out};
+ window.ALU_MARKETPLACE={load:init};
+ setTimeout(init,80);
+})();</script>
 
-  setTimeout(renderPicturePosts,80);
-</script>
-<script id="musicCloudStabilityFixV1">
-/* CLOUD STABILITY FIX: never use .single() for song writes; never lose a successfully uploaded song. */
+<!-- V101_CLOUDFLARE_R2_MEDIA_CONNECT -->
+<script>
 (function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client || !window.ALU_CLOUD) return;
-  async function stableSyncSongs(){
-    const artistId=await window.ALU_CLOUD.ensureArtist();
-    if(!artistId) throw new Error('Cloud artist account is not ready.');
-    for(const s of (state.songs||[])){
-      if(!s.local) continue;
-      let audioUrl=/^https?:\/\//i.test(String(s.audioRemoteUrl||''))?String(s.audioRemoteUrl):'';
-      if(!audioUrl && s.audioStoragePath){
-        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-        const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-        const path=String(s.audioStoragePath).replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
-        if(base && path) audioUrl=base+'/storage/v1/object/public/'+bucket+'/'+path;
-      }
-      if(!audioUrl) continue;
-      s.audioRemoteUrl=audioUrl;
-      const row={artist_id:artistId,title:s.title,genre:s.genre||'Music',audio_url:audioUrl,cover_url:s.coverArt||null,duration_seconds:null,status:(s.status==='Published'?'published':s.status==='Approved'?'approved':s.status==='Archived'?'archived':'draft')};
-      let r;
-      if(s.remoteSongId){
-        r=await client.from('songs').update({title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:row.cover_url,status:row.status}).eq('id',s.remoteSongId).eq('artist_id',artistId).select('id');
-        if(r.error) throw new Error('Cloud song update failed: '+r.error.message);
-        if(!Array.isArray(r.data) || !r.data.length){
-          /* Stale/missing remote ID: create a fresh row instead of requesting one JSON object. */
-          r=await client.from('songs').insert(row).select('id');
-          if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-        }
-      }else{
-        r=await client.from('songs').insert(row).select('id');
-        if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-      }
-      const id=Array.isArray(r.data)?r.data[0]?.id:null;
-      if(!id) throw new Error('Cloud song record was not returned by Supabase.');
-      s.remoteSongId=id;
-      s.cloudSaved=true;
-      s.cloudSyncPending=false;
-      s.cloudSyncError='';
+  'use strict';
+  const BASE='https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/';
+  const media=[
+    {id:'alu-r2-audio-angelina',kind:'audio',key:'audio_song_1792505499636_ilmfs-Otunba-Cash-Money-Angelina.mp3',title:'Angelina',artist:'Otunba Cash Money',genre:'Music',type:'audio/mpeg'},
+    {id:'alu-r2-video-1',kind:'video',key:'videos/1/video_1792306951137_pephg.mp4',title:'Artist video 1',type:'video/mp4'},
+    {id:'alu-r2-video-2',kind:'video',key:'videos/1/video_1792488726169_pcp5c.mp4',title:'Artist video 2',type:'video/mp4'},
+    {id:'alu-r2-video-3',kind:'video',key:'videos/1/85fc4468-c857-4d7b-8a2c-982b08590a40.mp4',title:'Artist video 3',type:'video/mp4'}
+  ];
+  const pictures=[
+    'videos/1/Photo/picture_1792447535205_0_dqn63.jpg',
+    'videos/1/Photo/picture_1792447537185_1_i8vvw.jpg',
+    'videos/1/Photo/picture_1792447538978_2_g0xj0.jpg'
+  ];
+  const url=key=>BASE+key.split('/').map(encodeURIComponent).join('/');
+  function addAudio(){
+    if(typeof state==='undefined'||!Array.isArray(state.songs))return;
+    const item=media.find(x=>x.kind==='audio');
+    if(!state.songs.some(x=>x.id===item.id)){
+      state.songs.unshift({id:item.id,title:item.title,artist:item.artist,genre:item.genre,audioRemoteUrl:url(item.key),streams:0,plays:0,likes:0,status:'Published',cloudflareR2:true});
+      if(typeof save==='function')save();
+      else if(typeof persistStateOnly==='function')persistStateOnly();
     }
-    return true;
   }
-  window.ALU_CLOUD.syncSongs=stableSyncSongs;
-  window.ALU_RETRY_MUSIC_CLOUD=async function(){
-    try{await stableSyncSongs();save();return true}catch(e){console.warn('Music cloud retry failed:',e);return false}
-  };
+  function addVideos(){
+    let st={};
+    try{st=JSON.parse(localStorage.getItem('artistLevelUpState')||'{}')||{}}catch(_){}
+    st.videos=Array.isArray(st.videos)?st.videos:[];
+    for(const item of media.filter(x=>x.kind==='video')){
+      if(!st.videos.some(v=>v.id===item.id)){
+        st.videos.unshift({id:item.id,title:item.title,description:'Stored in the Artist Level Up Cloudflare media library.',videoUrl:url(item.key),status:'Published',createdAt:'2026-10-30T00:00:00.000Z',cloudflareR2:true});
+      }
+    }
+    try{localStorage.setItem('artistLevelUpState',JSON.stringify(st))}catch(_){}
+    if(typeof window.ALU_RENDER_VIDEOS==='function')window.ALU_RENDER_VIDEOS();
+  }
+  function addPictures(){
+    const page=document.getElementById('videos');
+    if(!page||document.getElementById('aluCloudflarePictures'))return;
+    const section=document.createElement('div');
+    section.id='aluCloudflarePictures';
+    section.className='card';
+    section.style.marginTop='14px';
+    const heading=document.createElement('h2');
+    heading.textContent='Cloudflare Picture Library';
+    section.appendChild(heading);
+    const note=document.createElement('p');
+    note.className='muted';
+    note.textContent='Pictures already stored in your Cloudflare media bucket.';
+    section.appendChild(note);
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px';
+    pictures.forEach((key,i)=>{
+      const img=document.createElement('img');
+      img.src=url(key);img.alt='Cloudflare picture '+(i+1);img.loading='lazy';
+      img.style.cssText='width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#111';
+      grid.appendChild(img);
+    });
+    section.appendChild(grid);
+    page.appendChild(section);
+  }
+  function connect(){
+    addAudio();addVideos();addPictures();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',connect,{once:true});
+  else connect();
+  window.ALU_CLOUDFLARE_MEDIA={baseUrl:BASE,files:media.concat(pictures.map((key,i)=>({kind:'image',id:'alu-r2-picture-'+(i+1),key})))};
 })();
-</script></body></html>
+</script>
+
+</body></html>

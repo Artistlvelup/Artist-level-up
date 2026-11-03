@@ -7911,3 +7911,74 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   window.addEventListener('pageshow',function(){if(ready)setTimeout(function(){var id=activeId();if(id)save(id)},0)});
 })();
 </script>
+
+
+<!-- V101_CLOUDFLARE_R2_MEDIA_CONNECT -->
+<script>
+(function(){
+  'use strict';
+  const BASE='https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev/';
+  const media=[
+    {id:'alu-r2-audio-angelina',kind:'audio',key:'audio_song_1792505499636_ilmfs-Otunba-Cash-Money-Angelina.mp3',title:'Angelina',artist:'Otunba Cash Money',genre:'Music',type:'audio/mpeg'},
+    {id:'alu-r2-video-1',kind:'video',key:'videos/1/video_1792306951137_pephg.mp4',title:'Artist video 1',type:'video/mp4'},
+    {id:'alu-r2-video-2',kind:'video',key:'videos/1/video_1792488726169_pcp5c.mp4',title:'Artist video 2',type:'video/mp4'},
+    {id:'alu-r2-video-3',kind:'video',key:'videos/1/85fc4468-c857-4d7b-8a2c-982b08590a40.mp4',title:'Artist video 3',type:'video/mp4'}
+  ];
+  const pictures=[
+    'videos/1/Photo/picture_1792447535205_0_dqn63.jpg',
+    'videos/1/Photo/picture_1792447537185_1_i8vvw.jpg',
+    'videos/1/Photo/picture_1792447538978_2_g0xj0.jpg'
+  ];
+  const url=key=>BASE+key.split('/').map(encodeURIComponent).join('/');
+  function addAudio(){
+    if(typeof state==='undefined'||!Array.isArray(state.songs))return;
+    const item=media.find(x=>x.kind==='audio');
+    if(!state.songs.some(x=>x.id===item.id)){
+      state.songs.unshift({id:item.id,title:item.title,artist:item.artist,genre:item.genre,audioRemoteUrl:url(item.key),streams:0,plays:0,likes:0,status:'Published',cloudflareR2:true});
+      if(typeof save==='function')save();
+      else if(typeof persistStateOnly==='function')persistStateOnly();
+    }
+  }
+  function addVideos(){
+    let st={};
+    try{st=JSON.parse(localStorage.getItem('artistLevelUpState')||'{}')||{}}catch(_){}
+    st.videos=Array.isArray(st.videos)?st.videos:[];
+    for(const item of media.filter(x=>x.kind==='video')){
+      if(!st.videos.some(v=>v.id===item.id)){
+        st.videos.unshift({id:item.id,title:item.title,description:'Stored in the Artist Level Up Cloudflare media library.',videoUrl:url(item.key),status:'Published',createdAt:'2026-10-30T00:00:00.000Z',cloudflareR2:true});
+      }
+    }
+    try{localStorage.setItem('artistLevelUpState',JSON.stringify(st))}catch(_){}
+    if(typeof window.ALU_RENDER_VIDEOS==='function')window.ALU_RENDER_VIDEOS();
+  }
+  function addPictures(){
+    const page=document.getElementById('videos');
+    if(!page||document.getElementById('aluCloudflarePictures'))return;
+    const section=document.createElement('div');
+    section.id='aluCloudflarePictures';
+    section.className='card';
+    section.style.marginTop='14px';
+    const heading=document.createElement('h2');
+    heading.textContent='Cloudflare Picture Library';
+    section.appendChild(heading);
+    const note=document.createElement('p');
+    note.className='muted';
+    note.textContent='Pictures already stored in your Cloudflare media bucket.';
+    section.appendChild(note);
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px';
+    pictures.forEach((key,i)=>{
+      const img=document.createElement('img');
+      img.src=url(key);img.alt='Cloudflare picture '+(i+1);img.loading='lazy';
+      img.style.cssText='width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#111';
+      grid.appendChild(img);
+    });
+    section.appendChild(grid);
+    page.appendChild(section);
+  }
+  function connect(){addAudio();addVideos();addPictures();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',connect,{once:true});
+  else connect();
+  window.ALU_CLOUDFLARE_MEDIA={baseUrl:BASE,files:media.concat(pictures.map((key,i)=>({kind:'image',id:'alu-r2-picture-'+(i+1),key,url:url(key)})))};
+})();
+</script>

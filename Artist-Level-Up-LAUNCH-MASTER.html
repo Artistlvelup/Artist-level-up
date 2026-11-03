@@ -692,7 +692,7 @@ document.getElementById('player').addEventListener('click',e=>{
 document.addEventListener('click',e=>{const fa=e.target.closest('[data-full-action]');if(fa){const a=fa.dataset.fullAction;if(a==='close')closeFull();else if(a==='minimize')minimizeFull();else if(a==='toggle')fullToggle();else if(a==='like'){if(current)toggleLike(current.id);syncFullPlayer()}else if(a==='next'||a==='prev'){const arr=state.songs;let i=Math.max(0,arr.findIndex(x=>x.id===current?.id));let ni=a==='next'?(i+1)%arr.length:(i-1+arr.length)%arr.length;play(arr[ni].id)}return}const row=e.target.closest('.song');if(row&&!e.target.closest('button')){const b=row.querySelector('[data-play]');if(b)play(b.dataset.play)}});
 document.getElementById('closeMoneyBreakdown')?.addEventListener('click',()=>{const box=document.getElementById('moneyBreakdown');if(box)box.style.display='none';});document.getElementById('campaignDuration')?.addEventListener('change',()=>renderAll());document.getElementById('campaignBudget')?.addEventListener('change',()=>renderAll());
 const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
-const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();if(remoteAudio?.remote&&window.ALU_CLOUD?.syncSongs){try{await window.ALU_CLOUD.syncSongs();save()}catch(e){console.warn('Floating upload cloud sync failed:',e)}}closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
+const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){
@@ -728,15 +728,7 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const
       if(audioFile.size<=3500000){try{const du=await aluFileToDataURL(audioFile);aluTryInlineAudio(state.songs[0],du)}catch(e){console.warn('Inline audio copy skipped',e)}}
       let stateSaved=true;
       try{save()}catch(saveErr){stateSaved=false;console.warn('Song metadata save failed; keeping uploaded song in the current session.',saveErr)}
-      if(remoteAudio?.remote && remoteAudio?.url && window.ALU_CLOUD?.syncSongs){
-        try{await window.ALU_CLOUD.syncSongs(); save();}
-        catch(cloudErr){
-          /* Storage upload succeeded. Do NOT delete the song because database sync failed.
-             Keep it locally and let the cloud retry layer handle the database record. */
-          console.error('Immediate song cloud sync deferred:',cloudErr);
-          try{newSong.cloudSyncPending=true;newSong.cloudSyncError=String(cloudErr?.message||cloudErr||'Cloud sync failed').slice(0,500);save()}catch(_){}
-        }
-      }
+      
       const t=document.getElementById('songTitle'),a=document.getElementById('audioFile'),c=document.getElementById('audioCoverFile');
       if(t)t.value='';if(a)a.value='';if(c)c.value='';
       const preview=document.getElementById('audioCoverPreview');if(preview)preview.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';
@@ -1136,7 +1128,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }catch(err){console.warn('Durable playback failed',err);playing=false;syncFullPlayer();toast('Audio could not load. Please re-upload the song.');}
   };
   /* If cloud data says Approved while the local moderation state is Published, do not roll the UI backwards. */
-  const oldBootstrap=window.ALU_CLOUD?.cloudBootstrap;
   window.ALU_PRESERVE_PUBLISHED=true;
   // Re-render covers from the durable local song object after any cloud refresh.
   const oldRenderAll=window.renderAll;
@@ -1165,10 +1156,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     state.songs=Array.isArray(state.songs)?state.songs:[];
     state.songs.unshift(song);
     try{save()}catch(e){console.warn('Local metadata save failed',e)}
-    if(remote?.remote && window.ALU_CLOUD?.syncSongs){
-      await window.ALU_CLOUD.syncSongs();
-      try{save()}catch(e){}
-    }
     if(typeof finish==='function') finish(song);
     return song;
   }
@@ -1807,9 +1794,8 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const songs=Array.isArray(state?.songs)?state.songs:[];const songId=v.song_id||v.songId;let match=songId?songs.find(x=>String(x.id)===String(songId)):null;let artistId=String(v.artist_id||v.artistId||'').trim();let artistName=String(v.artist_name||v.artistName||'').trim();
     if(!match&&v.title)match=songs.find(x=>String(x.title||'').trim().toLowerCase()===String(v.title||'').trim().toLowerCase());
     if(match){artistId=artistId||String(match.artist_id||'').trim();artistName=artistName||String(match.artist||'').trim()}
-    if(!artistId&&window.ALU_CLOUD?.artistId)artistId=String(window.ALU_CLOUD.artistId).trim();if(!artistName&&state?.profile?.name)artistName=String(state.profile.name).trim();
+    if(!artistName&&state?.profile?.name)artistName=String(state.profile.name).trim();
     const showArtistMusic=(rows,name)=>{const list=(rows||[]).filter(x=>{const st=String(x.status||'').toLowerCase();return !st||['published','approved'].includes(st)});if(typeof go==='function')go('discover');setTimeout(()=>{const el=document.getElementById('discoverSongs');if(el){el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">This artist has no published songs yet.</p>';el.scrollIntoView({behavior:'smooth',block:'start'})}if(typeof toastMsg==='function')toastMsg(name?`🎵 ${name} · ${list.length} song${list.length===1?'':'s'}`:'🎵 Artist music opened')},80)};
-    if(artistId&&window.ALU_CLOUD?.client){window.ALU_CLOUD.client.from('songs').select('id,artist_id,title,genre,audio_url,cover_url,status').eq('artist_id',artistId).in('status',['published','approved']).order('created_at',{ascending:false}).then(({data,error})=>{if(!error&&Array.isArray(data)){const mapped=data.map(r=>({id:r.id,remoteSongId:r.id,title:r.title,genre:r.genre||'Music',artist:artistName||'Artist',audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',status:r.status==='published'?'Published':'Approved'}));state.songs=[...mapped,...songs.filter(x=>String(x.artist_id||'')!==artistId)];save();showArtistMusic(mapped,artistName)}else showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName)}).catch(()=>showArtistMusic(songs.filter(x=>String(x.artist_id||'')===artistId),artistName));return}
     showArtistMusic(artistId?songs.filter(x=>String(x.artist_id||'')===artistId):(artistName?songs.filter(x=>String(x.artist||'').trim().toLowerCase()===artistName.toLowerCase()):songs),artistName);
    }catch(err){console.warn('Artist music navigation failed',err);if(typeof go==='function')go('discover')}return;
   }
@@ -1837,7 +1823,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       localSaved=true;
     }catch(e){console.error('Local artist registration save failed',e);toast('Artist account could not be saved on this device. Please try again.');}
     if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud registration will retry:',e)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
     }
@@ -1869,7 +1854,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       localSaved=true;
     }catch(e){console.error('Local profile save failed',e);toast('Profile could not be saved on this device. Please try again.');}
     if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud profile sync will retry:',e)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('👤 Artist profile saved ✓');
     }

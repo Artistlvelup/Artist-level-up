@@ -726,11 +726,14 @@ export default {
       }
       return new Response(null, { status: 204, headers: cors });
     }
+    const url = new URL(request.url);
+    if (url.pathname === "/health" && request.method === "GET") {
+      return json({ ok: true, service: "artist-level-up-v101", status: "online" }, 200, cors);
+    }
     if (!validConfig(env)) {
       return json({ error: "Authentication service is not configured" }, 503, cors);
     }
 
-    const url = new URL(request.url);
     try {
       if (url.pathname === "/auth/register" && request.method === "POST") {
         return await registerPasswordAccount(request, env, cors);

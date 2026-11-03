@@ -1,6 +1,9 @@
 name: Prepare Artist Level Up V101 D1
 
 on:
+  push:
+    branches:
+      - migration/v101-cloudflare-cutover-from-main-2026-11-02
   workflow_dispatch:
     inputs:
       apply_remote:
@@ -23,26 +26,58 @@ jobs:
       - name: Checkout migration branch
         uses: actions/checkout@v4
 
-      - name: Validate SQLite migration syntax
+      - name: Set up Node.js for Worker tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate complete SQLite migration sequence
         shell: bash
         run: |
           python - <<'PY'
           import sqlite3
           from pathlib import Path
-          sql = Path("migrations/d1/0001_initial_schema.sql").read_text()
+
+          files = [
+              Path("migrations/d1/0001_initial_schema.sql"),
+              Path("migrations/d1/0002_identity_sessions.sql"),
+              Path("migrations/d1/0004_persistent_session_families.sql"),
+              Path("migrations/d1/0006_password_auth.sql"),
+              Path("migrations/d1/0007_passwordless_login_links.sql"),
+          ]
           db = sqlite3.connect(":memory:")
           db.execute("PRAGMA foreign_keys = ON")
-          db.executescript(sql)
+          for path in files:
+              if not path.is_file():
+                  raise SystemExit(f"Missing migration: {path}")
+              db.executescript(path.read_text())
+              print(f"Validated {path}")
+
+          tables = {
+              row[0] for row in db.execute(
+                  "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+              )
+          }
+          required = {
+              "profiles", "artists", "songs", "artist_videos", "picture_posts",
+              "marketplace_beats", "marketplace_orders", "streaming_distribution_requests",
+              "withdrawals", "app_users", "app_sessions", "app_session_families",
+              "app_credentials", "app_email_verification_tokens", "app_auth_rate_limits",
+              "app_login_link_tokens",
+          }
+          missing = required - tables
+          if missing:
+              raise SystemExit(f"Missing required tables: {sorted(missing)}")
+          if "v101_bridge_config" in tables:
+              raise SystemExit("Obsolete bridge configuration table must not exist.")
           violations = db.execute("PRAGMA foreign_key_check").fetchall()
-          tables = db.execute(
-              "SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-          ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 27:
-              raise SystemExit(f"Expected 27 tables, found {tables}")
-          print(f"Validated {tables} tables; no foreign-key violations.")
+          print(f"Validated all {len(files)} migrations and {len(tables)} tables; required tables present; no foreign-key violations.")
           PY
+
+      - name: Run Cloudflare Worker tests
+        run: node --test workers/auth/*.test.mjs
 
   apply:
     needs: validate

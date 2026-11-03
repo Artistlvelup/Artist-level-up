@@ -2,6 +2,9 @@ name = "artist-level-up-v101"
 main = "workers/auth/worker.js"
 compatibility_date = "2026-10-29"
 
+[vars]
+ALLOWED_ORIGINS = "https://artist-level-up-v101-launch-hardening-vwiq.onrender.com,https://artistlevelup.com.ng"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "artist_level_up_v101"

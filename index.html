@@ -7497,7 +7497,7 @@ else addProfileLogout();
 })();
 </script>
 
-<script id="aluV101RestoreHashRoute">/* V101: restore the selected app page after refresh; go() still enforces member/artist gates. */(function(){'use strict';function restore(){try{var raw=String(location.hash||'').replace(/^#/,'');if(!raw||raw.indexOf('discover-post=')===0)return;var page=document.getElementById(raw);if(page&&page.classList.contains('page')&&typeof window.go==='function'){window.go(raw,false);}}catch(e){console.warn('V101 page restore skipped:',e)}}if(document.readyState==='complete')setTimeout(restore,0);else window.addEventListener('load',restore,{once:true});})();</script>
+<script id="aluV101RestoreHashRoute">/* V101: restore the last valid app page after refresh, using the URL first and the saved route as fallback. */(function(){'use strict';function restore(){try{var raw=String(location.hash||'').replace(/^#/,'');if(raw.indexOf('discover-post=')===0)return;var saved='';try{saved=String(localStorage.getItem('alu_last_page_v101')||'')}catch(_){}var target=raw||saved||'home';var page=document.getElementById(target);if(page&&page.classList.contains('page')&&typeof window.go==='function'){window.go(target,false);}}catch(e){console.warn('V101 page restore skipped:',e)}}function schedule(){setTimeout(restore,250)}if(document.readyState==='complete')schedule();else window.addEventListener('load',schedule,{once:true});window.addEventListener('pageshow',schedule);})();</script>
 
 <script id="aluV101LaunchSafetyUX">
 (function(){

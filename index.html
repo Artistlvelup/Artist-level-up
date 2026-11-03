@@ -7940,15 +7940,19 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
     }
   }
   function addVideos(){
-    let st={};
-    try{st=JSON.parse(localStorage.getItem('artistLevelUpState')||'{}')||{}}catch(_){}
-    st.videos=Array.isArray(st.videos)?st.videos:[];
+    if(typeof state==='undefined'||!state)return;
+    state.videos=Array.isArray(state.videos)?state.videos:[];
+    let changed=false;
     for(const item of media.filter(x=>x.kind==='video')){
-      if(!st.videos.some(v=>v.id===item.id)){
-        st.videos.unshift({id:item.id,title:item.title,description:'Stored in the Artist Level Up Cloudflare media library.',videoUrl:url(item.key),status:'Published',createdAt:'2026-10-30T00:00:00.000Z',cloudflareR2:true});
+      if(!state.videos.some(v=>v.id===item.id)){
+        state.videos.unshift({id:item.id,title:item.title,description:'Stored in the Artist Level Up Cloudflare media library.',videoUrl:url(item.key),status:'Published',createdAt:'2026-10-30T00:00:00.000Z',cloudflareR2:true});
+        changed=true;
       }
     }
-    try{localStorage.setItem('artistLevelUpState',JSON.stringify(st))}catch(_){}
+    if(changed){
+      if(typeof save==='function')save();
+      else if(typeof persistStateOnly==='function')persistStateOnly();
+    }
     if(typeof window.ALU_RENDER_VIDEOS==='function')window.ALU_RENDER_VIDEOS();
   }
   function addPictures(){

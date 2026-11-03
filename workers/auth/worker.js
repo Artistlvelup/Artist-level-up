@@ -11,8 +11,7 @@ import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAcco
  *   POST /auth/logout          -> revoke session family.
  *
  * There is deliberately no owner-registration/bootstrap route and no content-seeding route.
- * Data APIs are only partially ported. Do not switch V101 or disable Supabase until every app
- * data, media, admin, and payment flow has a tested Worker route.
+ * Data APIs are partially ported. Keep unimplemented features on their existing adapters until replacement routes are tested.
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const LEGACY_OWNER_USER_ID = ""; // No legacy/test account is authorized for Cloudflare identity migration.

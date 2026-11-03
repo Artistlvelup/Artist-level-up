@@ -1644,6 +1644,31 @@ if(window.ALU_SUPABASE_CLIENT){
 }
 </script>
 
+<script id="aluCloudflareConnectionV101">
+(function(){
+  'use strict';
+  const base='https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
+  window.ALU_CLOUDFLARE_API_BASE=base;
+  window.ALU_CLOUDFLARE_REQUEST=async function(path,options){
+    const settings=options||{};
+    const headers=new Headers(settings.headers||{});
+    if(settings.token) headers.set('Authorization','Bearer '+settings.token);
+    if(settings.body!=null&&!headers.has('Content-Type')) headers.set('Content-Type','application/json');
+    const response=await fetch(base+String(path||''),{
+      method:settings.method||'GET',headers,
+      body:settings.body==null?undefined:(typeof settings.body==='string'?settings.body:JSON.stringify(settings.body)),
+      cache:'no-store',credentials:'omit'
+    });
+    const payload=await response.json().catch(()=>({error:'Invalid Worker response'}));
+    if(!response.ok) throw new Error(payload.error||('Cloudflare Worker request failed ('+response.status+')'));
+    return payload;
+  };
+  window.ALU_CLOUDFLARE_CONNECTION_PROMISE=window.ALU_CLOUDFLARE_REQUEST('/health')
+    .then(function(result){window.ALU_CLOUDFLARE_CONNECTED=!!result.ok;window.dispatchEvent(new CustomEvent('alu:cloudflare-connection',{detail:result}));return result;})
+    .catch(function(error){window.ALU_CLOUDFLARE_CONNECTED=false;window.ALU_CLOUDFLARE_CONNECTION_ERROR=error.message;window.dispatchEvent(new CustomEvent('alu:cloudflare-connection',{detail:{ok:false,error:error.message}}));return {ok:false,error:error.message};});
+})();
+</script>
+
 <script>
 const KEY='alu_full_v1';
 /* V101: no copyrighted/demo tracks are preloaded; the feed starts empty. */

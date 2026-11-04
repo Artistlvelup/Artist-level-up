@@ -39,9 +39,9 @@ jobs:
           ).fetchone()[0]
           if violations:
               raise SystemExit(f"Foreign-key violations: {violations}")
-          if tables != 27:
-              raise SystemExit(f"Expected 27 tables, found {tables}")
-          print(f"Validated {tables} tables; no foreign-key violations.")
+          if tables != 16:
+              raise SystemExit(f"Expected 16 V101 application tables, found {tables}")
+          print(f"Validated {tables} V101 application tables; no foreign-key violations.")
           PY
 
   apply:

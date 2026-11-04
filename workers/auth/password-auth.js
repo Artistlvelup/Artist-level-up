@@ -257,3 +257,73 @@ export async function loginPasswordAccount(request, env, cors, createSession) {
   const session = await createSession(env, row.user_id);
   return response({ ...session, role: "artist" }, 200, cors);
 }
+
+export async function requestPasswordlessLogin(request, env, cors) {
+  const body = await readBody(request);
+  if (!body) return response({ error: "INVALID_JSON" }, 400, cors);
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!validEmail(email)) return response({ error: "Enter a valid email address." }, 400, cors);
+  if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM || !env.APP_PUBLIC_URL) {
+    return response({ error: "Email login is not configured yet." }, 503, cors);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await rateAllowed(env, "magic-login:ip:" + ip, now)) ||
+      !(await rateAllowed(env, "magic-login:email:" + email, now))) {
+    return response({ error: "Too many attempts. Please try again later." }, 429, cors);
+  }
+  const row = await env.DB.prepare(
+    "SELECT c.user_id FROM app_credentials c JOIN app_users u ON u.user_id = c.user_id WHERE c.email_normalized = ? AND c.email_verified_at IS NOT NULL AND u.status = 'active' AND u.is_anonymous = 0 LIMIT 1"
+  ).bind(email).first();
+  // Avoid disclosing whether an email has an account.
+  if (row) {
+    const token = encode(crypto.getRandomValues(new Uint8Array(32)));
+    const tokenHash = await hashToken(token, requirePepper(env));
+    const expiresAt = now + 15 * 60;
+    await env.DB.prepare(
+      "INSERT INTO app_login_link_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, row.user_id, email, now, expiresAt).run();
+    const loginUrl = env.APP_PUBLIC_URL.replace(/\/$/, "") + "/?auth_login=" + encodeURIComponent(token);
+    try {
+      const sent = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: env.AUTH_EMAIL_FROM,
+          to: [email],
+          subject: "Your Artist Level Up sign-in link",
+          html: "<p>Use the secure link below to sign in to Artist Level Up.</p><p><a href=\"" + loginUrl + "\">Sign in to Artist Level Up</a></p><p>This link expires in 15 minutes and can only be used once. If you did not request it, ignore this email.</p>"
+        })
+      });
+      if (!sent.ok) throw new Error("EMAIL_DELIVERY_FAILED");
+    } catch (error) {
+      await env.DB.prepare("UPDATE app_login_link_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL")
+        .bind(now, tokenHash).run();
+      console.error("V101 login link delivery error", error?.message || error);
+      return response({ error: "We could not send your login link. Please try again." }, 503, cors);
+    }
+  }
+  return response({ ok: true, message: "If a verified account exists for this email, a sign-in link will be sent." }, 202, cors);
+}
+
+export async function verifyPasswordlessLogin(request, env, cors, createSession) {
+  const body = await readBody(request);
+  const token = typeof body?.token === "string" ? body.token : "";
+  if (token.length < 40 || token.length > 128) {
+    return response({ error: "This sign-in link is invalid or has expired." }, 400, cors);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const tokenHash = await hashToken(token, requirePepper(env));
+  const row = await env.DB.prepare(
+    "SELECT t.user_id, u.status, u.is_anonymous, c.email_verified_at FROM app_login_link_tokens t JOIN app_users u ON u.user_id = t.user_id JOIN app_credentials c ON c.user_id = t.user_id WHERE t.token_hash = ? AND t.consumed_at IS NULL AND t.expires_at > ? LIMIT 1"
+  ).bind(tokenHash, now).first();
+  if (!row || row.status !== "active" || row.is_anonymous !== 0 || !row.email_verified_at) {
+    return response({ error: "This sign-in link is invalid or has expired." }, 400, cors);
+  }
+  const consumed = await env.DB.prepare(
+    "UPDATE app_login_link_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?"
+  ).bind(now, tokenHash, now).run();
+  if (!consumed?.meta?.changes) return response({ error: "This sign-in link has already been used." }, 400, cors);
+  const session = await createSession(env, row.user_id);
+  return response({ ...session, ok: true }, 200, cors);
+}

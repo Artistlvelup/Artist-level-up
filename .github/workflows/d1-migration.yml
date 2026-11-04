@@ -57,4 +57,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply artist_level_up_v101 --remote
+          command: d1 migrations apply artist_level_up_v101 --remote --migrations-dir migrations/d1

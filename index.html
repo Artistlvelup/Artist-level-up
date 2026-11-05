@@ -6832,7 +6832,7 @@ async function handleCloudflareCallback(){
   catch(e){url.searchParams.delete('auth_login');history.replaceState({},'',url.toString());open('login');var box=document.getElementById('aluMemberLoginError');if(box)box.textContent=e.message||'This login link is invalid or expired. Request a new one.'}
  }
 }
-async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}open()}
+async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}/* Keep an existing signed-in member inside the app during temporary network/API failures. An invalid or expired token is cleared by resumeCloudMember(), so that case still opens the login gate. */if(token()&&registered()){close();return}open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

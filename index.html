@@ -6700,297 +6700,114 @@ body.alu-member-locked-v101>*:not(#aluMemberGateV101){visibility:hidden!importan
 'use strict';
 if(window.__ALU_MEMBER_GATE_V101)return;
 window.__ALU_MEMBER_GATE_V101=true;
+var API=window.ALU_CLOUDFLARE_API_BASE||'https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
+var TOKEN_KEY='alu_v101_cloudflare_session';
+var PENDING_KEY='alu_v101_pending_member';
 function getState(){return (typeof state!=='undefined'&&state)?state:null}
-function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){try{localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(_){}}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
-function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
-function client(){return window.ALU_SUPABASE_CLIENT||null}
-/* V101 auth fix: never send email confirmation/login links back to a temporary localhost preview. Use the stable public app URL so the callback can open on the user's phone. */
-function memberAuthRedirectUrl(){return 'https://artistlevelup.com.ng/'}
-function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
-async function resumeCloudMember(){
-  var c=client(),s=getState();if(!c||!c.auth||!s)return false;
-  try{
-    var g=await c.auth.getSession(),session=g?.data?.session,u=session?.user;
-    // Never clear local data when there is no verified cloud session.
-    if(!u?.id||u.is_anonymous||!String(u.email||'').trim())return false;
-    var uid=u.id,cloudEmail=String(u.email||'').trim().toLowerCase();
-    var recoveryEmail=cloudEmail==='otunbacashmonnie1@gmail.com';
-    var localArtistEmail=String(s.profile?.email||s.userAccount?.email||'').trim().toLowerCase();
-    var localArtistMatch=!!(s.artistRegistered===true&&s.profile?.saved===true&&localArtistEmail===cloudEmail);
-    var localArtistName=String(s.profile?.name||'').trim();
-    var metaName=String(u.user_metadata?.display_name||u.user_metadata?.name||s.userAccount?.name||s.profile?.name||'').trim();
-    var p={data:null,error:null};
-    try{
-      p=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
-      if(p.error){console.warn('V101 profile lookup deferred; keeping verified member session:',p.error);p={data:null,error:p.error}}
-    }catch(profileReadError){console.warn('V101 profile lookup deferred:',profileReadError);p={data:null,error:profileReadError}}
-    // Artist recovery is best-effort: a missing recovery RPC must never trap an authenticated member on the login screen.
-    if(recoveryEmail&&p.data?.role!=='artist'){
-      try{
-        var recovery=await c.rpc('recover_solo_vibez_profile_v101');
-        if(recovery.error)console.warn('V101 artist recovery needs follow-up:',recovery.error);
-        else{
-          var refreshed=await c.from('profiles').select('display_name,avatar_url,role').eq('id',uid).maybeSingle();
-          if(!refreshed.error&&refreshed.data)p=refreshed;
-          else if(refreshed.error)console.warn('V101 profile refresh deferred:',refreshed.error);
-        }
-      }catch(recoveryError){console.warn('V101 artist recovery deferred:',recoveryError)}
-    }
-    // Ensure a cloud profile exists where permitted, but do not block access if profile setup needs repair.
-    if(!p.data){
-      try{
-        var ins=await c.from('profiles').insert({id:uid,display_name:metaName,role:localArtistMatch?'artist':'user'}).select('display_name,avatar_url,role').single();
-        if(!ins.error&&ins.data)p={data:ins.data,error:null};
-        else if(ins.error)console.warn('V101 profile setup deferred:',ins.error);
-      }catch(profileInsertError){console.warn('V101 profile setup deferred:',profileInsertError)}
-    }
-    var recoveredArtist=null;
-    if(recoveryEmail){
-      try{
-        var ar=await c.from('artists').select('artist_name').eq('user_id',uid).maybeSingle();
-        if(ar.error)console.warn('V101 artist record lookup deferred:',ar.error);
-        else recoveredArtist=ar.data;
-      }catch(artistReadError){console.warn('V101 artist record lookup deferred:',artistReadError)}
-    }
-    var profile=p.data||{display_name:metaName,avatar_url:'',role:localArtistMatch?'artist':'user'};
-    var isArtist=profile.role==='artist'||!!recoveredArtist||localArtistMatch;
-    var displayName=recoveredArtist?.artist_name||((localArtistMatch&&localArtistName)?localArtistName:(profile.display_name||metaName||localArtistName||'Artist Level Up Member'));
-    s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
-    var restoredAvatar=String(profile.avatar_url||s.profile?.avatar||s.userAccount?.avatar||'').trim();
-    s.userAccount={...(s.userAccount||{}),name:displayName,email:cloudEmail,avatar:restoredAvatar,registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-    s.profile={...(s.profile||{}),name:displayName,avatar:restoredAvatar,email:cloudEmail,saved:(isArtist||!!s.profile?.saved),country:s.profile?.country||'Nigeria'};
-    s.artistRegistered=isArtist;
-    persist();
-    return true;
-  }catch(e){console.error('V101 verified member session restore failed:',e)}
-  return false;
+function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
+function emailOK(e){return /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(e)}
+function token(){try{return localStorage.getItem(TOKEN_KEY)||''}catch(e){return ''}}
+function saveToken(value){try{localStorage.setItem(TOKEN_KEY,value)}catch(e){}}
+function clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(e){}}
+async function api(path,method,body,bearer){
+ var headers={'Content-Type':'application/json'};
+ if(bearer)headers.Authorization='Bearer '+bearer;
+ var response=await fetch(API+path,{method:method||'GET',headers:headers,body:body==null?undefined:JSON.stringify(body),cache:'no-store',credentials:'omit'});
+ var data=await response.json().catch(function(){return {error:'Invalid Cloudflare response'}});
+ if(!response.ok)throw new Error(data.error||('Cloudflare request failed ('+response.status+')'));
+ return data;
 }
-function makeEphemeralPassword(){
-  if(!window.crypto?.getRandomValues)throw new Error('Secure account creation is unavailable in this browser. Please reopen Artist Level Up in a supported browser.');
-  var bytes=new Uint8Array(32);window.crypto.getRandomValues(bytes);
-  return Array.from(bytes,function(b){return b.toString(16).padStart(2,'0')}).join('')+'Aa!9';
+function pending(){try{return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}')}catch(e){return {}}}
+function setPending(value){try{localStorage.setItem(PENDING_KEY,JSON.stringify(value||{}))}catch(e){}}
+function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
+async function resumeCloudMember(){
+ var t=token(),s=getState();if(!t||!s)return false;
+ try{
+  var session=await api('/auth/session','GET',null,t);
+  var profileResult=await api('/api/me/profile','GET',null,t);
+  var profile=profileResult.profile||{};
+  var artistResult=await api('/api/me/artist','GET',null,t);
+  var artist=artistResult.artist||null;
+  var p=pending();
+  var displayName=String(profile.display_name||artist?.artist_name||p.name||s.profile?.name||'Artist Level Up Member').trim();
+  s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
+  s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
+  s.profile={...(s.profile||{}),name:displayName,email:s.userAccount.email,saved:!!artist||!!s.profile?.saved,country:s.profile?.country||'Nigeria'};
+  s.artistRegistered=!!artist;
+  persist();
+  return !!session.userId;
+ }catch(e){clearToken();console.warn('V101 Cloudflare session restore failed:',e);return false}
+}
+function randomPassword(){
+ var bytes=new Uint8Array(48);crypto.getRandomValues(bytes);
+ return Array.from(bytes,function(b){return b.toString(16).padStart(2,'0')}).join('')+'Aa!9';
 }
 async function createMemberAccount(email,name){
-  var c=client();if(!c?.auth)throw new Error('Cloud registration is not ready. Please reopen the app.');
-  var normalizedEmail=String(email||'').trim().toLowerCase();
-  // The approved Solo_vibez recovery path must work even when anonymous sign-ins are disabled
-  // or the email already has a cloud identity. Do not replace the saved artist name here.
-  if(normalizedEmail==='otunbacashmonnie1@gmail.com'){
-    var recoveryLink=await c.auth.signInWithOtp({
-      email:normalizedEmail,
-      options:{shouldCreateUser:true,emailRedirectTo:memberAuthRedirectUrl()}
-    });
-    if(recoveryLink.error)throw recoveryLink.error;
-    return {recoveryPending:true};
-  }
-  var r=await c.auth.signUp({
-    email:normalizedEmail,
-    password:makeEphemeralPassword(),
-    options:{
-      data:{display_name:name,member_access_v101:true},
-      emailRedirectTo:memberAuthRedirectUrl()
-    }
-  });
-  if(r.error)throw r.error;
-  if(r.data?.user&&Array.isArray(r.data.user.identities)&&r.data.user.identities.length===0){
-    throw new Error('This email may already have an account. Switch to Log In and request a sign-in link.');
-  }
-  return r.data||{};
+ var result=await api('/auth/register','POST',{email:email,password:randomPassword()});
+ setPending({email:email,name:name,createdAt:new Date().toISOString()});
+ return result;
 }
-async function sendLoginLink(email){
-  var c=client();if(!c?.auth)throw new Error('Cloud login is not ready. Please reopen the app.');
-  var normalizedEmail=String(email||'').trim().toLowerCase();
-  // V101 recovery fix: Solo_vibez may have used only a local PIN before an email identity existed.
-  // Allow Supabase to create/attach the email identity so the verified callback can recover the
-  // existing artist profile. All other login emails remain existing-account-only.
-  var recoveryEmail=normalizedEmail==='otunbacashmonnie1@gmail.com';
-  var r=await c.auth.signInWithOtp({
-    email:normalizedEmail,
-    options:{shouldCreateUser:recoveryEmail,emailRedirectTo:memberAuthRedirectUrl()}
-  });
-  if(r.error)throw r.error;
-}
+async function sendLoginLink(email){return api('/auth/request-login-link','POST',{email:email})}
 function ensureGate(){
-  var old=document.getElementById('aluMemberGateV101');if(old)return old;
-  var wrap=document.createElement('div');wrap.id='aluMemberGateV101';
-  wrap.innerHTML='<div class="alu-member-card" role="dialog" aria-modal="true" aria-labelledby="aluMemberGateTitle">'+
-  '<div class="alu-member-logo">ARTIST <span>LEVEL UP</span></div><div class="alu-member-eyebrow">Member access</div>'+
-  '<h1 id="aluMemberGateTitle">Your next chapter starts here.</h1>'+
-  '<p class="alu-member-intro">One secure account for your Artist Level Up journey. Create an account or sign in to continue.</p>'+
-  '<div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log in</button></div>'+
-  '<div id="aluMemberCreateForm" class="alu-member-form active"><label for="aluMemberName">Full name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Enter your name"><label for="aluMemberEmail">Email address</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="alu-member-primary">Create account</button><button type="button" id="aluMemberGoogleCreateBtn" class="alu-member-google"><span aria-hidden="true">G</span> Continue with Google</button><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckCreateBtn">I confirmed my email</button><button type="button" id="aluMemberResendCreateBtn">Resend confirmation</button></div></div>'+
-  '<div id="aluMemberLoginForm" class="alu-member-form"><label for="aluMemberLoginEmail">Email address</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Enter your registered email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="alu-member-primary">Email me a secure login link</button><button type="button" id="aluMemberGoogleLoginBtn" class="alu-member-google"><span aria-hidden="true">G</span> Continue with Google</button><p class="tiny muted">We’ll send you a one-time sign-in link. No password to remember.</p><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckLoginBtn">I opened the link</button><button type="button" id="aluMemberResendLoginBtn">Resend login link</button></div></div>'+
-  '<div class="alu-member-security"><span>✓</span><div>Secure email verification protects your account. If you don’t see our email, check Spam or Promotions.</div></div><p class="alu-member-note">Use the same email address every time so your artist profile stays connected to your account.</p></div>'; 
-  document.body.appendChild(wrap);
-  function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Your next chapter starts here.':'Welcome back. Let’s get you in.'}
-  wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
-  async function signInWithGoogle(button,errorId){
-    var c=client(),err=document.getElementById(errorId);
-    if(err)err.textContent='';
-    if(!c?.auth?.signInWithOAuth){if(err)err.textContent='Google sign-in is not available right now. Use the email option below.';return;}
-    var original=button.textContent;button.disabled=true;button.textContent='CONNECTING TO GOOGLE…';
-    try{
-      var result=await c.auth.signInWithOAuth({provider:'google',options:{redirectTo:memberAuthRedirectUrl(),queryParams:{prompt:'select_account'}}});
-      if(result.error)throw result.error;
-      if(err)err.textContent='Opening Google securely… Choose your account to continue.';
-    }catch(e){
-      console.error('V101 Google sign-in failed:',e);
-      var message=String(e?.message||'Google sign-in could not start.');
-      if(/provider.*(disabled|not enabled|not found)|unsupported provider/i.test(message))message='Google sign-in is not enabled on the secure account service yet. Use the email option for now.';
-      if(err)err.textContent=message;button.disabled=false;button.textContent=original;
-    }
-  }
-  document.getElementById('aluMemberGoogleCreateBtn').addEventListener('click',function(){signInWithGoogle(this,'aluMemberCreateError')});
-  document.getElementById('aluMemberGoogleLoginBtn').addEventListener('click',function(){signInWithGoogle(this,'aluMemberLoginError')});
-  document.getElementById('aluMemberCreateBtn').addEventListener('click',async function(){
-    var s=getState(),name=(document.getElementById('aluMemberName').value||'').trim(),email=(document.getElementById('aluMemberEmail').value||'').trim().toLowerCase(),agree=document.getElementById('aluMemberAgreement').checked===true,err=document.getElementById('aluMemberCreateError');err.textContent='';
-    if(!name||!emailOK(email)){err.textContent='Enter your name and a valid email.';return}
-    if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
-    if(!s){err.textContent='Member account service is not ready. Please reopen the app.';return}
-    var b=this;b.disabled=true;b.textContent='CONNECTING ACCOUNT…';
-    try{
-      var created=await createMemberAccount(email,name);
-      if(created?.recoveryPending){
-        err.textContent='Recovery email sent. Open it and confirm the link to reconnect your saved Solo_vibez artist profile. Do not use Log In for this recovery step.';
-        try{toast('Recovery email sent. Confirm the link to reconnect Solo_vibez.')}catch(e){}
-        return;
-      }
-      s.userAccount={...(s.userAccount||{}),name:name,email:email,registeredAt:s.userAccount?.registeredAt||new Date().toISOString(),agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101',cloudPending:true};
-      s.profile={...(s.profile||{}),name:name,email:email,saved:false};
-      s.userRegistered=false;s.userAccountCounted=false;s.memberAccessV101=false;
-      persist();
-      if(created.session&&created.user&&!created.user.is_anonymous&&String(created.user.email||'').trim()){
-        if(await resumeCloudMember()){
-          close();
-          try{toast('Welcome to Artist Level Up ✓')}catch(e){}
-          return;
-        }
-      }
-      err.textContent='Registration started. Check '+email+' for the confirmation link, then open it to activate your member account. This screen will stay here until cloud login is confirmed.';
-      try{toast('Check your email to finish registration.')}catch(e){}
-    }catch(e){console.error('V101 member account setup failed:',e);err.textContent=String(e?.message||e||'Cloud account setup failed.')}
-    finally{b.disabled=false;b.textContent='Create account'}
-  });
-  document.getElementById('aluMemberLoginBtn').addEventListener('click',async function(){
-    var email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase(),err=document.getElementById('aluMemberLoginError');err.textContent='';
-    if(!emailOK(email)){err.textContent='Enter your member email.';return}
-    var b=this;b.disabled=true;b.textContent='SENDING…';
-    try{
-      await sendLoginLink(email);
-      err.textContent='Login link sent ✓ Check your email and tap the link.';
-      try{toast('Login link sent ✓ Check your email.')}catch(e){}
-    }catch(e){console.error('V101 member login failed:',e);err.textContent=String(e?.message||e||'Cloud login failed. Please try again.')}
-    finally{b.disabled=false;b.textContent='Email me a secure login link'}
-  });
-  async function checkSessionFromGate(errorBox,successText){
-    if(errorBox)errorBox.textContent='Checking your secure session…';
-    try{
-      var c=client();
-      if(!c?.auth)throw new Error('Secure sign-in is not ready. Refresh the page and try again.');
-      await c.auth.getSession();
-      if(await resumeCloudMember()){
-        memberRestoreDone=true;
-        close();
-        try{toast(successText||'Welcome back ✓')}catch(_){}
-        return true;
-      }
-      if(errorBox)errorBox.textContent='We have not received a confirmed session yet. Open the newest Artist Level Up email link in this same browser, then tap this button again.';
-    }catch(checkError){
-      console.error('V101 manual session check failed:',checkError);
-      if(errorBox)errorBox.textContent='We could not confirm your sign-in yet. Open the newest email link in this browser and try again.';
-    }
-    return false;
-  }
-  document.getElementById('aluMemberCheckCreateBtn').addEventListener('click',function(){
-    checkSessionFromGate(document.getElementById('aluMemberCreateError'),'Account confirmed. Welcome to Artist Level Up ✓');
-  });
-  document.getElementById('aluMemberResendCreateBtn').addEventListener('click',async function(){
-    var email=(document.getElementById('aluMemberEmail').value||'').trim().toLowerCase();
-    var err=document.getElementById('aluMemberCreateError'),b=this;
-    if(!emailOK(email)){err.textContent='Enter the same email address you used to create your account.';return;}
-    var c=client();if(!c?.auth?.resend){err.textContent='Confirmation resend is unavailable right now. Please refresh and try again.';return;}
-    b.disabled=true;b.textContent='Sending…';
-    try{
-      var result=await c.auth.resend({type:'signup',email:email,options:{emailRedirectTo:memberAuthRedirectUrl()}});
-      if(result.error)throw result.error;
-      err.textContent='A new confirmation email has been requested. Use the newest email link and check Spam or Promotions.';
-    }catch(resendError){
-      console.error('V101 signup confirmation resend failed:',resendError);
-      err.textContent=String(resendError?.message||'We could not resend the email yet. Wait a moment and try again.');
-    }finally{b.disabled=false;b.textContent='Resend confirmation';}
-  });
-  document.getElementById('aluMemberCheckLoginBtn').addEventListener('click',function(){
-    checkSessionFromGate(document.getElementById('aluMemberLoginError'),'Welcome back to Artist Level Up ✓');
-  });
-  document.getElementById('aluMemberResendLoginBtn').addEventListener('click',async function(){
-    var email=(document.getElementById('aluMemberLoginEmail').value||'').trim().toLowerCase();
-    var err=document.getElementById('aluMemberLoginError'),b=this;
-    if(!emailOK(email)){err.textContent='Enter your registered email address first.';return;}
-    b.disabled=true;b.textContent='Sending…';
-    try{
-      await sendLoginLink(email);
-      err.textContent='A fresh login link has been sent. Use the newest link and open it in this same browser.';
-    }catch(resendError){
-      console.error('V101 login link resend failed:',resendError);
-      err.textContent=String(resendError?.message||'We could not resend the link yet. Wait a moment and try again.');
-    }finally{b.disabled=false;b.textContent='Resend login link';}
-  });
-  return wrap;
+ var old=document.getElementById('aluMemberGateV101');if(old)return old;
+ var wrap=document.createElement('div');wrap.id='aluMemberGateV101';
+ wrap.innerHTML='<div class="alu-member-card" role="dialog" aria-modal="true" aria-labelledby="aluMemberGateTitle"><div class="alu-member-logo">ARTIST <span>LEVEL UP</span></div><div class="alu-member-eyebrow">Member access</div><h1 id="aluMemberGateTitle">Your next chapter starts here.</h1><p class="alu-member-intro">One secure Cloudflare account for your Artist Level Up journey. Create an account or sign in to continue.</p><div class="alu-member-tabs"><button type="button" class="alu-member-tab active" data-member-tab="create">Create account</button><button type="button" class="alu-member-tab" data-member-tab="login">Log in</button></div><div id="aluMemberCreateForm" class="alu-member-form active"><label for="aluMemberName">Full name</label><input id="aluMemberName" type="text" autocomplete="name" placeholder="Enter your name"><label for="aluMemberEmail">Email address</label><input id="aluMemberEmail" type="email" autocomplete="email" placeholder="you@example.com"><label class="alu-member-check"><input id="aluMemberAgreement" type="checkbox"><span>I agree to the Terms &amp; Conditions and User Agreement.</span></label><div id="aluMemberCreateError" class="alu-member-error"></div><button type="button" id="aluMemberCreateBtn" class="alu-member-primary">Create account</button><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckCreateBtn">I confirmed my email</button><button type="button" id="aluMemberResendCreateBtn">Resend confirmation</button></div></div><div id="aluMemberLoginForm" class="alu-member-form"><label for="aluMemberLoginEmail">Email address</label><input id="aluMemberLoginEmail" type="email" autocomplete="email" placeholder="Enter your registered email"><div id="aluMemberLoginError" class="alu-member-error"></div><button type="button" id="aluMemberLoginBtn" class="alu-member-primary">Email me a secure login link</button><p class="tiny muted">We’ll send you a one-time sign-in link. No password to remember.</p><div class="alu-member-help-actions"><button type="button" id="aluMemberCheckLoginBtn">I opened the link</button><button type="button" id="aluMemberResendLoginBtn">Resend login link</button></div></div><div class="alu-member-security"><span>✓</span><div>Cloudflare secures your account. Check Spam or Promotions if you do not see our email.</div></div><p class="alu-member-note">Use the same email address every time so your new artist profile stays connected.</p></div>';
+ document.body.appendChild(wrap);
+ function tab(name){wrap.querySelectorAll('[data-member-tab]').forEach(function(b){b.classList.toggle('active',b.dataset.memberTab===name)});document.getElementById('aluMemberCreateForm').classList.toggle('active',name==='create');document.getElementById('aluMemberLoginForm').classList.toggle('active',name==='login');document.getElementById('aluMemberGateTitle').textContent=name==='create'?'Your next chapter starts here.':'Welcome back. Let’s get you in.'}
+ wrap.addEventListener('click',function(e){var t=e.target.closest('[data-member-tab]');if(t)tab(t.dataset.memberTab)});
+ document.getElementById('aluMemberCreateBtn').addEventListener('click',async function(){
+  var name=document.getElementById('aluMemberName').value.trim(),email=document.getElementById('aluMemberEmail').value.trim().toLowerCase(),agree=document.getElementById('aluMemberAgreement').checked,err=document.getElementById('aluMemberCreateError'),b=this;err.textContent='';
+  if(!name||!emailOK(email)){err.textContent='Enter your name and a valid email.';return}
+  if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
+  b.disabled=true;b.textContent='CREATING ACCOUNT…';
+  try{await createMemberAccount(email,name);err.textContent='Your new account has been created on Cloudflare. Check '+email+' and tap the verification link. Then log in with the same email.';try{toast('Check your email to verify your new account.')}catch(e){}}
+  catch(e){err.textContent=e.message||'Cloudflare could not create the account. Please try again.'}
+  finally{b.disabled=false;b.textContent='Create account'}
+ });
+ document.getElementById('aluMemberLoginBtn').addEventListener('click',async function(){
+  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberLoginError'),b=this;err.textContent='';
+  if(!emailOK(email)){err.textContent='Enter your account email.';return}
+  b.disabled=true;b.textContent='SENDING…';
+  try{await sendLoginLink(email);err.textContent='If this email is verified, a secure login link has been sent. Open it on this device.';try{toast('Check your email for the login link.')}catch(e){}}
+  catch(e){err.textContent=e.message||'Could not send the login link. Please try again.'}
+  finally{b.disabled=false;b.textContent='Email me a secure login link'}
+ });
+ async function restore(errorBox,successText){
+  if(errorBox)errorBox.textContent='Checking your Cloudflare session…';
+  try{if(await resumeCloudMember()){memberRestoreDone=true;close();try{toast(successText||'Welcome to Artist Level Up ✓')}catch(e){}return true}
+   if(errorBox)errorBox.textContent='Your account is not signed in yet. Open the newest Artist Level Up email link in this same browser.'}
+  catch(e){if(errorBox)errorBox.textContent=e.message||'We could not confirm your session yet.'}
+  return false;
+ }
+ document.getElementById('aluMemberCheckCreateBtn').addEventListener('click',function(){restore(document.getElementById('aluMemberCreateError'),'Your Cloudflare account is ready ✓')});
+ document.getElementById('aluMemberCheckLoginBtn').addEventListener('click',function(){restore(document.getElementById('aluMemberLoginError'),'Welcome back ✓')});
+ document.getElementById('aluMemberResendCreateBtn').addEventListener('click',async function(){
+  var email=document.getElementById('aluMemberEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberCreateError'),b=this;if(!emailOK(email)){err.textContent='Enter the email used to create the account.';return}
+  b.disabled=true;b.textContent='Sending…';try{await api('/auth/resend-verification','POST',{email:email});err.textContent='If your account needs verification, a new email will be sent.'}catch(e){err.textContent=e.message||'Could not resend verification.'}finally{b.disabled=false;b.textContent='Resend confirmation'}
+ });
+ document.getElementById('aluMemberResendLoginBtn').addEventListener('click',async function(){
+  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberLoginError'),b=this;if(!emailOK(email)){err.textContent='Enter your account email first.';return}
+  b.disabled=true;b.textContent='Sending…';try{await sendLoginLink(email);err.textContent='If the account is verified, a fresh login link has been sent.'}catch(e){err.textContent=e.message||'Could not resend the login link.'}finally{b.disabled=false;b.textContent='Resend login link'}
+ });
+ return wrap;
 }
-function open(mode){var g=ensureGate();if(!g)return;var s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered()||!!(s?.artistRegistered&&email);if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email;}g.classList.add('show');document.body.classList.add('alu-member-locked-v101');setTimeout(function(){var n=document.getElementById('aluMemberName'),l=document.getElementById('aluMemberLoginEmail');try{(useLogin?l:n)?.focus()}catch(e){}},80)}
-function close(){if(!registered()){var g=document.getElementById('aluMemberGateV101');if(g){g.classList.add('show');var card=g.querySelector('.alu-member-card');var note=g.querySelector('.alu-member-note');if(note)note.textContent='Create your member account or log in to continue. Your music discovery access will open after your cloud account is confirmed.';if(card){var title=card.querySelector('h1');if(title)title.textContent='Member access required';} }document.body.classList.add('alu-member-locked-v101');return false;}var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return true}
-window.ALU_MEMBER_GATE_V101={
-  open:open,
-  openLogin:function(){
-    try{open('login')}catch(e){console.error('V101 login form open failed:',e)}
-    try{
-      var gate=ensureGate();
-      if(!gate)return false;
-      var createForm=document.getElementById('aluMemberCreateForm');
-      var loginForm=document.getElementById('aluMemberLoginForm');
-      var title=document.getElementById('aluMemberGateTitle');
-      gate.querySelectorAll('[data-member-tab]').forEach(function(tab){tab.classList.toggle('active',tab.dataset.memberTab==='login')});
-      if(createForm)createForm.classList.remove('active');
-      if(loginForm)loginForm.classList.add('active');
-      if(title)title.textContent='Welcome back. Let’s get you in.';
-      gate.classList.add('show');
-      document.body.classList.add('alu-member-locked-v101');
-      return true;
-    }catch(e){console.error('V101 login form visibility recovery failed:',e);return false}
-  },
-  close:close,
-  isRegistered:registered
-};
+function open(mode){var g=ensureGate(),s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered();if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email}g.classList.add('show');document.body.classList.add('alu-member-locked-v101')}
+function close(){if(!registered()){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.add('show');document.body.classList.add('alu-member-locked-v101');return false}var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return true}
+window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
-var memberRestoreInFlight=false;
 var memberRestoreDone=false;
-async function restoreMemberAfterAuth(){
-  if(memberRestoreInFlight||memberRestoreDone)return;
-  memberRestoreInFlight=true;
-  try{
-    await new Promise(function(resolve){setTimeout(resolve,180)});
-    if(await resumeCloudMember()){
-      memberRestoreDone=true;
-      close();
-      try{toast('Welcome back ✓')}catch(e){}
-    }
-  }catch(e){console.error('V101 magic-link callback restore failed:',e)}
-  finally{memberRestoreInFlight=false}
+async function handleCloudflareCallback(){
+ var url=new URL(location.href),verify=url.searchParams.get('auth_verify'),login=url.searchParams.get('auth_login');
+ if(verify){
+  try{await api('/auth/verify-email','POST',{token:verify});url.searchParams.delete('auth_verify');history.replaceState({},'',url.toString());var p=pending();var email=p.email||'';if(email){await sendLoginLink(email);open('login');var ebox=document.getElementById('aluMemberLoginError');if(ebox)ebox.textContent='Email verified. Your secure login link has been sent to '+email+'.'}else open('login')}
+  catch(e){open('create');var ebox=document.getElementById('aluMemberCreateError');if(ebox)ebox.textContent=e.message||'Email verification failed. Request a new confirmation email.'}
+ }
+ if(login){
+  try{var result=await api('/auth/verify-login-link','POST',{token:login});if(result.token)saveToken(result.token);url.searchParams.delete('auth_login');history.replaceState({},'',url.toString());if(await resumeCloudMember()){memberRestoreDone=true;close();try{toast('Welcome to Artist Level Up ✓')}catch(e){}}else open('login')}
+  catch(e){url.searchParams.delete('auth_login');history.replaceState({},'',url.toString());open('login');var box=document.getElementById('aluMemberLoginError');if(box)box.textContent=e.message||'This login link is invalid or expired. Request a new one.'}
+ }
 }
-if(client()?.auth?.onAuthStateChange){
-  client().auth.onAuthStateChange(function(event,session){
-    if(session?.user?.id&&(event==='INITIAL_SESSION'||event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED')){
-      restoreMemberAfterAuth();
-    }
-  });
-}
-async function boot(){
-  await new Promise(function(resolve){setTimeout(resolve,250)});
-  if(await resumeCloudMember()){memberRestoreDone=true;return}
-  await new Promise(function(resolve){setTimeout(resolve,500)});
-  if(await resumeCloudMember()){memberRestoreDone=true;return}
-  open();
-}
+async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

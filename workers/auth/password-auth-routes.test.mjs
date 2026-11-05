@@ -35,6 +35,36 @@ test("verification rejects missing and malformed tokens without touching D1", as
   assert.equal((await worker.fetch(post("/auth/verify-email", { token: "too-short" }), env())).status, 400);
 });
 
+
+test("passwordless login request rejects invalid email before touching D1", async () => {
+  const response = await worker.fetch(post("/auth/request-login-link", {
+    email: "not-an-email"
+  }), env());
+  assert.equal(response.status, 400);
+});
+
+test("passwordless login verification rejects malformed tokens before touching D1", async () => {
+  const response = await worker.fetch(post("/auth/verify-login-link", {
+    token: "too-short"
+  }), env());
+  assert.equal(response.status, 400);
+});
+
+test("password reset request rejects invalid email before touching D1", async () => {
+  const response = await worker.fetch(post("/auth/password-reset/request", {
+    email: "not-an-email"
+  }), env());
+  assert.equal(response.status, 400);
+});
+
+test("password reset rejects malformed tokens before touching D1", async () => {
+  const response = await worker.fetch(post("/auth/password-reset", {
+    token: "too-short",
+    password: "a-long-secure-password-123"
+  }), env());
+  assert.equal(response.status, 400);
+});
+
 test("login rejects malformed credentials before touching D1", async () => {
   const response = await worker.fetch(post("/auth/login", {
     email: "not-an-email", password: "anything"

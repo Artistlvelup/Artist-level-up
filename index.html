@@ -6760,7 +6760,8 @@ function ensureGate(){
  document.getElementById('aluMemberCreateBtn').addEventListener('click',async function(){
   var name=document.getElementById('aluMemberName').value.trim(),email=document.getElementById('aluMemberEmail').value.trim().toLowerCase(),password=document.getElementById('aluMemberPassword').value,confirmPassword=document.getElementById('aluMemberPasswordConfirm').value,agree=document.getElementById('aluMemberAgreement').checked,err=document.getElementById('aluMemberCreateError'),b=this;err.textContent='';
   if(!name||!emailOK(email)){err.textContent='Enter your name and a valid email.';return}
-  if(password.length<12||password.length>128){err.textContent='Your password must be at least 12 characters.';return}
+  if(password.length<12||password.length>128){err.textContent='Your password must be 12–128 characters.';return}
+  if(!/[A-Za-z]/.test(password)||!/[0-9]/.test(password)||!/[^A-Za-z0-9]/.test(password)){err.textContent='Include at least one letter, one number and one special character (such as @, # or !).';return}
   if(password!==confirmPassword){err.textContent='The passwords do not match.';return}
   if(!agree){err.textContent='Please accept the Terms & Conditions and User Agreement.';return}
   b.disabled=true;b.textContent='CREATING ACCOUNT…';
@@ -6783,7 +6784,8 @@ function ensureGate(){
  });
  document.getElementById('aluMemberResetPasswordBtn').addEventListener('click',async function(){
   var url=new URL(location.href),token=url.searchParams.get('auth_reset')||'',password=document.getElementById('aluMemberNewPassword').value,confirmPassword=document.getElementById('aluMemberNewPasswordConfirm').value,status=document.getElementById('aluMemberResetRequestStatus'),b=this;status.textContent='';
-  if(password.length<12||password.length>128){status.textContent='Your password must be at least 12 characters.';return}
+  if(password.length<12||password.length>128){status.textContent='Your password must be 12–128 characters.';return}
+  if(!/[A-Za-z]/.test(password)||!/[0-9]/.test(password)||!/[^A-Za-z0-9]/.test(password)){status.textContent='Include at least one letter, one number and one special character (such as @, # or !).';return}
   if(password!==confirmPassword){status.textContent='The passwords do not match.';return}
   b.disabled=true;b.textContent='SAVING…';try{var result=await resetMemberPassword(token,password);url.searchParams.delete('auth_reset');history.replaceState({},'',url.toString());document.getElementById('aluMemberResetForm').style.display='none';status.textContent=result.message||'Password updated. Log in with your new password.';document.getElementById('aluMemberLoginPassword').value=password}catch(e){status.textContent=e.message||'Could not update your password.'}finally{b.disabled=false;b.textContent='Save new password'}
  });

@@ -1,0 +1,23 @@
+name: V101 authentication tests
+
+on:
+  push:
+    branches:
+      - V101-launch-hardening-2026-10-13
+    paths:
+      - "workers/auth/**"
+      - ".github/workflows/v101-auth-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  auth-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out V101
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run authentication route tests
+        run: node --test workers/auth/password-auth-routes.test.mjs

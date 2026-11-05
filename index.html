@@ -6769,12 +6769,23 @@ function ensureGate(){
   finally{b.disabled=false;b.textContent='Create account'}
  });
  document.getElementById('aluMemberLoginBtn').addEventListener('click',async function(){
-  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberLoginError'),b=this;err.textContent='';
-  if(!emailOK(email)){err.textContent='Enter your account email.';return}
-  b.disabled=true;b.textContent='SENDING…';
-  try{await sendLoginLink(email);err.textContent='If this email is verified, a secure login link has been sent. Open it on this device.';try{toast('Check your email for the login link.')}catch(e){}}
-  catch(e){err.textContent=e.message||'Could not send the login link. Please try again.'}
-  finally{b.disabled=false;b.textContent='Email me a secure login link'}
+  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),password=document.getElementById('aluMemberLoginPassword').value,err=document.getElementById('aluMemberLoginError'),b=this;err.textContent='';
+  if(!emailOK(email)||!password){err.textContent='Enter your email and password.';return}
+  b.disabled=true;b.textContent='LOGGING IN…';
+  try{var result=await loginMemberAccount(email,password);if(result.token)saveToken(result.token);else throw new Error('No session token was returned.');if(await resumeCloudMember()){memberRestoreDone=true;close();try{toast('Welcome back ✓')}catch(e){}}else{err.textContent='Login accepted, but your member profile could not be restored. Refresh and try again.'}}
+  catch(e){err.textContent=e.message||'Incorrect email or password. Please try again.'}
+  finally{b.disabled=false;b.textContent='Log in'}
+ });
+ document.getElementById('aluMemberForgotPasswordBtn').addEventListener('click',async function(){
+  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),status=document.getElementById('aluMemberResetRequestStatus'),b=this;status.textContent='';
+  if(!emailOK(email)){status.textContent='Enter your account email first.';return}
+  b.disabled=true;b.textContent='Sending…';try{var result=await requestMemberPasswordReset(email);status.textContent=result.message||'If a verified account exists, a reset link has been sent.'}catch(e){status.textContent=e.message||'Could not send the reset email.'}finally{b.disabled=false;b.textContent='Forgot password?'}
+ });
+ document.getElementById('aluMemberResetPasswordBtn').addEventListener('click',async function(){
+  var url=new URL(location.href),token=url.searchParams.get('auth_reset')||'',password=document.getElementById('aluMemberNewPassword').value,confirmPassword=document.getElementById('aluMemberNewPasswordConfirm').value,status=document.getElementById('aluMemberResetRequestStatus'),b=this;status.textContent='';
+  if(password.length<12||password.length>128){status.textContent='Your password must be at least 12 characters.';return}
+  if(password!==confirmPassword){status.textContent='The passwords do not match.';return}
+  b.disabled=true;b.textContent='SAVING…';try{var result=await resetMemberPassword(token,password);url.searchParams.delete('auth_reset');history.replaceState({},'',url.toString());document.getElementById('aluMemberResetForm').style.display='none';status.textContent=result.message||'Password updated. Log in with your new password.';document.getElementById('aluMemberLoginPassword').value=password}catch(e){status.textContent=e.message||'Could not update your password.'}finally{b.disabled=false;b.textContent='Save new password'}
  });
  async function restore(errorBox,successText){
   if(errorBox)errorBox.textContent='Checking your Cloudflare session…';

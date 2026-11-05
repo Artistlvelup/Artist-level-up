@@ -6832,8 +6832,9 @@ async function handleCloudflareCallback(){
   catch(e){url.searchParams.delete('auth_login');history.replaceState({},'',url.toString());open('login');var box=document.getElementById('aluMemberLoginError');if(box)box.textContent=e.message||'This login link is invalid or expired. Request a new one.'}
  }
 }
-async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}/* A saved token that remains after restore means the server did not explicitly reject the session. Keep the login gate hidden during temporary network/API failures; resumeCloudMember clears the token when it detects an invalid or expired session. Do not call close() here because close() intentionally reopens the gate when local registration flags have not finished restoring. */if(token()){var gate=document.getElementById('aluMemberGateV101');if(gate)gate.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return}open()}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
+async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}/* A saved token that remains after restore means the server did not explicitly reject the session. Keep the login gate hidden during temporary network/API failures; resumeCloudMember clears the token when it detects an invalid or expired session. */if(token()){var gate=document.getElementById('aluMemberGateV101');if(gate)gate.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return}open()}
+function startMemberRestore(){window.ALU_MEMBER_RESTORE_PROMISE=boot();return window.ALU_MEMBER_RESTORE_PROMISE}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMemberRestore,{once:true});else setTimeout(startMemberRestore,0);
 })();
 </script>
 
@@ -7364,7 +7365,7 @@ else addProfileLogout();
 })();
 </script>
 
-<script id="aluV101RestoreHashRoute">/* V101: restore the last valid app page after refresh, using the URL first and the saved route as fallback. */(function(){'use strict';function restore(){try{var raw=String(location.hash||'').replace(/^#/,'');if(raw.indexOf('discover-post=')===0)return;var saved='';try{saved=String(localStorage.getItem('alu_last_page_v101')||'')}catch(_){}var target=raw||saved||'home';var page=document.getElementById(target);if(page&&page.classList.contains('page')&&typeof window.go==='function'){window.go(target,false);}}catch(e){console.warn('V101 page restore skipped:',e)}}function schedule(){setTimeout(restore,250)}if(document.readyState==='complete')schedule();else window.addEventListener('load',schedule,{once:true});window.addEventListener('pageshow',schedule);})();</script>
+<script id="aluV101RestoreHashRoute">/* V101: restore the last valid app page after refresh, using the URL first and the saved route as fallback. */(function(){'use strict';async function restore(){try{if(window.ALU_MEMBER_RESTORE_PROMISE){await window.ALU_MEMBER_RESTORE_PROMISE;}var raw=String(location.hash||'').replace(/^#/,'');if(raw.indexOf('discover-post=')===0)return;var saved='';try{saved=String(localStorage.getItem('alu_last_page_v101')||'')}catch(_){}var target=raw||saved||'home';var page=document.getElementById(target);if(page&&page.classList.contains('page')&&typeof window.go==='function'){window.go(target,false);}}catch(e){console.warn('V101 page restore skipped:',e)}}function schedule(){setTimeout(restore,250)}if(document.readyState==='complete')schedule();else window.addEventListener('load',schedule,{once:true});window.addEventListener('pageshow',schedule);})();</script>
 
 <script id="aluV101LaunchSafetyUX">
 (function(){

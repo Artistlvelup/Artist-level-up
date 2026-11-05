@@ -13,7 +13,7 @@ import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAcco
  * There is deliberately no owner-registration/bootstrap route and no content-seeding route.
  * Data APIs are partially ported. Keep unimplemented features on their existing adapters until replacement routes are tested.
  */
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 365;
 const LEGACY_OWNER_USER_ID = ""; // No legacy/test account is authorized for Cloudflare identity migration.
 
 function allowedOrigins(env) {
@@ -707,9 +707,15 @@ async function validateSession(request, env) {
   const token = bearer(request);
   if (!token) return null;
   const tokenHash = await hashToken(token, env.SESSION_PEPPER);
+  const now = Math.floor(Date.now() / 1000);
+  // Sliding one-year session: members who keep using the website stay signed in.
+  // Explicit logout still revokes the complete session family immediately.
+  await env.DB.prepare(
+    "UPDATE app_sessions SET expires_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
+  ).bind(now + SESSION_TTL_SECONDS, tokenHash, now).run();
   const row = await env.DB.prepare(
     "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'artist' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
-  ).bind(tokenHash, Math.floor(Date.now() / 1000)).first();
+  ).bind(tokenHash, now).first();
   return row || null;
 }
 

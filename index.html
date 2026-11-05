@@ -7269,9 +7269,6 @@ function addButton(){
       if(typeof state!=='undefined'&&state){
         state.userRegistered=false;
         state.memberAccessV101=false;
-        state.userAccount=null;
-        state.artistRegistered=false;
-        state.profile={};
         if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
       }else{
         var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');

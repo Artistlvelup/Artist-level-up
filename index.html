@@ -4534,7 +4534,7 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(state?.userRegistered&&!state?.artistRegistered){
       const avatar=String(state.profile?.avatar||state.userAccount?.avatar||'').trim();
       const safeAvatar=avatar?'<img class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px" src="'+esc(avatar)+'" alt="Profile picture">':'<div class="profile-avatar" style="width:110px;height:110px;margin:0 auto 10px;display:grid;place-items:center;font-size:42px">👤</div>';
-      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><p id="aluCloudDiagStatus" class="muted">Cloud session: not checked</p><button id="aluCloudDiagBtn" class="btn full" type="button">Check Cloud Session</button><button class="btn primary full" data-action="closeModal">Close</button><button id="aluV101LogoutBtn" class="btn full" type="button" style="margin-top:10px">Log Out & Test Login</button></div>';
+      document.getElementById('modalBody').innerHTML='<span class="pill">YOUR PROFILE</span><h2>'+esc(state.userAccount?.name||state.profile?.name||'User')+'</h2><div class="card" style="text-align:center">'+safeAvatar+'<p class="muted">'+esc(state.userAccount?.email||state.profile?.email||'')+'</p><p id="aluCloudDiagStatus" class="muted">Cloud session: not checked</p><button id="aluCloudDiagBtn" class="btn full" type="button">Check Cloud Session</button><button class="btn primary full" data-action="closeModal">Close</button><button id="aluV101LogoutBtn" class="btn full" type="button" style="margin-top:10px">Log Out</button></div>';
       const diagBtn=document.getElementById('aluCloudDiagBtn');
       diagBtn?.addEventListener('click',async function(){
         const status=document.getElementById('aluCloudDiagStatus');
@@ -4556,15 +4556,15 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
       const logoutBtn=document.getElementById('aluV101LogoutBtn');
       logoutBtn?.addEventListener('click',async function(){
         this.disabled=true;this.textContent='LOGGING OUT…';
-        try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+        try{await window.ALU_MEMBER_GATE_V101.logout()}catch(e){console.warn('Cloudflare sign-out:',e)}
         try{
           if(typeof state!=='undefined'&&state){
-            state.userRegistered=false; state.memberAccessV101=false; state.userAccount=null;
-            state.artistRegistered=false; state.profile={};
+            state.userRegistered=false; state.memberAccessV101=false;
+            
             if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
           }else{
             var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
-            saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;saved.artistRegistered=false;saved.profile={};
+            saved.userRegistered=false;saved.memberAccessV101=false;
             localStorage.setItem('alu_full_v1',JSON.stringify(saved));
           }
         }catch(e){console.warn('Local member logout:',e)}
@@ -6807,7 +6807,17 @@ function ensureGate(){
 }
 function open(mode){var g=ensureGate(),s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered();if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email}g.classList.add('show');document.body.classList.add('alu-member-locked-v101')}
 function close(){if(!registered()){var g=document.getElementById('aluMemberGateV101');if(g)g.classList.add('show');document.body.classList.add('alu-member-locked-v101');return false}var g=document.getElementById('aluMemberGateV101');if(g)g.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return true}
-window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered};
+async function logout(){
+ var t=token();
+ try{if(t)await api('/auth/logout','POST',{},t)}
+ finally{
+  clearToken();
+  var s=getState();
+  if(s){s.userRegistered=false;s.memberAccessV101=false;persist()}
+  else{try{var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');saved.userRegistered=false;saved.memberAccessV101=false;localStorage.setItem('alu_full_v1',JSON.stringify(saved))}catch(e){}}
+ }
+}
+window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){
@@ -7251,10 +7261,10 @@ function addButton(){
   if(!modal||!body||!modal.classList.contains('show'))return;
   if(!/YOUR PROFILE/i.test(body.textContent||''))return;
   if(document.getElementById('aluV101LogoutBtn'))return;
-  var b=document.createElement('button');b.id='aluV101LogoutBtn';b.type='button';b.className='btn full';b.style.marginTop='10px';b.textContent='Log Out & Test Login';
+  var b=document.createElement('button');b.id='aluV101LogoutBtn';b.type='button';b.className='btn full';b.style.marginTop='10px';b.textContent='Log Out';
   b.addEventListener('click',async function(){
     b.disabled=true;b.textContent='LOGGING OUT…';
-    try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+    try{await window.ALU_MEMBER_GATE_V101.logout()}catch(e){console.warn('Cloudflare sign-out:',e)}
     try{
       if(typeof state!=='undefined'&&state){
         state.userRegistered=false;
@@ -7265,7 +7275,7 @@ function addButton(){
         if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
       }else{
         var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
-        saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;saved.artistRegistered=false;saved.profile={};
+        saved.userRegistered=false;saved.memberAccessV101=false;
         localStorage.setItem('alu_full_v1',JSON.stringify(saved));
       }
     }catch(e){console.warn('Local member logout:',e)}
@@ -7296,19 +7306,18 @@ function addProfileLogout(){
   if(!accountCard)return;
   var b=document.createElement('button');
   b.id='aluV101ArtistProfileLogoutBtn';b.type='button';b.className='btn full';
-  b.style.marginTop='10px';b.textContent='Log Out & Test Login';
+  b.style.marginTop='10px';b.textContent='Log Out';
   b.addEventListener('click',async function(){
     b.disabled=true;b.textContent='LOGGING OUT…';
-    try{await window.ALU_SUPABASE_CLIENT?.auth?.signOut()}catch(e){console.warn('Cloud sign-out:',e)}
+    try{await window.ALU_MEMBER_GATE_V101.logout()}catch(e){console.warn('Cloudflare sign-out:',e)}
     try{
       if(typeof state!=='undefined'&&state){
-        state.userRegistered=false;state.memberAccessV101=false;state.userAccount=null;
-        state.artistRegistered=false;state.profile={};
+        state.userRegistered=false;state.memberAccessV101=false;
+        
         if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(state));
       }else{
         var saved=JSON.parse(localStorage.getItem('alu_full_v1')||'{}');
-        saved.userRegistered=false;saved.memberAccessV101=false;saved.userAccount=null;
-        saved.artistRegistered=false;saved.profile={};
+        saved.userRegistered=false;saved.memberAccessV101=false;
         localStorage.setItem('alu_full_v1',JSON.stringify(saved));
       }
     }catch(e){console.warn('Artist profile logout:',e)}

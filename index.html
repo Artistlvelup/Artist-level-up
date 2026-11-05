@@ -6740,7 +6740,7 @@ async function resumeCloudMember(){
   s.artistRegistered=!!artist;
   persist();
   return !!session.userId;
- }catch(e){clearToken();console.warn('V101 Cloudflare session restore failed:',e);return false}
+ }catch(e){if(/invalid or expired session|bearer session required/i.test(String(e&&e.message||'')))clearToken();console.warn('V101 Cloudflare session restore failed:',e);return false}
 }
 async function createMemberAccount(email,name,password){
  var result=await api('/auth/register','POST',{email:email,password:password});

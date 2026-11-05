@@ -1,4 +1,4 @@
-import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAccount, loginPasswordAccount, requestPasswordlessLogin, verifyPasswordlessLogin } from "./password-auth.js";
+import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAccount, requestPasswordReset, resetPasswordAccount, loginPasswordAccount, requestPasswordlessLogin, verifyPasswordlessLogin } from "./password-auth.js";
 /**
  * Artist Level Up V101 — Cloudflare authentication and D1 API Worker.
  *
@@ -743,6 +743,12 @@ export default {
       }
       if (url.pathname === "/auth/verify-email" && request.method === "POST") {
         return await verifyPasswordAccount(request, env, cors);
+      }
+      if (url.pathname === "/auth/password-reset/request" && request.method === "POST") {
+        return await requestPasswordReset(request, env, cors);
+      }
+      if (url.pathname === "/auth/password-reset" && request.method === "POST") {
+        return await resetPasswordAccount(request, env, cors);
       }
       if (url.pathname === "/auth/request-login-link" && request.method === "POST") {
         return await requestPasswordlessLogin(request, env, cors);

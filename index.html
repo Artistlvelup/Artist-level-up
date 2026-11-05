@@ -7734,8 +7734,9 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   function pageById(id){var p=id&&document.getElementById(id);return p&&p.classList.contains('page')?p:null;}
   function activeId(){var p=document.querySelector('.app > .page.active')||document.querySelector('.page.active');return p&&p.id||'';}
   function save(id){if(!pageById(id)||['admin','ownerDashboard','commissionEarningsPage'].indexOf(id)>=0)return;try{localStorage.setItem(KEY,id)}catch(_){}try{sessionStorage.setItem(SESSION_KEY,id)}catch(_){}window.ALU_ACTIVE_PAGE=id;}
-  function restore(){
+  async function restore(){
     try{
+      if(window.ALU_MEMBER_RESTORE_PROMISE)await window.ALU_MEMBER_RESTORE_PROMISE;
       var hash=String(location.hash||'').replace(/^#/,'');
       if(hash.indexOf('discover-post=')===0)return;
       var saved='';try{saved=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(KEY)||''}catch(_){}

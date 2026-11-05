@@ -6795,15 +6795,12 @@ function ensureGate(){
   return false;
  }
  document.getElementById('aluMemberCheckCreateBtn').addEventListener('click',function(){restore(document.getElementById('aluMemberCreateError'),'Your Cloudflare account is ready ✓')});
- document.getElementById('aluMemberCheckLoginBtn').addEventListener('click',function(){restore(document.getElementById('aluMemberLoginError'),'Welcome back ✓')});
+ 
  document.getElementById('aluMemberResendCreateBtn').addEventListener('click',async function(){
   var email=document.getElementById('aluMemberEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberCreateError'),b=this;if(!emailOK(email)){err.textContent='Enter the email used to create the account.';return}
   b.disabled=true;b.textContent='Sending…';try{await api('/auth/resend-verification','POST',{email:email});err.textContent='If your account needs verification, a new email will be sent.'}catch(e){err.textContent=e.message||'Could not resend verification.'}finally{b.disabled=false;b.textContent='Resend confirmation'}
  });
- document.getElementById('aluMemberResendLoginBtn').addEventListener('click',async function(){
-  var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),err=document.getElementById('aluMemberLoginError'),b=this;if(!emailOK(email)){err.textContent='Enter your account email first.';return}
-  b.disabled=true;b.textContent='Sending…';try{await sendLoginLink(email);err.textContent='If the account is verified, a fresh login link has been sent.'}catch(e){err.textContent=e.message||'Could not resend the login link.'}finally{b.disabled=false;b.textContent='Resend login link'}
- });
+ 
  return wrap;
 }
 function open(mode){var g=ensureGate(),s=getState(),email=String(s?.userAccount?.email||s?.profile?.email||'').trim().toLowerCase(),useLogin=mode==='login'||registered();if(useLogin){var lt=g.querySelector('[data-member-tab="login"]');if(lt)lt.click();var li=document.getElementById('aluMemberLoginEmail');if(li&&email&&!li.value)li.value=email}g.classList.add('show');document.body.classList.add('alu-member-locked-v101')}
@@ -6812,9 +6809,10 @@ window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){
- var url=new URL(location.href),verify=url.searchParams.get('auth_verify'),login=url.searchParams.get('auth_login');
+ var url=new URL(location.href),verify=url.searchParams.get('auth_verify'),login=url.searchParams.get('auth_login'),reset=url.searchParams.get('auth_reset');
+ if(reset){open('login');var rf=document.getElementById('aluMemberResetForm');if(rf)rf.style.display='block';var rs=document.getElementById('aluMemberResetRequestStatus');if(rs)rs.textContent='Choose a new password to finish resetting your account.'}
  if(verify){
-  try{await api('/auth/verify-email','POST',{token:verify});url.searchParams.delete('auth_verify');history.replaceState({},'',url.toString());var p=pending();var email=p.email||'';if(email){await sendLoginLink(email);open('login');var ebox=document.getElementById('aluMemberLoginError');if(ebox)ebox.textContent='Email verified. Your secure login link has been sent to '+email+'.'}else open('login')}
+  try{await api('/auth/verify-email','POST',{token:verify});url.searchParams.delete('auth_verify');history.replaceState({},'',url.toString());open('login');var ebox=document.getElementById('aluMemberLoginError');if(ebox)ebox.textContent='Email verified. Log in with your email and password.'}
   catch(e){open('create');var ebox=document.getElementById('aluMemberCreateError');if(ebox)ebox.textContent=e.message||'Email verification failed. Request a new confirmation email.'}
  }
  if(login){

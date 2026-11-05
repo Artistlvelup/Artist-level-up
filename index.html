@@ -1787,7 +1787,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function openOwnerPinModal(mode='unlock'){const has=/^\d{4,6}$/.test(String(state.ownerPin||'').trim()) || /^\d{4,6}$/.test(String(state.profile?.pin||'').trim());let body='';if(!has){body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Create your private PIN (4–6 digits)</h2><p class="muted">This PIN protects the Admin Control Center. Choose a private 4–6 digit PIN only you know.</p><label for="ownerPin1">Create PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4–6 digits"><label for="ownerPin2">Confirm PIN</label><input id="ownerPin2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="Repeat 4–6 digits"><button class="btn primary full" data-action="createOwnerPin">Create Private PIN 🔒</button>`}else{body=`<span class="pill">🔐 OWNER SECURITY</span><h2>Enter Owner PIN</h2><p class="muted">Admin Control Center is private. Enter your 4–6 digit PIN to continue.</p><label for="ownerPin1">Owner PIN</label><input id="ownerPin1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" placeholder="Enter 4–6 digits"><button class="btn primary full" data-action="unlockOwnerPin">Unlock Admin 🔓</button>`}document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('ownerPin1')?.focus(),100)}
 function ownerUnlock(){if(/^\d{6}$/.test(String(state.ownerPin||'').trim())){openOwnerPinModal('unlock');return false}openOwnerPinModal('create');return false}
 function finishOwnerUnlock(){state.adminAuthenticated=true;document.getElementById('modal')?.classList.remove('show');const nav=document.getElementById('ownerAdminNav');if(nav)nav.style.display='block';try{go('admin');}catch(e){console.warn('Admin page open fallback:',e)}try{save();}catch(e){console.warn('Admin authentication persistence deferred:',e)}toast('Admin Control Center unlocked ✓')}
-function aluV101RestoreArtistState(){try{const p=state?.profile||{};const name=String(p.name||'').trim(),email=String(p.email||'').trim(),pin=String(p.pin||'').trim();const artistMarker=!!(p.saved===true||p.agreementAcceptedAt||p.agreementVersion==='V101'||(/^\d{4,6}$/.test(pin)&&name&&email));const memberReady=state?.userRegistered===true||state?.memberAccessV101===true||state?.artistRegistered===true;if(memberReady&&artistMarker&&name&&email){state.artistRegistered=true;p.saved=true;if(window.__ALU_PROFILE_EDIT_REQUESTED!==true){p.editing=false;window.__ALU_PROFILE_EDIT_REQUESTED=false;}}}catch(e){}}
+function aluV101RestoreArtistState(){/* Artist status is restored only from the authenticated Cloudflare artist record. Local profile fields must never promote a member to artist. */}
 function go(id,push=true){if(id==='admin'||id==='ownerDashboard'||id==='commissionEarningsPage'){try{history.replaceState({page:'home'},'',location.pathname+location.search+'#home')}catch(e){}toast('Owner controls are available only in the separate secure Admin Control app.');return;}aluV101RestoreArtistState();if((id==='admin'||id==='ownerDashboard'||id==='commissionEarningsPage')&&window.__ALU_SERVER_ADMIN_VERIFIED!==true){if(window.__ALU_ADMIN_CHECK_PENDING)return;window.__ALU_ADMIN_CHECK_PENDING=true;(async()=>{let ok=false;try{ok=await window.ALU_REQUIRE_SERVER_ADMIN?.()}catch(e){}window.__ALU_ADMIN_CHECK_PENDING=false;if(!ok){state.adminAuthenticated=false;try{history.replaceState({page:'home'},'',location.pathname+location.search+'#home')}catch(e){}go('home',false);toast('Owner-only area. Sign in with the authorized owner account.');return;}window.__ALU_SERVER_ADMIN_VERIFIED=true;state.adminAuthenticated=true;document.body&&document.body.classList.add('alu-server-admin-verified');go(id,push);})();return;}if(id==='register'&&(!state?.userRegistered||!state?.userAccount?.email||state?.memberAccessV101!==true)){try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}const aluV101ArtistOnlyPages=new Set(['profile','settings','create','promote','growthCenter','wallet','commissionEarningsPage','producerDashboard','ownerDashboard','pro','dashboard','course','studio']);if(!state?.artistRegistered&&aluV101ArtistOnlyPages.has(id)){if(state?.userRegistered===true&&state?.memberAccessV101===true){try{toast('Complete Artist Registration to unlock this artist feature.')}catch(e){}id='register';}else{try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return;}}if(id==='register'&&state?.artistRegistered&&(state?.profile?.saved||state?.profile?.name||state?.userAccount?.name)){state.profile=state.profile||{};state.profile.saved=true;state.profile.editing=false;window.__ALU_PROFILE_EDIT_REQUESTED=false;id='profile';}window.ALU_ACTIVE_PAGE=id;try{localStorage.setItem('alu_last_page_v101',id)}catch(e){}if(typeof document!=='undefined'){const fp=document.getElementById('fullPlayer');if(fp&&fp.classList.contains('show')){fp.classList.remove('show');fp.setAttribute('aria-hidden','true');}}document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));const p=document.getElementById(id);if(!p)return;p.classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));if(push)history.pushState({page:id},'', '#'+id);renderAll();scrollTo(0,0)}
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||((location.hash||'').slice(1))||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
@@ -4442,40 +4442,26 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
 (function(){
   function val(id){return String(document.getElementById(id)?.value||'').trim()}
   async function registerArtistNow(btn){
-    const name=val('regName'), email=val('regEmail'), country=String(document.getElementById('regCountry')?.value||'Nigeria'), pin=val('regPin'), agreement=document.getElementById('regAgreement')?.checked===true;
+    const name=val('regName'), email=val('regEmail'), country=String(document.getElementById('regCountry')?.value||'Nigeria'), agreement=document.getElementById('regAgreement')?.checked===true;
     const memberEmail=String(state?.userAccount?.email||'').trim().toLowerCase();
     if(state?.userRegistered!==true || !memberEmail || state?.memberAccessV101!==true){toast('Create or log in to your member account first.');try{window.ALU_MEMBER_GATE_V101?.open()}catch(e){}return}
     if(!name){toast('Enter your artist / stage name first.');return}
     if(String(email).trim().toLowerCase()!==memberEmail){toast('Artist email must match your member account email.');return}
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Enter a valid email address.');return}
-    if(!/^\d{4,6}$/.test(pin)){toast('PIN must be 4–6 digits.');return}
+    if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)){toast('Enter a valid email address.');return}
     if(!agreement){toast('Please accept the Terms & Conditions and Artist Agreement first.');return}
-    if(btn){btn.disabled=true;btn.textContent='SECURING PIN…'}
-    const pinClient=window.ALU_SUPABASE_CLIENT;
-    if(!pinClient){if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}toast('Secure cloud sign-in is required before creating an account PIN.');return}
+    if(btn){btn.disabled=true;btn.textContent='CREATING ARTIST ACCOUNT…'}
     try{
-      const authResult=await pinClient.auth.getSession();
-      if(!authResult?.data?.session?.user?.id){if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}toast('Sign in with your verified member email first, then register as an artist.');return}
-      const pinResult=await pinClient.rpc('set_account_pin_v101',{p_pin:pin});
-      if(pinResult?.error||pinResult?.data!==true){if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}toast('Your PIN could not be secured on the server. Please retry before registering.');return}
-    }catch(pinError){console.error('Server PIN setup failed:',pinError);if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}toast('Secure PIN setup failed. Please retry.');return}
-    if(btn)btn.textContent='CREATING ARTIST ACCOUNT…';
-    let localSaved=false;
-    try{
-      window.__ALU_PROFILE_EDIT_REQUESTED=false;state.profile={...(state.profile||{}),name,email,country,pin:'',saved:true,editing:false,agreementAcceptedAt:state.profile?.agreementAcceptedAt||new Date().toISOString(),agreementVersion:'V101'};
+      const artist=await window.ALU_MEMBER_GATE_V101.createArtist({artist_name:name,bio:'',genre:'',country:country});
+      window.__ALU_PROFILE_EDIT_REQUESTED=false;
+      state.profile={...(state.profile||{}),name:name,email:memberEmail,country:country,pin:'',saved:true,editing:false,agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101',artistId:artist.id};
       const av=document.getElementById('regAvatar')?.files?.[0];
       if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
       state.artistRegistered=true;
-      state.userAccount={...(state.userAccount||{}),name,email,avatar:state.profile?.avatar||state.userAccount?.avatar||'',registeredAt:state.userAccount?.registeredAt||new Date().toISOString()};delete state.userAccount.pin;
       persistStateOnly();
-      localSaved=true;
-    }catch(e){console.error('Local artist registration save failed',e);toast('Artist account could not be saved on this device. Please try again.');}
-    if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud registration will retry:',e)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
-    }
-    if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}
+    }catch(e){console.error('Cloudflare artist registration failed:',e);toast(e?.message||'Artist account could not be created. Please try again.');}
+    finally{if(btn){btn.disabled=false;btn.textContent='🎤 Create Artist Account'}}
   }
   document.addEventListener('click',function(e){
     const b=e.target.closest('[data-action="registerArtist"]');
@@ -6722,20 +6708,21 @@ function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.u
 async function resumeCloudMember(){
  var t=token(),s=getState();if(!t||!s)return false;
  try{
+  s.artistRegistered=false;
   var session=await api('/auth/session','GET',null,t);
   var profileResult=await api('/api/me/profile','GET',null,t);
   var profile=profileResult.profile||{};
   var artistResult=await api('/api/me/artist','GET',null,t);
   var artist=artistResult.artist||null;
   var p=pending();
-  var displayName=String(profile.display_name||artist?.artist_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
+  var displayName=String(profile.display_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
   if(!profileResult.profile){
    profileResult=await api('/api/me/profile','PUT',{display_name:displayName,avatar_url:null},t);
    profile=profileResult.profile||{};
   }
   s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
   s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-  s.profile={...(s.profile||{}),name:displayName,email:s.userAccount.email,saved:!!artist||!!s.profile?.saved,country:s.profile?.country||'Nigeria'};
+  s.profile={...(s.profile||{}),name:displayName,email:s.userAccount.email,saved:!!artist,country:s.profile?.country||'Nigeria'};
   s.artistRegistered=!!artist;
   persist();
   return !!session.userId;
@@ -6820,12 +6807,15 @@ async function ensureCloudflareArtist(){
  var t=token();if(!t)throw new Error('Please sign in again before uploading.');
  var result=await api('/api/me/artist','GET',null,t);
  if(result.artist?.id)return result.artist;
- var st=getState()||{},p=st.profile||{};
- var name=String(p.name||st.userAccount?.name||'').trim();
- if(!name)throw new Error('Complete your Artist Profile before uploading.');
- var created=await api('/api/me/artist','POST',{artist_name:name,bio:String(p.bio||''),genre:String(p.genre||''),country:String(p.country||'Nigeria')},t);
- if(!created.artist?.id)throw new Error('Cloudflare could not create your artist profile.');
- return created.artist;
+ throw new Error('Create your Artist Account first. Your member login alone does not create an artist account.');
+}
+async function createCloudflareArtist(details){
+ var t=token();if(!t)throw new Error('Please sign in again before creating your artist account.');
+ var payload={artist_name:String(details?.artist_name||'').trim(),bio:String(details?.bio||''),genre:String(details?.genre||''),country:String(details?.country||'Nigeria')};
+ if(!payload.artist_name)throw new Error('Enter your artist or stage name first.');
+ var result=await api('/api/me/artist','POST',payload,t);
+ if(!result.artist?.id)throw new Error('Cloudflare could not create your artist profile.');
+ return result.artist;
 }
 async function uploadAudioToCloudflare(file){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
@@ -6842,7 +6832,7 @@ async function createCloudflareSong(row){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
  return api('/api/me/songs','POST',{title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:null,duration_seconds:null,status:'pending'},t);
 }
-window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong};
+window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,createArtist:createCloudflareArtist,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){

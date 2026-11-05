@@ -151,7 +151,11 @@ async function songsRoute(request, env, userId, url) {
     const body = await readJson(request);
     const title = cleanText(body.title, 160, true);
     const genre = cleanText(body.genre, 80);
+    const audioUrl = cleanText(body.audio_url, 2048, true);
     const coverUrl = cleanText(body.cover_url, 2048);
+    if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "audio")) {
+      return json({ error: "AUDIO_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    }
     const duration = body.duration_seconds == null ? null : Number(body.duration_seconds);
     if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 86400)) {
       return json({ error: "INVALID_DURATION" }, 400, cors);
@@ -159,8 +163,8 @@ async function songsRoute(request, env, userId, url) {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     await env.DB.prepare(
-      "INSERT INTO songs (id, artist_id, title, genre, cover_url, duration_seconds, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?)"
-    ).bind(id, artist.id, title, genre, coverUrl, duration, now, now).run();
+      "INSERT INTO songs (id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?)"
+    ).bind(id, artist.id, title, genre, audioUrl, coverUrl, duration, now, now).run();
     const row = await env.DB.prepare(
       "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at FROM songs WHERE id = ? AND artist_id = ? LIMIT 1"
     ).bind(id, artist.id).first();
@@ -178,6 +182,13 @@ async function songsRoute(request, env, userId, url) {
     const values = [];
     if (Object.hasOwn(body, "title")) { fields.push("title = ?"); values.push(cleanText(body.title, 160, true)); }
     if (Object.hasOwn(body, "genre")) { fields.push("genre = ?"); values.push(cleanText(body.genre, 80)); }
+    if (Object.hasOwn(body, "audio_url")) {
+      const audioUrl = cleanText(body.audio_url, 2048, true);
+      if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "audio")) {
+        return json({ error: "AUDIO_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+      }
+      fields.push("audio_url = ?"); values.push(audioUrl);
+    }
     if (Object.hasOwn(body, "cover_url")) { fields.push("cover_url = ?"); values.push(cleanText(body.cover_url, 2048)); }
     if (Object.hasOwn(body, "duration_seconds")) {
       const duration = body.duration_seconds == null ? null : Number(body.duration_seconds);

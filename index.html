@@ -6729,7 +6729,11 @@ async function resumeCloudMember(){
   var artistResult=await api('/api/me/artist','GET',null,t);
   var artist=artistResult.artist||null;
   var p=pending();
-  var displayName=String(profile.display_name||artist?.artist_name||p.name||s.profile?.name||'Artist Level Up Member').trim();
+  var displayName=String(profile.display_name||artist?.artist_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
+  if(!profileResult.profile){
+   profileResult=await api('/api/me/profile','PUT',{display_name:displayName,avatar_url:null},t);
+   profile=profileResult.profile||{};
+  }
   s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
   s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
   s.profile={...(s.profile||{}),name:displayName,email:s.userAccount.email,saved:!!artist||!!s.profile?.saved,country:s.profile?.country||'Nigeria'};

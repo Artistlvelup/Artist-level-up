@@ -6705,7 +6705,7 @@ var TOKEN_KEY='alu_v101_cloudflare_session';
 var PENDING_KEY='alu_v101_pending_member';
 function getState(){return (typeof state!=='undefined'&&state)?state:null}
 function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
-function emailOK(e){return /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(e)}
+function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
 function token(){try{return localStorage.getItem(TOKEN_KEY)||''}catch(e){return ''}}
 function saveToken(value){try{localStorage.setItem(TOKEN_KEY,value)}catch(e){}}
 function clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(e){}}
@@ -6747,7 +6747,7 @@ async function createMemberAccount(email,name){
  setPending({email:email,name:name,createdAt:new Date().toISOString()});
  return result;
 }
-async function sendLoginLink(email){return api('/auth/request-login-link','POST',{email:email})}
+async function sendLoginLink(email){var p=pending();p.email=email;setPending(p);return api('/auth/request-login-link','POST',{email:email})}
 function ensureGate(){
  var old=document.getElementById('aluMemberGateV101');if(old)return old;
  var wrap=document.createElement('div');wrap.id='aluMemberGateV101';

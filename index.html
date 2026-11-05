@@ -2948,8 +2948,10 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     return result;
   };
 
-  window.addEventListener('online',()=>cloudBootstrap());
-  setTimeout(cloudBootstrap,700);
+  // V101 member access is Cloudflare-only. Do not create a separate
+  // anonymous Supabase session during page startup or member login.
+  // Legacy Supabase-backed features may request their cloud session only
+  // when the user explicitly opens/uses those features.
 })();
 </script>
 

@@ -1651,7 +1651,7 @@ if(window.ALU_SUPABASE_CLIENT){
 <script id="aluCloudflareConnectionV101">
 (function(){
   'use strict';
-  const base=window.location.origin;
+  const base=/^(www\\.)?artistlevelup\\.com\\.ng$/i.test(window.location.hostname)?window.location.origin:'https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
   window.ALU_CLOUDFLARE_API_BASE=base;
   window.ALU_CLOUDFLARE_REQUEST=async function(path,options){
     const settings=options||{};

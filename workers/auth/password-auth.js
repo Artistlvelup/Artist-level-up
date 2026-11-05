@@ -231,6 +231,99 @@ export async function verifyPasswordAccount(request, env, cors) {
   return response({ ok: true, verified: true }, 200, cors);
 }
 
+
+export async function requestPasswordReset(request, env, cors) {
+  const body = await readBody(request);
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (!validEmail(email)) return response({ error: "Enter a valid email address." }, 400, cors);
+
+  if (!env.RESEND_API_KEY || !env.AUTH_EMAIL_FROM || !env.APP_PUBLIC_URL) {
+    return response({ error: "Email password reset is not configured yet." }, 503, cors);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (!(await rateAllowed(env, "pwreset:ip:" + ip, now)) ||
+      !(await rateAllowed(env, "pwreset:email:" + email, now))) {
+    return response({ error: "Too many attempts. Please try again later." }, 429, cors);
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT c.user_id FROM app_credentials c JOIN app_users u ON u.user_id = c.user_id WHERE c.email_normalized = ? AND c.email_verified_at IS NOT NULL AND u.status = 'active' AND u.is_anonymous = 0 LIMIT 1"
+  ).bind(email).first();
+
+  if (row) {
+    const token = encode(crypto.getRandomValues(new Uint8Array(32)));
+    const tokenHash = await hashToken("password-reset:" + token, requirePepper(env));
+    const expiresAt = now + 30 * 60;
+    await env.DB.prepare(
+      "INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
+    ).bind(tokenHash, row.user_id, email, now, expiresAt).run();
+
+    const resetUrl = String(env.APP_PUBLIC_URL).replace(/\/$/, "") + "/?auth_reset=" + encodeURIComponent(token);
+    try {
+      const sent = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + String(env.RESEND_API_KEY),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: String(env.AUTH_EMAIL_FROM),
+          to: [email],
+          subject: "Reset your Artist Level Up password",
+          html: '<p>We received a request to reset your Artist Level Up password.</p><p><a href="' +
+            resetUrl + '">Choose a new password</a></p><p>This link expires in 30 minutes. If you did not request this, ignore this email.</p>'
+        })
+      });
+      if (!sent.ok) throw new Error("EMAIL_DELIVERY_FAILED");
+    } catch (error) {
+      await env.DB.prepare(
+        "UPDATE app_email_verification_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL"
+      ).bind(now, tokenHash).run();
+      console.error("V101 password reset delivery error", error?.message || error);
+      return response({ error: "We could not send your password reset link. Please try again." }, 503, cors);
+    }
+  }
+
+  return response({
+    ok: true,
+    message: "If a verified account exists for that email, a password reset link has been sent."
+  }, 200, cors);
+}
+
+export async function resetPasswordAccount(request, env, cors) {
+  const body = await readBody(request);
+  const token = typeof body?.token === "string" ? body.token : "";
+  const password = body?.password;
+  if (token.length < 40 || token.length > 128 || !validPassword(password)) {
+    return response({ error: "Use a valid reset link and a password of at least 12 characters." }, 400, cors);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const tokenHash = await hashToken("password-reset:" + token, requirePepper(env));
+  const row = await env.DB.prepare(
+    "SELECT t.user_id FROM app_email_verification_tokens t JOIN app_users u ON u.user_id = t.user_id WHERE t.token_hash = ? AND t.consumed_at IS NULL AND t.expires_at > ? AND u.status = 'active' AND u.is_anonymous = 0 LIMIT 1"
+  ).bind(tokenHash, now).first();
+  if (!row) {
+    return response({ error: "This password reset link is invalid or expired. Request a new one." }, 400, cors);
+  }
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const saltText = encode(salt);
+  const passwordHash = await derivePassword(password, salt);
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE app_credentials SET password_hash = ?, password_salt = ?, password_iterations = ?, password_changed_at = ? WHERE user_id = ?"
+    ).bind(passwordHash, saltText, PASSWORD_ITERATIONS, now, row.user_id),
+    env.DB.prepare(
+      "UPDATE app_email_verification_tokens SET consumed_at = ? WHERE token_hash = ? AND consumed_at IS NULL"
+    ).bind(now, tokenHash)
+  ]);
+
+  return response({ ok: true, message: "Password updated. You can now log in." }, 200, cors);
+}
+
 export async function loginPasswordAccount(request, env, cors, createSession) {
   const body = await readBody(request);
   if (!body) return response({ error: "INVALID_JSON" }, 400, cors);

@@ -6832,7 +6832,7 @@ async function handleCloudflareCallback(){
   catch(e){url.searchParams.delete('auth_login');history.replaceState({},'',url.toString());open('login');var box=document.getElementById('aluMemberLoginError');if(box)box.textContent=e.message||'This login link is invalid or expired. Request a new one.'}
  }
 }
-async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}/* Keep an existing signed-in member inside the app during temporary network/API failures. An invalid or expired token is cleared by resumeCloudMember(), so that case still opens the login gate. */if(token()&&registered()){close();return}open()}
+async function boot(){await handleCloudflareCallback();if(await resumeCloudMember()){memberRestoreDone=true;close();return}/* A saved token that remains after restore means the server did not explicitly reject the session. Keep the login gate hidden during temporary network/API failures; resumeCloudMember clears the token when it detects an invalid or expired session. Do not call close() here because close() intentionally reopens the gate when local registration flags have not finished restoring. */if(token()){var gate=document.getElementById('aluMemberGateV101');if(gate)gate.classList.remove('show');document.body.classList.remove('alu-member-locked-v101');return}open()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
 </script>

@@ -6742,16 +6742,14 @@ async function resumeCloudMember(){
   return !!session.userId;
  }catch(e){clearToken();console.warn('V101 Cloudflare session restore failed:',e);return false}
 }
-function randomPassword(){
- var bytes=new Uint8Array(48);crypto.getRandomValues(bytes);
- return Array.from(bytes,function(b){return b.toString(16).padStart(2,'0')}).join('')+'Aa!9';
-}
-async function createMemberAccount(email,name){
- var result=await api('/auth/register','POST',{email:email,password:randomPassword()});
+async function createMemberAccount(email,name,password){
+ var result=await api('/auth/register','POST',{email:email,password:password});
  setPending({email:email,name:name,createdAt:new Date().toISOString()});
  return result;
 }
-async function sendLoginLink(email){var p=pending();p.email=email;setPending(p);return api('/auth/request-login-link','POST',{email:email})}
+async function loginMemberAccount(email,password){return api('/auth/login','POST',{email:email,password:password})}
+async function requestMemberPasswordReset(email){return api('/auth/password-reset/request','POST',{email:email})}
+async function resetMemberPassword(token,password){return api('/auth/password-reset','POST',{token:token,password:password})}
 function ensureGate(){
  var old=document.getElementById('aluMemberGateV101');if(old)return old;
  var wrap=document.createElement('div');wrap.id='aluMemberGateV101';

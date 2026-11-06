@@ -1233,7 +1233,6 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 </section>
 <script id="commissionEarningsV91">
 (function(){
-  const SUPABASE_URL=window.ALU_SUPABASE_URL;
   function money(n){return '₦'+Number(n||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function escE(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
   async function loadCommission(){
@@ -1241,11 +1240,10 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
     if(!status||!list)return;
     status.textContent='Loading completed sales…'; list.innerHTML='';
     try{
-      const client=window.ALU_CLOUD?.client;
-      if(!client) throw new Error('Supabase connection is not ready.');
-      const {data,error}=await client.from('marketplace_orders').select('beat_title,producer_name,amount_ngn,status,platform_fee_percent,platform_fee_ngn,producer_payout_ngn,paid_at,paystack_reference').eq('status','paid').order('paid_at',{ascending:false});
-      if(error)throw error;
-      const rows=data||[], total=rows.reduce((a,r)=>a+Number(r.platform_fee_ngn||0),0);
+      const gate=window.ALU_MEMBER_GATE_V101;
+      if(!gate)throw new Error('Cloudflare member session is not ready.');
+      const result=await gate.request('/api/admin/marketplace/commissions?limit=100','GET');
+      const rows=result?.orders||[], total=rows.reduce((a,r)=>a+Number(r.platform_fee_ngn||0),0);
       document.getElementById('earningsTotalCommission').textContent=money(total);
       document.getElementById('earningsPaidSales').textContent=String(rows.length);
       status.textContent=rows.length?`${rows.length} completed sale${rows.length===1?'':'s'} recorded.`:'No completed marketplace sales yet.';

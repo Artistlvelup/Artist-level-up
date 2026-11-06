@@ -14,14 +14,14 @@ for (let i = 0; i < tags.length; i++) {
   if (!code.trim()) continue;
   checked++;
   try {
-    new vm.Script(code, { filename: \`index.html:inline-script-\${i + 1}\` });
+    new vm.Script(code, { filename: "index.html:inline-script-" + (i + 1) });
   } catch (error) {
     errors.push({ script: i + 1, message: error.message });
   }
 }
 if (errors.length) {
-  for (const error of errors) process.stderr.write(\`Inline script \${error.script}: \${error.message}\n\`);
+  for (const error of errors) process.stderr.write("Inline script " + error.script + ": " + error.message + "\n");
   process.exitCode = 1;
 } else {
-  process.stdout.write(\`Checked \${checked} inline JavaScript blocks; no syntax errors.\n\`);
+  process.stdout.write("Checked " + checked + " inline JavaScript blocks; no syntax errors.\n");
 }

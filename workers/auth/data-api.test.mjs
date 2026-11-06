@@ -51,7 +51,11 @@ class DataD1 {
         if (sql.includes("FROM artist_videos WHERE artist_id")) {
           return { results: [...db.videos.values()].filter(x => x.artist_id === v[0]).map(x => ({ ...x })) };
         }
-        if (sql.includes("FROM songs WHERE status IN")) {
+        if (sql.includes("FROM artist_videos v LEFT JOIN artists a")) {
+          const allowed = new Set(["approved", "published"]);
+          return { results: [...db.videos.values()].filter(x => allowed.has(x.status)).slice(0, v[0]).map(x => ({ ...x })) };
+        }
+        if (sql.includes("FROM songs s LEFT JOIN artists a")) {
           const allowed = new Set(["approved", "published"]);
           return { results: [...db.songs.values()].filter(x => allowed.has(x.status)).slice(0, v[0]).map(x => ({ ...x })) };
         }

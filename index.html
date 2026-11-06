@@ -3081,7 +3081,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       });
     }
     if(validRemote(s.audioRemoteUrl))return Promise.resolve(s.audioRemoteUrl);
-    if(typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function')return Promise.resolve(window.ALU_RESOLVE_CLOUD_AUDIO_URL(s)).then(function(u){return u||((s.audioUrl&&!String(s.audioUrl).startsWith('blob:'))?s.audioUrl:false)}).catch(function(){return (s.audioUrl&&!String(s.audioUrl).startsWith('blob:'))?s.audioUrl:false});
+    if(s.audioStoragePath&&window.ALU_R2_PUBLIC_BASE_URL){const base=String(window.ALU_R2_PUBLIC_BASE_URL).replace(/\/$/,'');return Promise.resolve(base+'/'+String(s.audioStoragePath).split('/').map(encodeURIComponent).join('/'));}
     return Promise.resolve(s.audioUrl && !String(s.audioUrl).startsWith('blob:')?s.audioUrl:false);
   }
   window.ALU_DURABLE_AUDIO_SOURCE=durableAudioSource;
@@ -3116,78 +3116,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   if(typeof oldRenderAll==='function'){window.renderAll=function(){const r=oldRenderAll.apply(this,arguments);try{(state.songs||[]).forEach(function(s){document.querySelectorAll('[data-song-id="'+CSS.escape(String(s.id))+'"]').forEach(function(el){const art=s.coverArt||s.coverUrl||s.coverImage||'';const img=el.querySelector('.admin-thumb,.song-art img');if(art&&img)img.src=art;});});}catch(e){}return r;};}
 })();
 </script>
-<script id="cloudAudioUrlBridgeV24">
-/* V24 CLOUD AUDIO BRIDGE — repairs the Storage URL -> songs.audio_url handoff only. */
-(function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client || !window.ALU_CLOUD) return;
-  function validUrl(v){ return /^https?:\/\//i.test(String(v||'')); }
-  function makePublicUrl(path){
-    const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-    const clean=String(path||'').replace(/^\/+/, '');
-    if(!base || !clean) return '';
-    return base+'/storage/v1/object/public/'+bucket+'/'+clean.split('/').map(encodeURIComponent).join('/');
-  }
-  async function resolveAudioUrl(song){
-    if(validUrl(song?.audioRemoteUrl)) return String(song.audioRemoteUrl);
-    if(song?.audioStoragePath){
-      const u=makePublicUrl(song.audioStoragePath);
-      if(validUrl(u)) return u;
-    }
-    /* If an older local song lost its path, locate its uploaded object by audioKey. */
-    if(song?.audioKey){
-      try{
-        const r=await client.storage.from(window.ALU_SUPABASE_BUCKET||'music').list('songs',{limit:100,search:String(song.audioKey)});
-        if(!r.error && Array.isArray(r.data)){
-          const hit=r.data.find(x=>String(x?.name||'').startsWith(String(song.audioKey)+'-'));
-          if(hit?.name){
-            const path='songs/'+hit.name;
-            song.audioStoragePath=path;
-            const u=makePublicUrl(path);
-            if(validUrl(u)){song.audioRemoteUrl=u;return u;}
-          }
-        }
-      }catch(e){ console.warn('Cloud audio object lookup skipped:',e); }
-    }
-    return '';
-  }
-  const oldSync=window.ALU_CLOUD.syncSongs;
-  window.ALU_CLOUD.syncSongs=async function(){
-    const artistId=await window.ALU_CLOUD.ensureArtist();
-    if(!artistId) throw new Error('Cloud artist account is not ready.');
-    for(const s of (state.songs||[])){
-      if(!s.local) continue;
-      const audioUrl=await resolveAudioUrl(s);
-      if(!audioUrl){
-        console.warn('V24: no cloud audio object found for',s.title||'Untitled');
-        continue;
-      }
-      s.audioRemoteUrl=audioUrl;
-      const row={
-        artist_id:artistId,
-        title:s.title,
-        genre:s.genre||'Music',
-        audio_url:audioUrl,
-        cover_url:s.coverArt||null,
-        duration_seconds:null,
-        status:(s.status==='Published'?'published':s.status==='Approved'?'approved':s.status==='Rejected'?'rejected':s.status==='Archived'?'archived':(['Pending Review','Pending'].includes(String(s.status||''))?'pending':'draft'))
-      };
-      let r;
-      if(s.remoteSongId){
-        r=await client.from('songs').update({title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:row.cover_url,status:row.status}).eq('id',s.remoteSongId).eq('artist_id',artistId).select('id').single();
-      }else{
-        r=await client.from('songs').insert(row).select('id').single();
-      }
-      if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-      if(r.data?.id) s.remoteSongId=r.data.id;
-      s.cloudSaved=true;
-    }
-    return true;
-  };
-  window.ALU_RESOLVE_CLOUD_AUDIO_URL=resolveAudioUrl;
-})();
-</script>
+
 
 <script id="v26UnifiedMusicUpload">
 /* V26 — ONE music-upload path for both Create Music and the floating uploader. */
@@ -6646,6 +6575,7 @@ body.alu-member-locked-v101>*:not(#aluMemberGateV101){visibility:hidden!importan
 'use strict';
 if(window.__ALU_MEMBER_GATE_V101)return;
 window.__ALU_MEMBER_GATE_V101=true;
+window.ALU_R2_PUBLIC_BASE_URL='https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev';
 var API=window.ALU_CLOUDFLARE_API_BASE||'https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
 var TOKEN_KEY='alu_v101_cloudflare_session';
 var PENDING_KEY='alu_v101_pending_member';

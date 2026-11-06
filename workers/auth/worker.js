@@ -561,7 +561,6 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
 
 async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
   const cors = corsHeaders(request, env);
-  if (admin && sessionRoleForMarketplace !== "admin") return json({ error: "Admin access required" }, 403, cors);
   if (!admin && request.method === "GET") {
     const rows = await env.DB.prepare(
       "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 100"

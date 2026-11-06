@@ -6508,6 +6508,10 @@ async function createCloudflareSong(row){
  if(existing)return {song:existing,existing:true};
  return api('/api/me/songs','POST',payload,t);
 }
+async function createCloudflareBeat(row){
+ var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
+ return api('/api/me/marketplace/beats','POST',row,t);
+}
 async function createCloudflareVideo(row){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
  var payload={title:String(row.title||'').trim(),description:String(row.description||''),video_url:String(row.video_url||''),thumbnail_url:row.thumbnail_url||null,tiktok_url:row.tiktok_url||null,instagram_url:row.instagram_url||null,facebook_url:row.facebook_url||null,youtube_url:row.youtube_url||null};
@@ -6517,7 +6521,7 @@ async function createCloudflareVideo(row){
  if(existing)return {video:existing,existing:true};
  return api('/api/me/videos','POST',payload,t);
 }
-window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,createArtist:createCloudflareArtist,uploadMedia:uploadMediaToCloudflare,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong,createVideo:createCloudflareVideo,getSession:function(){var t=token();return t?api('/auth/session','GET',null,t):Promise.reject(new Error('Please sign in again.'))},request:function(path,method,body){var t=token();if(!t)throw new Error('Please sign in again.');return api(path,method||'GET',body||null,t)}};
+window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,createArtist:createCloudflareArtist,uploadMedia:uploadMediaToCloudflare,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong,createVideo:createCloudflareVideo,createBeat:createCloudflareBeat,getSession:function(){var t=token();return t?api('/auth/session','GET',null,t):Promise.reject(new Error('Please sign in again.'))},request:function(path,method,body){var t=token();if(!t)throw new Error('Please sign in again.');return api(path,method||'GET',body||null,t)}};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){

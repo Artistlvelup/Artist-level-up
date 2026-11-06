@@ -57,7 +57,7 @@ class FakeD1 {
           const user = db.users.get(session.user_id);
           const family = db.families.get(session.family_id);
           return user?.status === "active" && family?.revoked_at === null
-            ? { user_id: session.user_id, expires_at: session.expires_at, role: db.ownerAdminMapped ? "admin" : "artist" }
+            ? { user_id: session.user_id, expires_at: session.expires_at, role: db.ownerAdminMapped ? "admin" : "user" }
             : null;
         }
         throw new Error("Unexpected SQL in first(): " + sql);

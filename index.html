@@ -4288,46 +4288,41 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     box.innerHTML=list.map(b=>`<div class="marketbeat"><div class="row"><div class="grow"><h3>${escM(b.title)}</h3><div class="muted">Produced by ${escM(b.producer_name||'Producer')}</div><div class="marketmeta"><span>🎵 ${escM(b.genre||'Music')}</span><span>🌙 ${escM(b.mood||'')}</span>${b.bpm?`<span>⚡ ${escM(b.bpm)} BPM</span>`:''}</div></div><div class="pricebox">${naira(b.price_ngn)}</div></div><div class="tiny muted">Default licence: ${escM(b.default_license||'Premium')}</div>${b.audio_preview_url?`<audio controls preload="none" src="${escM(b.audio_preview_url)}" style="width:100%;margin-top:10px"></audio>`:'<div class="tiny muted" style="margin-top:8px">Preview not uploaded for this beat yet.</div>'}<div class="licence-row"><button type="button" class="btn" data-market-buy="${escM(b.id)}" data-market-license="Basic">Basic · ${naira(licensePrice(b.price_ngn,'Basic'))}</button><button type="button" class="btn primary" data-market-buy="${escM(b.id)}" data-market-license="Premium">Premium · ${naira(licensePrice(b.price_ngn,'Premium'))}</button><button type="button" class="btn" data-market-buy="${escM(b.id)}" data-market-license="Exclusive">Exclusive · ${naira(licensePrice(b.price_ngn,'Exclusive'))}</button></div><button type="button" class="btn primary full" data-market-buy="${escM(b.id)}" data-market-license="${escM(['Basic','Premium','Exclusive'].includes(String(b.default_license||''))?b.default_license:'Premium')}" data-market-purchase="1" style="margin-top:10px">🛒 Purchase</button></div>`).join('');
   }
   async function buy(id,license){
-    const beat=marketBeats.find(x=>String(x.id)===String(id)); if(!beat)return;
+    const beat=marketBeats.find(x=>String(x.id)===String(id));if(!beat)return;
     const email=String(document.getElementById('marketplaceEmail')?.value||profileEmail()).trim().toLowerCase();
     if(!/^\S+@\S+\.\S+$/.test(email)){document.getElementById('marketplaceEmail')?.focus();toast('Enter a valid customer email before checkout.');return;}
-    state.profile=state.profile||{};state.profile.email=email;state.profile.saved=true;save();
-    const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Starting secure checkout…';
+    const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Starting Cloudflare-verified Paystack checkout…';
     try{
-      if(!window.ALU_CLOUD?.client)throw new Error('Supabase connection is not ready.');
-      const {data,error}=await window.ALU_CLOUD.client.functions.invoke(FN,{body:{beat_id:beat.id,license,email,return_url:location.href}});
-      if(error){let detail=error.message||'Checkout request failed.';try{const body=await error.context.json();if(body?.error)detail=body.error}catch(_){}throw new Error(detail);}
-      if(!data?.ok)throw new Error(data?.error||'Checkout could not be started.');
-      if(status)status.textContent='Checkout ready. Opening secure payment…';
-      window.location.href=data.authorization_url;
-    }catch(e){console.error('Marketplace checkout failed',e);if(status)status.textContent='Checkout could not start. '+String(e?.message||'Please check the details and try again.').slice(0,180);toast('Checkout could not start. Please try again.');}
+      const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Sign in with your member account before purchasing.');
+      const result=await gate.request('/api/me/marketplace/checkout','POST',{beat_id:beat.id,license,email,return_url:location.href});
+      if(!result?.ok||!result.authorization_url)throw new Error(result?.error||'Checkout could not be started.');
+      if(status)status.textContent='Checkout ready. Opening Paystack…';
+      window.location.href=result.authorization_url;
+    }catch(e){console.error('Cloudflare marketplace checkout failed',e);if(status)status.textContent='Checkout could not start. '+String(e?.message||'Please check the details and try again.').slice(0,180);toast(String(e?.message||'Checkout could not start.').slice(0,150));}
   }
   let handledPaymentReference='';
   function purchaseResult(html){const box=document.getElementById('marketplacePurchaseResult');if(!box)return;box.style.display='block';box.innerHTML=html;}
   async function fetchPurchasedBeat(reference){
     const ref=String(reference||'').trim();
     if(!/^ALU-[A-Za-z0-9-]{8,80}$/.test(ref)){purchaseResult('<h3>Payment return needs checking</h3><p class="muted">The payment reference is missing or invalid. Keep your receipt and contact support if you were charged.</p>');return;}
-    purchaseResult('<h3>Checking your purchase…</h3><p class="muted">We are confirming the order and preparing your secure download.</p>');
+    purchaseResult('<h3>Checking your purchase…</h3><p class="muted">We are confirming payment and locating your order.</p>');
     try{
-      const client=window.ALU_CLOUD?.client;
-      if(!client)throw new Error('Secure connection is not ready. Refresh this page and try again.');
-      const sessionResult=await client.auth.getSession();
-      if(sessionResult.error||!sessionResult.data?.session?.access_token)throw new Error('Your purchase session is not available in this browser. Sign in with the same account and try again.');
-      const result=await client.functions.invoke('marketplace-beat-download',{body:{reference:ref}});
-      if(result.error){let detail='The download service is temporarily unavailable.';try{const body=await result.error.context.json();if(body?.error)detail=body.error}catch(_){}if(detail.toLowerCase().includes('not been confirmed')){purchaseResult('<h3>Purchase status</h3><p class="muted">Payment is still being confirmed. Tap below to check again.</p><p class="tiny muted">Reference: '+escM(ref)+'</p><button class="btn primary full" type="button" data-market-download-reference="'+escM(ref)+'">Check payment &amp; get download</button>');return;}throw new Error(detail);}
-      if(!result.data?.ok){
-        const detail=String(result.data?.error||'');
-        const message=detail.toLowerCase().includes('not been confirmed')?'Payment is still being confirmed. Tap below to check again.':detail.toLowerCase().includes('does not belong')?'Open the same browser account used to purchase this beat.':'Your payment may be complete, but the download is not ready yet. Tap below to retry.';
-        purchaseResult('<h3>Purchase status</h3><p class="muted">'+escM(message)+'</p><p class="tiny muted">Reference: '+escM(ref)+'</p><button class="btn primary full" type="button" data-market-download-reference="'+escM(ref)+'">Check payment &amp; get download</button>');
+      const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Sign in with the same member account used for checkout.');
+      const orders=await gate.request('/api/me/marketplace/orders','GET');
+      const order=(orders?.orders||[]).find(x=>String(x.paystack_reference||'')===ref);
+      if(!order)throw new Error('The order is not linked to this signed-in account yet. Sign in with the purchasing account and retry.');
+      if(order.status!=='paid'){
+        purchaseResult('<h3>Payment is still being confirmed</h3><p class="muted">Paystack has not confirmed this order yet. Check again shortly.</p><p class="tiny muted">Reference: '+escM(ref)+'</p><button class="btn primary full" type="button" data-market-download-reference="'+escM(ref)+'">Check payment again</button>');
         return;
       }
-      const title=escM(result.data.beat_title||'Purchased beat'),license=escM(result.data.license||'Licence');
-      const url=String(result.data.download_url||'');
-      if(!/^https:\/\//i.test(url))throw new Error('A secure download link was not returned. Please try again.');
-      purchaseResult('<h3>Payment confirmed ✓</h3><p><b>'+title+'</b></p><p class="muted">Licence: '+license+'</p><p class="tiny muted">Your secure download link expires in 15 minutes.</p><a class="btn primary full" href="'+escM(url)+'" target="_blank" rel="noopener" download>⬇ Download purchased beat</a><p class="tiny muted" style="margin-top:8px">Reference: '+escM(ref)+'</p>');
+      const result=await gate.request('/api/me/marketplace/orders/'+encodeURIComponent(order.id)+'/download','GET');
+      const url=String(result?.download_url||'');
+      if(!/^https:\/\//i.test(url))throw new Error('The producer has not uploaded the licensed audio file yet.');
+      const title=escM(result.title||order.beat_title||'Purchased beat'),license=escM(order.license||'Licence');
+      purchaseResult('<h3>Payment confirmed ✓</h3><p><b>'+title+'</b></p><p class="muted">Licence: '+license+'</p><a class="btn primary full" href="'+escM(url)+'" target="_blank" rel="noopener" download>⬇ Download purchased beat</a><p class="tiny muted" style="margin-top:8px">Reference: '+escM(ref)+'</p>');
       const status=document.getElementById('marketplaceStatus');if(status)status.textContent='Payment confirmed. Your purchased beat is ready.';
     }catch(e){
-      purchaseResult('<h3>Download not ready yet</h3><p class="muted">'+escM(String(e?.message||'Please try again.').slice(0,220))+'</p><p class="tiny muted">Reference: '+escM(ref)+'</p><button class="btn primary full" type="button" data-market-download-reference="'+escM(ref)+'">Retry secure download</button>');
+      purchaseResult('<h3>Download not ready yet</h3><p class="muted">'+escM(String(e?.message||'Please try again.').slice(0,220))+'</p><p class="tiny muted">Reference: '+escM(ref)+'</p><button class="btn primary full" type="button" data-market-download-reference="'+escM(ref)+'">Retry purchase check</button>');
     }
   }
   function handlePaymentReturn(){

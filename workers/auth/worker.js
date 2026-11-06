@@ -155,6 +155,9 @@ async function songsRoute(request, env, userId, url) {
     if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "audio")) {
       return json({ error: "AUDIO_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
     }
+    if (coverUrl && !trustedR2ObjectUrl(coverUrl, env, artist.id, "thumbnails")) {
+      return json({ error: "COVER_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    }
     const duration = body.duration_seconds == null ? null : Number(body.duration_seconds);
     if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 86400)) {
       return json({ error: "INVALID_DURATION" }, 400, cors);

@@ -390,6 +390,34 @@ async function adminVideosRoute(request, env, session, url) {
   return json({ error: "Method not allowed" }, 405, cors);
 }
 
+async function adminDashboardRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "GET") return null;
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  const [sales, beats, users, orders, recent] = await Promise.all([
+    env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount_ngn ELSE 0 END), 0) AS totalSales, COALESCE(SUM(CASE WHEN status = 'paid' THEN platform_fee_ngn ELSE 0 END), 0) AS platformCommission, COALESCE(SUM(CASE WHEN status = 'paid' THEN producer_payout_ngn ELSE 0 END), 0) AS producerPayouts, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paidOrders, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingOrders, COUNT(*) AS totalOrders FROM marketplace_orders").first(),
+    env.DB.prepare("SELECT COUNT(*) AS publishedBeats, COUNT(DISTINCT producer_name) AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS totalUsers FROM app_users WHERE status = 'active'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS totalOrders FROM marketplace_orders").first(),
+    env.DB.prepare("SELECT beat_title, producer_name, amount_ngn, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT 10").all()
+  ]);
+  return json({
+    ok: true,
+    stats: {
+      totalSales: Number(sales?.totalSales || 0),
+      platformCommission: Number(sales?.platformCommission || 0),
+      producerPayouts: Number(sales?.producerPayouts || 0),
+      paidOrders: Number(sales?.paidOrders || 0),
+      pendingOrders: Number(sales?.pendingOrders || 0),
+      totalOrders: Number(sales?.totalOrders || orders?.totalOrders || 0),
+      publishedBeats: Number(beats?.publishedBeats || 0),
+      connectedProducers: Number(beats?.connectedProducers || 0),
+      totalUsers: Number(users?.totalUsers || 0)
+    },
+    recentSales: recent.results || []
+  }, 200, cors);
+}
+
 async function adminCommissionRoute(request, env, session) {
   const cors = corsHeaders(request, env);
   if (request.method !== "GET") return null;
@@ -825,6 +853,17 @@ export default {
         const result = await adminCommissionRoute(request, env, session);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+      if (url.pathname === "/api/admin/dashboard" && request.method === "GET") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await adminDashboardRoute(request, env, session);
+        if (result) return result;
+      }
+
+      if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
+        const result = await marketplaceRoute(request, env, null, url);
+        if (result) return result;
       }
 
       if (url.pathname === "/api/me/marketplace/orders") {

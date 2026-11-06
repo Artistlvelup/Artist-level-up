@@ -62,7 +62,7 @@ class DataD1 {
         if (sql.includes("INSERT INTO profiles")) {
           const [id, display_name, avatar_url, created_at, updated_at] = v;
           const old = db.profiles.get(id);
-          db.profiles.set(id, { id, display_name, avatar_url, role: old?.role || "artist", created_at: old?.created_at || created_at, updated_at });
+          db.profiles.set(id, { id, display_name, avatar_url, role: old?.role || "user", created_at: old?.created_at || created_at, updated_at });
           return { success: true };
         }
         if (sql.includes("INSERT INTO artists")) {
@@ -120,7 +120,7 @@ test("profile API requires a valid session and scopes the record to that session
   const profile=(await save.json()).profile;
   assert.equal(profile.id,session.userId);
   assert.equal(profile.display_name,"Stage Name");
-  assert.equal(profile.role,"artist");
+  assert.equal(profile.role,"user");
   const read=await worker.fetch(req("/api/me/profile","GET",session.token),e);
   assert.equal((await read.json()).profile.display_name,"Stage Name");
 });

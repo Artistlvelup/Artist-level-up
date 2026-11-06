@@ -1615,37 +1615,19 @@ boot();
 
 <div class="modal" id="modal"><div class="sheet"><button class="close" data-action="closeModal">✕</button><div id="modalBody"></div></div></div><div class="toast" id="toast"></div></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script id="aluSupabaseConfig">
-window.ALU_SUPABASE_URL='https://wmtddmaxwulypvhjjntz.supabase.co';
-window.ALU_SUPABASE_PUBLISHABLE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGRkbWF4d3VseXB2aGpqbnR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNDAzMjgsImV4cCI6MjEwNTgxNjMyOH0.LaaIG2gfiN-XXEJawEztZ7L9Hc62UZkBzT-sR3LbB94';
+<script id="aluCloudflareAdminAccessV101">
 window.ALU_CLOUDFLARE_API='https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
-window.ALU_SUPABASE_CLIENT=(window.supabase&&typeof window.supabase.createClient==='function')
-  ? window.supabase.createClient(window.ALU_SUPABASE_URL,window.ALU_SUPABASE_PUBLISHABLE_KEY,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-    })
-  : null;
+window.ALU_SUPABASE_CLIENT=null;
+window.ALU_SUPABASE_URL='';
+window.ALU_SUPABASE_PUBLISHABLE_KEY='';
 window.ALU_REQUIRE_SERVER_ADMIN=async function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client) return false;
+  const gate=window.ALU_MEMBER_GATE_V101;
+  if(!gate)return false;
   try{
-    const sessionResult=await client.auth.getSession();
-    const session=sessionResult&&sessionResult.data&&sessionResult.data.session;
-    if(!session||!session.user||!session.user.id) return false;
-    const result=await client.rpc('is_platform_admin_v101');
-    if(result&&result.error) return false;
-    return result&&result.data===true;
-  }catch(e){console.warn('V101 owner authorization check failed:',e);return false;}
+    const result=await gate.request('/api/admin/session','GET');
+    return result?.isAdmin===true;
+  }catch(e){return false;}
 };
-if(window.ALU_SUPABASE_CLIENT){
-  window.ALU_SUPABASE_CLIENT.auth.onAuthStateChange(function(event,session){
-    if(event==='SIGNED_OUT'||!session){
-      window.__ALU_SERVER_ADMIN_VERIFIED=false;
-      if(window.state) window.state.adminAuthenticated=false;
-      document.body&&document.body.classList.remove('alu-server-admin-verified');
-    }
-  });
-}
 </script>
 
 <script id="aluCloudflareConnectionV101">

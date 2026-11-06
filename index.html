@@ -2386,8 +2386,8 @@ window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;
       if(!allowed){panel.style.display='none';return;}
       panel.style.display='block';box.textContent='Loading admin queue…';
       const health=document.getElementById('streamingPaymentHealth'),webhook=document.getElementById('streamingWebhookEndpoint');
-      if(webhook)webhook.textContent=window.ALU_SUPABASE_URL+'/functions/v1/marketplace-paystack-webhook';
-      try{const h=await fetch(window.ALU_SUPABASE_URL+'/functions/v1/global-payments-health',{cache:'no-store'}).then(r=>r.json());if(health)health.textContent='Payment gateway: '+(!h.paystack_configured?'Paystack is not configured — checkout is safely disabled.':h.paystack_mode==='live'?'Paystack LIVE mode configured.':h.paystack_mode==='test'?'Paystack TEST mode configured.':'Paystack key exists but its mode could not be identified.');}catch(_){if(health)health.textContent='Could not verify payment gateway configuration. Checkout remains server-verified.';}
+      if(webhook)webhook.textContent='https://artistlevelup.com.ng/api/payments/paystack/webhook';
+      try{const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');const h=await fetch(base+'/api/payments/health',{cache:'no-store'}).then(r=>r.json());if(health)health.textContent='Payment gateway: '+(!h.paystack_configured?'Paystack is not configured — checkout is safely disabled.':h.paystack_mode==='live'?'Paystack LIVE mode configured.':h.paystack_mode==='test'?'Paystack TEST mode configured.':'Paystack key exists but its mode could not be identified.');}catch(_){if(health)health.textContent='Could not verify payment gateway configuration. Checkout remains server-verified.';}
       const result=await streamingInvoke({operation:'admin_list'}),rows=result.requests||[];
       if(!rows.length){box.innerHTML='No streaming distribution requests have been submitted yet.';return;}
       box.innerHTML=rows.map(r=>{

@@ -113,6 +113,22 @@ async function artistRoute(request, env, userId) {
     ).bind(userId).first();
     return json({ artist: row || null }, 200, corsHeaders(request, env));
   }
+  if (request.method === "PUT") {
+    const body = await readJson(request);
+    const artistName = cleanText(body.artist_name, 100, true);
+    const bio = cleanText(body.bio, 2000);
+    const genre = cleanText(body.genre, 80);
+    const country = cleanText(body.country, 80);
+    if (!artistName) return json({ error: "Artist name is required" }, 400, corsHeaders(request, env));
+    const result = await env.DB.prepare(
+      "UPDATE artists SET artist_name = ?, bio = ?, genre = ?, country = ?, updated_at = ? WHERE user_id = ? AND suspended = 0"
+    ).bind(artistName, bio, genre, country, new Date().toISOString(), userId).run();
+    if (!result.meta?.changes) return json({ error: "Active artist account not found" }, 404, corsHeaders(request, env));
+    const row = await env.DB.prepare(
+      "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE user_id = ? LIMIT 1"
+    ).bind(userId).first();
+    return json({ artist: row }, 200, corsHeaders(request, env));
+  }
   if (request.method !== "POST") return null;
   const body = await readJson(request);
   const artistName = cleanText(body.artist_name, 100, true);

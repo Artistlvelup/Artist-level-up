@@ -2913,37 +2913,30 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     return base.apply(this,arguments);
   };
 })();</script>
-<script id="musicReviewCloudSync">(function(){
+<script id="musicReviewCloudSync">
+(function(){
   async function syncModerationStatus(song,status){
+    if(!song?.remoteSongId)return;
+    const remote=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'archived':'draft';
     try{
-      const client=window.ALU_SUPABASE_CLIENT;
-      if(!client || !song) return;
-      /* Repair uploads that exist only in this browser first. The old moderation
-         path skipped these because remoteSongId was missing, leaving the song
-         invisible outside this device. */
-      if(!song.remoteSongId && window.ALU_CLOUD?.syncSongs){
-        try{await window.ALU_CLOUD.syncSongs()}catch(e){console.warn('Music moderation cloud recovery skipped:',e)}
-      }
-      if(!song.remoteSongId) return;
-      const remote=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'archived':'draft';
-      const r=await client.from('songs').update({status:remote}).eq('id',song.remoteSongId);
-      if(r.error) console.warn('Music moderation cloud sync failed:',r.error);
-      else song.cloudStatus=remote;
-    }catch(e){console.warn('Music moderation cloud sync failed:',e)}
+      await window.ALU_MEMBER_GATE_V101.request('/api/admin/songs/'+encodeURIComponent(song.remoteSongId),'PATCH',{status:remote});
+      song.cloudStatus=remote;
+    }catch(e){console.warn('Cloudflare music moderation sync failed:',e);toast('Cloud moderation failed: '+String(e?.message||e).slice(0,120));}
   }
   const baseAction=window.action;
   window.action=async function(a,el){
     const result=await baseAction(a,el);
     if(['approveSong','publishSong','rejectSong'].includes(a)){
       const id=String(el?.dataset?.songId||'');
-      const song=(state.songs||[]).find(s=>String(s.id)===id);
-      if(song) await syncModerationStatus(song,song.status);
+      const song=(state.songs||[]).find(x=>String(x.id)===id||String(x.remoteSongId)===id);
+      if(song)await syncModerationStatus(song,song.status);
       try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
-      if(a==='publishSong') setTimeout(()=>window.ALU_REFRESH_PUBLIC_MUSIC?.(true),250);
+      if(a==='publishSong')setTimeout(()=>window.ALU_REFRESH_PUBLIC_MUSIC?.(true),250);
     }
     return result;
   };
-})();</script>
+})();
+</script>
 <script id="musicPersistenceRepairV2">
 (function(){
   /* Keep published music playable after approval/publish and preserve cover art.

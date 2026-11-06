@@ -1,5 +1,6 @@
 -- V101: one-time, short-lived tokens for the existing email-link login flow.
 -- Additive only. Does not migrate, modify, or delete user accounts or media.
+-- Applied by .github/workflows/v101-d1-migrations.yml through Wrangler.
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS app_login_link_tokens (
   token_hash TEXT PRIMARY KEY NOT NULL,

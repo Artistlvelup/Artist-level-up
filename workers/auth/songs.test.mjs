@@ -30,6 +30,13 @@ class SongsD1 {
       },
       async run(){
         const v=this.values;
+        if(sql.includes("UPDATE app_sessions SET expires_at = ?")) {
+          const [expiresAt,hash,now]=v;
+          const session=db.sessions.get(hash);
+          if(!session||session.revoked_at!==null||session.expires_at<=now)return {success:true,meta:{changes:0}};
+          session.expires_at=expiresAt;
+          return {success:true,meta:{changes:1}};
+        }
         if(sql.includes("INSERT INTO songs")) {
           const [id,artist_id,title,genre,cover_url,duration_seconds,created_at,updated_at]=v;
           db.songs.set(id,{id,artist_id,title,genre,audio_url:null,cover_url,duration_seconds,status:"draft",created_at,updated_at});

@@ -3995,7 +3995,16 @@ async function render77(){
       if(cloud.length){const seen=new Set(cloud.map(v=>String(v.id)));videos=cloud.concat(videos.filter(v=>!seen.has(String(v.id))));}
     }catch(e){console.warn('Cloudflare global video feed skipped:',e?.message||e)}
   })();
-  const pictureTask=Promise.resolve().then(()=>{cloudPictures=[];});
+  const pictureTask=(async()=>{
+    try{
+      const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');
+      if(!base)return;
+      const response=await fetch(base+'/api/public/pictures?limit=50',{cache:'no-store'});
+      if(!response.ok)throw new Error('Cloudflare picture feed returned '+response.status);
+      const data=await response.json();
+      cloudPictures=(data?.pictures||[]).map(p=>({kind:'picture',id:p.id,image_url:p.image_url,caption:p.caption||'',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||''}));
+    }catch(e){console.warn('Cloudflare picture feed skipped:',e?.message||e);cloudPictures=[];}
+  })();
   await Promise.allSettled([videoTask,pictureTask]);
   const ordered=[...videos,...cloudPictures].sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);
   /* Pictures uploaded together share a timestamp, caption and artist. Group them into one horizontal swipe gallery; video posts remain vertical. */

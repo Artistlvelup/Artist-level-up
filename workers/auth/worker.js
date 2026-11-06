@@ -424,6 +424,40 @@ function constantTimeTextEqual(a, b) {
   return diff === 0;
 }
 
+async function memberAccountPinRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  let body;
+  try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  const pin = String(body?.pin || "");
+  if (!/^\\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
+  const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16)));
+  const iterations = 210000;
+  const hash = await deriveAdminPinHash(pin, salt, iterations);
+  await env.DB.prepare(
+    "INSERT INTO member_account_pins (user_id, pin_hash, pin_salt, pin_iterations, pin_changed_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET pin_hash = excluded.pin_hash, pin_salt = excluded.pin_salt, pin_iterations = excluded.pin_iterations, pin_changed_at = excluded.pin_changed_at"
+  ).bind(session.user_id, hash, salt, iterations, new Date().toISOString()).run();
+  return json({ ok: true, pinConfigured: true }, 200, cors);
+}
+
+async function verifyMemberAccountPin(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  let body;
+  try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  const pin = String(body?.pin || "");
+  if (!/^\\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
+  const saved = await env.DB.prepare(
+    "SELECT pin_hash, pin_salt, pin_iterations FROM member_account_pins WHERE user_id = ? LIMIT 1"
+  ).bind(session.user_id).first();
+  if (!saved?.pin_hash || !saved?.pin_salt || !saved?.pin_iterations) {
+    return json({ error: "Account PIN has not been configured", pinConfigured: false }, 409, cors);
+  }
+  const hash = await deriveAdminPinHash(pin, saved.pin_salt, Number(saved.pin_iterations));
+  if (!constantTimeTextEqual(hash, saved.pin_hash)) return json({ error: "Incorrect PIN" }, 401, cors);
+  return json({ ok: true, verified: true }, 200, cors);
+}
+
 async function adminPinRoute(request, env, session) {
   const cors = corsHeaders(request, env);
   if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
@@ -1199,6 +1233,13 @@ export default {
         if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
         const result = await picturePostsRoute(request, env, session.user_id, url, "admin");
         if (result) return result;
+      }
+
+      if (url.pathname === "/api/me/pin" || url.pathname === "/api/me/pin/verify") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (url.pathname === "/api/me/pin/verify") return await verifyMemberAccountPin(request, env, session);
+        return await memberAccountPinRoute(request, env, session);
       }
 
       if (url.pathname === "/api/me/pictures") {

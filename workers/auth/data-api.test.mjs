@@ -59,6 +59,13 @@ class DataD1 {
       },
       async run() {
         const v = this.values;
+        if (sql.includes("UPDATE app_sessions SET expires_at = ?")) {
+          const [expiresAt, hash, now] = v;
+          const session = db.sessions.get(hash);
+          if (!session || session.revoked_at !== null || session.expires_at <= now) return { success: true, meta: { changes: 0 } };
+          session.expires_at = expiresAt;
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("INSERT INTO profiles")) {
           const [id, display_name, avatar_url, created_at, updated_at] = v;
           const old = db.profiles.get(id);

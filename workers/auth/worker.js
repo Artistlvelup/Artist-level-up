@@ -230,7 +230,7 @@ async function publicSongsRoute(request, env, url) {
   if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
   const limit = Math.min(50, rawLimit);
   const rows = await env.DB.prepare(
-    "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, created_at FROM songs WHERE status IN ('published', 'approved') ORDER BY created_at DESC LIMIT ?"
+    "SELECT s.id, s.artist_id, a.artist_name, s.title, s.genre, s.audio_url, s.cover_url, s.duration_seconds, s.status, s.created_at FROM songs s LEFT JOIN artists a ON a.id = s.artist_id WHERE s.status IN ('published', 'approved') ORDER BY s.created_at DESC LIMIT ?"
   ).bind(limit).all();
   return json({ songs: rows.results || [] }, 200, corsHeaders(request, env));
 }

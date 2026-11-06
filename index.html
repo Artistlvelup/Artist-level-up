@@ -6525,7 +6525,7 @@ function ensureGate(){
   var email=document.getElementById('aluMemberLoginEmail').value.trim().toLowerCase(),password=document.getElementById('aluMemberLoginPassword').value,err=document.getElementById('aluMemberLoginError'),b=this;err.textContent='';
   if(!emailOK(email)||!password){err.textContent='Enter your email and password.';return}
   b.disabled=true;b.textContent='LOGGING IN…';
-  try{var result=await loginMemberAccount(email,password);if(result.token)saveToken(result.token);else throw new Error('No session token was returned.');var loginPending=pending();if(String(loginPending.email||'').toLowerCase()!==email)loginPending.name='';loginPending.email=email;setPending(loginPending);if(await resumeCloudMember()){memberRestoreDone=true;close();try{toast('Welcome back ✓')}catch(e){}}else{err.textContent='Login accepted, but your member profile could not be restored. Refresh and try again.'}}
+  try{var result=await loginMemberAccount(email,password);if(result.token)saveToken(result.token);else throw new Error('No session token was returned.');var loginPending=pending();if(String(loginPending.email||'').toLowerCase()!==email)loginPending.name='';loginPending.email=email;setPending(loginPending);if(await resumeCloudMember()){memberRestoreDone=true;close();try{toast('Welcome back ✓')}catch(e){}}else{err.textContent='Login accepted, but profile restoration failed: '+(window.__ALU_MEMBER_RESTORE_ERROR||'Please refresh and try again.')}}
   catch(e){err.textContent=e.message||'Incorrect email or password. Please try again.'}
   finally{b.disabled=false;b.textContent='Log in'}
  });

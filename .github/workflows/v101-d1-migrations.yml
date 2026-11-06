@@ -1,4 +1,4 @@
-name: V101 Cloudflare D1 migrations
+name: V101 Cloudflare D1 migrations and Worker deploy
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - V101-launch-hardening-2026-10-13
     paths:
       - "cloudflare/migrations/**"
+      - "workers/auth/**"
       - "wrangler.toml"
       - ".github/workflows/v101-d1-migrations.yml"
   workflow_dispatch:
@@ -14,18 +15,30 @@ permissions:
   contents: read
 
 concurrency:
-  group: v101-d1-migrations
+  group: v101-d1-migrations-and-worker
   cancel-in-progress: false
 
 jobs:
-  apply-d1-migrations:
+  migrate-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout V101
         uses: actions/checkout@v4
+      - name: Set up Node for Worker tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify Worker and API tests before production changes
+        run: node --test workers/auth/*.test.mjs
       - name: Apply ordered migrations to the V101 production D1 database
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: "2fc40d7fc6991a70d81f33bf57bd5cb4"
           command: d1 migrations apply artist_level_up_v101 --remote --config wrangler.toml
+      - name: Deploy the tested V101 Cloudflare Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "2fc40d7fc6991a70d81f33bf57bd5cb4"
+          command: deploy --config wrangler.toml

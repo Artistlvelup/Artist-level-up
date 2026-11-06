@@ -5,6 +5,8 @@ on:
     branches:
       - V101-launch-hardening-2026-10-13
     paths:
+      - "index.html"
+      - "scripts/check-inline-js.mjs"
       - "workers/auth/**"
       - "cloudflare/migrations/**"
       - "wrangler.toml"
@@ -29,5 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check V101 inline JavaScript syntax
+        run: node scripts/check-inline-js.mjs
       - name: Run V101 Worker tests
         run: node --test workers/auth/*.test.mjs

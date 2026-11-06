@@ -10,7 +10,7 @@ CREATE TABLE profiles_v101_new (
 );
 INSERT INTO profiles_v101_new (id, display_name, avatar_url, role, created_at, updated_at)
 SELECT id, display_name, avatar_url,
-       CASE WHEN role = 'artist' AND EXISTS (SELECT 1 FROM artists WHERE artists.user_id = profiles.id) THEN 'artist' ELSE role END,
+       CASE WHEN role = 'artist' AND NOT EXISTS (SELECT 1 FROM artists WHERE artists.user_id = profiles.id) THEN 'user' ELSE role END,
        created_at, updated_at
 FROM profiles;
 DROP TABLE profiles;

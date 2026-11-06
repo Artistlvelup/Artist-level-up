@@ -2164,7 +2164,37 @@ document.getElementById('player').addEventListener('click',e=>{
 document.addEventListener('click',e=>{const fa=e.target.closest('[data-full-action]');if(fa){const a=fa.dataset.fullAction;if(a==='close')closeFull();else if(a==='minimize')minimizeFull();else if(a==='toggle')fullToggle();else if(a==='like'){if(current)toggleLike(current.id);syncFullPlayer()}else if(a==='next'||a==='prev'){const arr=state.songs;let i=Math.max(0,arr.findIndex(x=>x.id===current?.id));let ni=a==='next'?(i+1)%arr.length:(i-1+arr.length)%arr.length;play(arr[ni].id)}return}const row=e.target.closest('.song');if(row&&!e.target.closest('button')){const b=row.querySelector('[data-play]');if(b)play(b.dataset.play)}});
 document.getElementById('closeMoneyBreakdown')?.addEventListener('click',()=>{const box=document.getElementById('moneyBreakdown');if(box)box.style.display='none';});document.getElementById('campaignDuration')?.addEventListener('change',()=>renderAll());document.getElementById('campaignBudget')?.addEventListener('change',()=>renderAll());
 const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
-const oldPublish=publishUploadedSong; publishUploadedSong=async function(){const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];if(!t||!a){alert('Add a song title and audio file first.');return}if(c&&!await validateSquareArtwork(c))return;if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}if(btn){btn.disabled=true;btn.textContent='UPLOADING…'}try{const id='song_'+Date.now(),audioKey='audio_'+id;const remoteAudio=await aluPutAudio(audioKey,a);const audioUrl=URL.createObjectURL(a);aluAudioUrlCache.set(String(audioKey),audioUrl);let cover='';if(c)cover=await imageToDataURL(c,800,.82);state.songs=state.songs||[];state.songs.unshift({id,title:t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioKey,audioUrl,audioRemoteUrl:remoteAudio?.url||'',audioStoragePath:remoteAudio?.path||'',coverArt:cover,status:'Pending Review'});save();if(remoteAudio?.remote&&window.ALU_CLOUD?.syncSongs){try{await window.ALU_CLOUD.syncSongs();save()}catch(e){console.warn('Floating upload cloud sync failed:',e)}}closeUpload();document.getElementById('upTitle').value='';document.getElementById('upGenre').value='';document.getElementById('upAudio').value='';document.getElementById('upCover').value='';alert('🎵 '+t+' was submitted for admin review.');}catch(err){console.error('Floating upload failed',err);alert('Music upload failed. Please choose the audio again and retry.')}finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}};
+const oldPublish=publishUploadedSong; publishUploadedSong=async function(){
+ const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');
+ const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];
+ if(!t||!a){alert('Add a song title and audio file first.');return}
+ if(c&&!await validateSquareArtwork(c))return;
+ if(!a.type.startsWith('audio/')){alert('Please choose a valid audio file.');return}
+ if(btn){btn.disabled=true;btn.textContent='UPLOADING TO CLOUDFLARE…'}
+ try{
+  const gate=window.ALU_MEMBER_GATE_V101;
+  if(!gate)throw new Error('Cloudflare member access is not ready. Please sign in again.');
+  await gate.ensureArtist();
+  const remoteAudio=await gate.uploadAudio(a);
+  let coverUrl='';
+  if(c){const uploadedCover=await gate.uploadMedia(c,'thumbnail');coverUrl=uploadedCover.url;}
+  const created=await gate.createSong({title:t,genre:g,audio_url:remoteAudio.url,cover_url:coverUrl||null});
+  const song=created?.song;
+  if(!song?.id)throw new Error('Cloudflare uploaded the audio but did not confirm the song record.');
+  const audioUrl=remoteAudio.url;
+  state.songs=state.songs||[];
+  state.songs.unshift({id:song.id,remoteSongId:song.id,title:song.title||t,artist:state.profile?.name||'Artist Level Up',genre:g,country:state.profile?.country||'Nigeria',streams:0,plays:0,liked:false,local:true,audioUrl,audioRemoteUrl:audioUrl,audioStoragePath:remoteAudio.path,coverArt:coverUrl,status:'Pending Review',cloudSaved:true});
+  save();
+  closeUpload();
+  document.getElementById('upTitle').value='';
+  document.getElementById('upGenre').value='';
+  document.getElementById('upAudio').value='';
+  document.getElementById('upCover').value='';
+  alert('🎵 '+t+' was uploaded to Cloudflare and submitted for admin review.');
+ }catch(err){console.error('Cloudflare music upload failed',err);alert(err?.message||'Music upload failed. Please try again.')}
+ finally{if(btn){btn.disabled=false;btn.textContent='📤 PUBLISH SONG'}}
+};
+
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){

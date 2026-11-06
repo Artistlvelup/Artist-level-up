@@ -1,4 +1,5 @@
 name = "artist-level-up-v101"
+account_id = "2fc40d7fc6991a70d81f33bf57bd5cb4"
 main = "workers/auth/worker.js"
 compatibility_date = "2026-10-29"
 

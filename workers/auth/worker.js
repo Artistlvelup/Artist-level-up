@@ -559,6 +559,59 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
   return json({ ok: true, title: order.beat_title, download_url: order.audio_file_url }, 200, corsHeaders(request, env));
 }
 
+async function picturePostsRoute(request, env, userId, url, mode = "member") {
+  const cors = corsHeaders(request, env);
+  if (mode === "public" && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT p.id, p.image_url, p.caption, p.artist_name, p.created_at, p.sound_title, p.sound_audio_url FROM picture_posts p WHERE p.status IN ('approved','published') ORDER BY p.created_at DESC LIMIT 50"
+    ).all();
+    return json({ pictures: rows.results || [] }, 200, cors);
+  }
+  if (mode === "admin") {
+    if (request.method === "GET") {
+      const rows = await env.DB.prepare(
+        "SELECT id, user_id, artist_id, image_url, caption, artist_name, status, created_at, sound_title, sound_audio_url FROM picture_posts ORDER BY created_at DESC LIMIT 100"
+      ).all();
+      return json({ pictures: rows.results || [] }, 200, cors);
+    }
+    if (request.method === "PATCH") {
+      const id = url.pathname.slice("/api/admin/pictures/".length);
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Invalid picture ID" }, 400, cors);
+      let body;
+      try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+      const status = String(body?.status || "");
+      if (!new Set(["approved", "published", "rejected", "hidden"]).has(status)) return json({ error: "Invalid picture status" }, 400, cors);
+      const result = await env.DB.prepare("UPDATE picture_posts SET status = ? WHERE id = ?").bind(status, id).run();
+      if (!result.meta?.changes) return json({ error: "Picture not found" }, 404, cors);
+      return json({ ok: true, id, status }, 200, cors);
+    }
+    return null;
+  }
+  if (request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, image_url, caption, artist_name, status, created_at, sound_title, sound_audio_url FROM picture_posts WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
+    ).bind(userId).all();
+    return json({ pictures: rows.results || [] }, 200, cors);
+  }
+  if (request.method === "POST") {
+    const artist = await env.DB.prepare("SELECT id, artist_name FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1").bind(userId).first();
+    if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+    let body;
+    try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const imageUrl = cleanText(body?.image_url, 2048, true);
+    if (!imageUrl || !trustedR2ObjectUrl(imageUrl, env, artist.id, "pictures")) return json({ error: "PICTURE_URL_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    const id = crypto.randomUUID(), now = new Date().toISOString();
+    const caption = cleanText(body?.caption, 1000);
+    const soundTitle = cleanText(body?.sound_title, 160);
+    const soundAudioUrl = cleanText(body?.sound_audio_url, 2048);
+    await env.DB.prepare(
+      "INSERT INTO picture_posts (id, user_id, artist_id, image_url, caption, artist_name, status, created_at, sound_title, sound_audio_url) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)"
+    ).bind(id, userId, artist.id, imageUrl, caption, artist.artist_name, now, soundTitle, soundAudioUrl).run();
+    return json({ ok: true, picture: { id, image_url: imageUrl, caption, artist_name: artist.artist_name, status: "pending", created_at: now } }, 201, cors);
+  }
+  return null;
+}
+
 async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
   const cors = corsHeaders(request, env);
   if (admin && request.method === "GET") {
@@ -1063,6 +1116,24 @@ export default {
         if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
         const result = await marketplaceBeatsRoute(request, env, session.user_id, url, true, session.role);
         if (result) return result;
+      }
+      if (url.pathname === "/api/admin/pictures" || /^\/api\/admin\/pictures\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+        const result = await picturePostsRoute(request, env, session.user_id, url, "admin");
+        if (result) return result;
+      }
+
+      if (url.pathname === "/api/me/pictures") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await picturePostsRoute(request, env, session.user_id, url, "member");
+        if (result) return result;
+      }
+
+      if (url.pathname === "/api/public/pictures" && request.method === "GET") {
+        return await picturePostsRoute(request, env, null, url, "public");
       }
 
       if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {

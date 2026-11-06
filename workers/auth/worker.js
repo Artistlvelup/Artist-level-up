@@ -590,16 +590,19 @@ async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
     const bpm = body?.bpm == null || body.bpm === "" ? null : Number(body.bpm);
     const price = Number(body?.price_ngn);
     const audioUrl = cleanText(body?.audio_file_url, 2048, true);
+    const previewUrl = cleanText(body?.audio_preview_url || body?.audio_file_url, 2048, true);
     const license = cleanText(body?.default_license || "Premium", 24, true);
-    if (!title || !audioUrl || !Number.isFinite(price) || price <= 0 || (bpm != null && (!Number.isInteger(bpm) || bpm < 30 || bpm > 300))) {
-      return json({ error: "Enter a title, valid price, and uploaded beat audio" }, 400, cors);
+    if (!title || !audioUrl || !previewUrl || !Number.isFinite(price) || price <= 0 || (bpm != null && (!Number.isInteger(bpm) || bpm < 30 || bpm > 300))) {
+      return json({ error: "Enter a title, valid price, and uploaded beat master and preview" }, 400, cors);
     }
-    if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "beats")) return json({ error: "BEAT_AUDIO_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "beats") || !trustedR2ObjectUrl(previewUrl, env, artist.id, "beats")) {
+      return json({ error: "BEAT_AUDIO_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    }
     if (!new Set(["Basic", "Premium", "Exclusive"]).has(license)) return json({ error: "Invalid default licence" }, 400, cors);
     const id = crypto.randomUUID(), now = new Date().toISOString();
     await env.DB.prepare(
       "INSERT INTO marketplace_beats (id, producer_user_id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'pending', ?)"
-    ).bind(id, userId, title, artist.artist_name, genre, mood, bpm, price, license, audioUrl, audioUrl, now).run();
+    ).bind(id, userId, title, artist.artist_name, genre, mood, bpm, price, license, previewUrl, audioUrl, now).run();
     return json({ ok: true, beat: { id, title, producer_name: artist.artist_name, status: "draft", moderation_status: "pending" } }, 201, cors);
   }
   if (admin && request.method === "PATCH") {

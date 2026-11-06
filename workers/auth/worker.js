@@ -727,9 +727,17 @@ async function validateSession(request, env) {
     "UPDATE app_sessions SET expires_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
   ).bind(now + SESSION_TTL_SECONDS, tokenHash, now).run();
   const row = await env.DB.prepare(
-    "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'user' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
+    "SELECT s.user_id, s.expires_at, c.email_normalized, c.email_verified_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'user' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id LEFT JOIN app_credentials c ON c.user_id = s.user_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
   ).bind(tokenHash, now).first();
-  return row || null;
+  if (!row) return null;
+  const configuredOwner = String(env.OWNER_EMAIL || '').trim().toLowerCase();
+  if (configuredOwner && row.email_verified_at && String(row.email_normalized || '').toLowerCase() === configuredOwner && row.role !== 'admin') {
+    await env.DB.prepare(
+      "INSERT INTO platform_admins (user_id, active, created_at, created_by) VALUES (?, 1, ?, ?) ON CONFLICT(user_id) DO UPDATE SET active = 1"
+    ).bind(row.user_id, new Date().toISOString(), row.user_id).run();
+    row.role = 'admin';
+  }
+  return row;
 }
 
 export default {
@@ -893,6 +901,11 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return json({ userId: session.user_id, expiresAt: session.expires_at, role: session.role }, 200, cors);
+      }
+      if (url.pathname === "/api/admin/session" && request.method === "GET") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return json({ ok: true, isAdmin: session.role === "admin", role: session.role }, 200, cors);
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {

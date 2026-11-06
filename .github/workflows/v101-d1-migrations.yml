@@ -1,0 +1,31 @@
+name: V101 Cloudflare D1 migrations
+
+on:
+  push:
+    branches:
+      - V101-launch-hardening-2026-10-13
+    paths:
+      - "cloudflare/migrations/**"
+      - "wrangler.toml"
+      - ".github/workflows/v101-d1-migrations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v101-d1-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-d1-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V101
+        uses: actions/checkout@v4
+      - name: Apply ordered migrations to the V101 production D1 database
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "2fc40d7fc6991a70d81f33bf57bd5cb4"
+          command: d1 migrations apply artist_level_up_v101 --remote --config wrangler.toml

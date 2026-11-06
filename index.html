@@ -3574,7 +3574,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   }
   async function refreshVideos(){
     const st=getState()||{}; repairVideoDurableUrls(st); let remote=[];
-    try{if(window.ALU_CLOUD?.client){const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').in('status',['pending','approved','published']).order('created_at',{ascending:false}).limit(20);if(!q.error)remote=q.data||[];else console.warn('Video feed sync failed:',q.error)}}catch(e){console.warn('Video feed sync skipped:',e)}
+    try{const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');if(base){const response=await fetch(base+'/api/public/videos?limit=20',{cache:'no-store'});if(response.ok){const data=await response.json();remote=data?.videos||[];}}}catch(e){console.warn('Cloudflare video feed sync skipped:',e)}
     const locals=stateVideos(st);
     function localMatchesCloud(v,r){
       if(String(v.remoteVideoId||'')===String(r.id))return true;
@@ -3589,14 +3589,11 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   }
   async function refreshAdminVideos(){
     const st=getState()||{};let remote=[];
-    try{if(window.ALU_CLOUD?.client){const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').in('status',['pending','approved','published','rejected']).order('created_at',{ascending:false}).limit(100);if(!q.error)remote=q.data||[];else console.warn('Admin video query failed:',q.error)}}catch(e){console.warn('Admin video query failed:',e)}
-    /* Direct REST fallback keeps Admin review working even if the Supabase JS client is unavailable. */
-    if(!remote.length){
-      try{
-        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-        if(base&&key){const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&order=created_at.desc&limit=100',{headers:{apikey:key,authorization:'Bearer '+key}});if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];if(Array.isArray(data))remote=data.filter(x=>['pending','approved','published','rejected'].includes(String(x.status||'')))}catch(_){}}}
-      }catch(e){console.warn('Admin video REST fallback failed:',e)}
-    }
+    try{
+      const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Cloudflare member access is not ready.');
+      const result=await gate.request('/api/admin/videos?limit=100','GET');
+      remote=Array.isArray(result?.videos)?result.videos:[];
+    }catch(e){console.warn('Cloudflare admin video query failed:',e);toastMsg('Admin video queue could not be loaded: '+String(e?.message||e).slice(0,120));}
     const locals=stateVideos(st);const byRemote=new Map(remote.map(r=>[String(r.id),r]));
     const merged=remote.map(r=>({id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''}));
     locals.filter(v=>v.remoteVideoId&&!byRemote.has(String(v.remoteVideoId))||!v.remoteVideoId).forEach(v=>merged.push(v));
@@ -3619,52 +3616,25 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     return '';
   }
   async function deleteArtistVideo(id){
-    const st=getState()||{}; const v=stateVideos(st).find(x=>String(x.id)===String(id));
+    const st=getState()||{};const v=stateVideos(st).find(x=>String(x.id)===String(id));
     if(!v){toastMsg('Video not found');return false;}
     const title=v.title||'this video';
-    if(!confirm(`Remove “${title}” permanently?
-
-This will remove the video record and, when permitted, its uploaded Storage file. This cannot be undone.`))return false;
+    if(!confirm(`Remove “${title}” from Artist Level Up? The video record will be removed; its R2 storage object will be retained for safe cleanup.`))return false;
     const remoteId=v.remoteVideoId||String(v.id).replace(/^cloud_/,'');
-    if(window.ALU_CLOUD?.client&&remoteId&&/^[0-9a-f-]{20,}$/i.test(remoteId)){
-      try{
-        if(typeof window.ALU_CLOUD.ensureSession==='function'){
-          const uid=await window.ALU_CLOUD.ensureSession(); if(!uid){toastMsg('Admin cloud session could not be established.');return false;}
-        }
-        const path=videoStoragePathFromUrl(v);
-        if(path){
-          const sr=await window.ALU_CLOUD.client.storage.from('music').remove([path]);
-          if(sr.error)console.warn('Video Storage delete failed:',sr.error);
-        }
-        const dr=await window.ALU_CLOUD.client.from('artist_videos').delete().eq('id',remoteId).select('id').maybeSingle();
-        if(dr.error){console.warn('Video record delete failed:',dr.error);toastMsg('Cloud delete failed: '+String(dr.error.message||dr.error).slice(0,140));return false;}
-        if(dr.data && String(dr.data.id)!==String(remoteId)){toastMsg('Cloud delete did not remove this video.');return false;}
-      }catch(err){console.warn('Video permanent delete failed:',err);toastMsg('Cloud delete failed: '+String(err?.message||err).slice(0,140));return false;}
+    if(remoteId&&/^[0-9a-f-]{36}$/i.test(remoteId)){
+      try{await window.ALU_MEMBER_GATE_V101.request('/api/admin/videos/'+encodeURIComponent(remoteId),'DELETE');}
+      catch(err){console.warn('Cloudflare video record delete failed:',err);toastMsg('Cloud delete failed: '+String(err?.message||err).slice(0,140));return false;}
     }
-    const next=stateVideos(st).filter(x=>String(x.id)!==String(id)&&String(x.remoteVideoId||'')!==String(remoteId));
-    st.videos=next;saveState(st);renderAdminVideoQueue();renderVideos();toastMsg('🗑️ Video removed permanently ✓');return true;
+    st.videos=stateVideos(st).filter(x=>String(x.id)!==String(id)&&String(x.remoteVideoId||'')!==String(remoteId));
+    saveState(st);renderAdminVideoQueue();renderVideos();toastMsg('Video record removed ✓');return true;
   }
   async function setVideoStatus(id,status){
     const st=getState()||{};const v=stateVideos(st).find(x=>String(x.id)===String(id));if(!v)return false;
     const remoteId=v.remoteVideoId||String(v.id).replace(/^cloud_/,'');
     const nextStatus=status==='Published'?'published':status==='Approved'?'approved':status==='Rejected'?'rejected':'pending';
-    if(window.ALU_CLOUD?.client&&remoteId&&/^[0-9a-f-]{20,}$/i.test(remoteId)){
-      try{
-        // Admin moderation uses the authenticated Supabase role. The old code wrote
-        // directly with the anonymous role, so RLS correctly rejected the UPDATE and
-        // a later refresh changed the local "Approved/Published" label back to Pending.
-        if(typeof window.ALU_CLOUD.ensureSession==='function'){
-          const uid=await window.ALU_CLOUD.ensureSession();
-          if(!uid){toastMsg('Admin cloud session could not be established.');return false;}
-        }
-        const r=await window.ALU_CLOUD.client.from('artist_videos').update({status:nextStatus}).eq('id',remoteId).select('id,status').maybeSingle();
-        if(r.error){console.warn('Video moderation sync failed:',r.error);toastMsg('Cloud moderation failed: '+String(r.error.message||r.error).slice(0,120));return false;}
-        if(!r.data||String(r.data.id)!==String(remoteId)||String(r.data.status)!==String(nextStatus)){
-          console.warn('Video moderation updated 0 rows or returned an unexpected status:',r.data);
-          toastMsg('Cloud moderation did not change this video. Refresh and try again.');
-          return false;
-        }
-      }catch(err){console.warn('Video moderation sync failed:',err);toastMsg('Cloud moderation failed: '+String(err?.message||err).slice(0,120));return false;}
+    if(remoteId&&/^[0-9a-f-]{36}$/i.test(remoteId)){
+      try{await window.ALU_MEMBER_GATE_V101.request('/api/admin/videos/'+encodeURIComponent(remoteId),'PATCH',{status:nextStatus});}
+      catch(err){console.warn('Cloudflare video moderation failed:',err);toastMsg('Cloud moderation failed: '+String(err?.message||err).slice(0,120));return false;}
     }
     v.status=status;saveState(st);renderAdminVideoQueue();renderVideos();return true;
   }
@@ -3693,30 +3663,18 @@ This will remove the video record and, when permitted, its uploaded Storage file
     if(a==='approveArtistVideo'||a==='publishArtistVideo'||a==='rejectArtistVideo'){
       const id=String(el?.dataset?.videoId||'');
       const st=getState()||{}; let v=(st.videos||[]).find(x=>String(x.id)===id);
-      /* Admin queue can render a cloud-only record as cloud_<uuid>. Recover that
-         record from Supabase before showing the misleading 'Video not found'. */
+      /* Recover cloud-only videos from the Cloudflare admin queue. */
       if(!v){
         const remoteId=id.replace(/^cloud_/,'');
-        if(/^[0-9a-f-]{20,}$/i.test(remoteId)){
+        if(/^[0-9a-f-]{36}$/i.test(remoteId)){
           try{
-            let r=null;
-            if(window.ALU_CLOUD?.client){
-              const q=await window.ALU_CLOUD.client.from('artist_videos').select('id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id').eq('id',remoteId).maybeSingle();
-              if(!q.error)r=q.data||null;
-            }
-            if(!r){
-              const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-              const key=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-              if(base&&key){
-                const rr=await fetch(base+'/rest/v1/artist_videos?select=id,title,description,video_url,thumbnail_url,status,tiktok_url,instagram_url,facebook_url,youtube_url,views,likes,created_at,artist_id&id=eq.'+encodeURIComponent(remoteId),{headers:{apikey:key,authorization:'Bearer '+key}});
-                if(rr.ok){const txt=await rr.text();try{const data=txt?JSON.parse(txt):[];r=Array.isArray(data)?(data[0]||null):data}catch(_) {}}
-              }
-            }
+            const result=await window.ALU_MEMBER_GATE_V101.request('/api/admin/videos?limit=100','GET');
+            const r=(result?.videos||[]).find(x=>String(x.id)===remoteId);
             if(r){
               v={id:'cloud_'+r.id,remoteVideoId:r.id,title:r.title,description:r.description||'',videoUrl:r.video_url||'',thumbnailUrl:r.thumbnail_url||'',status:r.status==='published'?'Published':r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending Review',views:r.views||0,likes:r.likes||0,tiktok:r.tiktok_url||'',instagram:r.instagram_url||'',facebook:r.facebook_url||'',youtube:r.youtube_url||'',createdAt:r.created_at||''};
               st.videos=Array.isArray(st.videos)?st.videos:[];st.videos.push(v);saveState(st);
             }
-          }catch(err){console.warn('Admin video recovery failed:',err)}
+          }catch(err){console.warn('Cloudflare admin video recovery failed:',err)}
         }
       }
       if(!v){toastMsg('Video not found');return}

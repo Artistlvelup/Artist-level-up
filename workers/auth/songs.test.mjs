@@ -38,8 +38,8 @@ class SongsD1 {
           return {success:true,meta:{changes:1}};
         }
         if(sql.includes("INSERT INTO songs")) {
-          const [id,artist_id,title,genre,cover_url,duration_seconds,created_at,updated_at]=v;
-          db.songs.set(id,{id,artist_id,title,genre,audio_url:null,cover_url,duration_seconds,status:"draft",created_at,updated_at});
+          const [id,artist_id,title,genre,audio_url,cover_url,duration_seconds,status,created_at,updated_at]=v;
+          db.songs.set(id,{id,artist_id,title,genre,audio_url,cover_url,duration_seconds,status,created_at,updated_at});
           return {success:true};
         }
         if(sql.startsWith("UPDATE songs SET")) {
@@ -83,29 +83,29 @@ function req(path,method,token,body){
 
 test("song creation is scoped to the session artist and ignores client status or artist IDs",async()=>{
   const e=env(),s=await session(e);
-  const r=await worker.fetch(req("/api/me/songs","POST",s.token,{title:"My Track",genre:"Afrobeats",artist_id:"other",status:"published",audio_url:"https://evil.example/file"}),e);
+  const r=await worker.fetch(req("/api/me/songs","POST",s.token,{title:"My Track",genre:"Afrobeats",artist_id:"other",status:"published",audio_url:"https://media.example.test/"+s.artistId+"/audio/track.mp3"}),e);
   assert.equal(r.status,201);
   const song=(await r.json()).song;
   assert.equal(song.artist_id,s.artistId);
-  assert.equal(song.status,"draft");
+  assert.equal(song.status,"pending");
   assert.equal(song.audio_url,null);
   assert.equal((await worker.fetch(req("/api/me/songs","GET",s.token),e)).status,200);
 });
 
 test("song update cannot change status or modify another artist's song",async()=>{
   const e=env(),s=await session(e),other=await session(e);
-  const created=await worker.fetch(req("/api/me/songs","POST",s.token,{title:"Original"}),e);
+  const created=await worker.fetch(req("/api/me/songs","POST",s.token,{title:"Original",audio_url:"https://media.example.test/"+s.artistId+"/audio/original.mp3"}),e);
   const song=(await created.json()).song;
   assert.equal((await worker.fetch(req("/api/me/songs/"+song.id,"PATCH",other.token,{title:"Hijack"}),e)).status,404);
   const update=await worker.fetch(req("/api/me/songs/"+song.id,"PATCH",s.token,{title:"Updated",status:"published"}),e);
   assert.equal(update.status,200);
   const saved=(await update.json()).song;
   assert.equal(saved.title,"Updated");
-  assert.equal(saved.status,"draft");
+  assert.equal(saved.status,"pending");
 });
 
 test("song API rejects missing authentication and invalid duration",async()=>{
   const e=env(),s=await session(e);
   assert.equal((await worker.fetch(req("/api/me/songs","GET",null),e)).status,401);
-  assert.equal((await worker.fetch(req("/api/me/songs","POST",s.token,{title:"Bad",duration_seconds:-3}),e)).status,400);
+  assert.equal((await worker.fetch(req("/api/me/songs","POST",s.token,{title:"Bad",audio_url:"https://media.example.test/"+s.artistId+"/audio/bad.mp3",duration_seconds:-3}),e)).status,400);
 });

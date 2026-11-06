@@ -6471,25 +6471,28 @@ function setPending(value){try{localStorage.setItem(PENDING_KEY,JSON.stringify(v
 function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
 async function resumeCloudMember(){
  var t=token(),s=getState();if(s)s.artistRegistered=false;if(!t||!s)return false;
+ var restoreStep='checking session';
  try{
   var session=await api('/auth/session','GET',null,t);
-  var profileResult=await api('/api/me/profile','GET',null,t);
-  var profile=profileResult.profile||{};
+  restoreStep='loading artist account';
   var artistResult=await api('/api/me/artist','GET',null,t);
   var artist=artistResult.artist||null;
   var p=pending();
-  var displayName=String(profile.display_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
-  if(!profileResult.profile){
-   profileResult=await api('/api/me/profile','PUT',{display_name:displayName,avatar_url:null},t);
-   profile=profileResult.profile||{};
-  }
+  var displayName=String(artist?.artist_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
   s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
   s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
   s.profile={...(s.profile||{}),name:artist?.artist_name||displayName,email:s.userAccount.email,saved:!!artist,country:artist?.country||s.profile?.country||'Nigeria',artistId:artist?.id||s.profile?.artistId||''};
   s.artistRegistered=!!artist;
   persist();
-  return !!session.userId;
- }catch(e){if(/invalid or expired session|bearer session required/i.test(String(e&&e.message||'')))clearToken();console.warn('V101 Cloudflare session restore failed:',e);return false}
+  if(!session.userId)throw new Error('The session response did not include a member ID.');
+  window.__ALU_MEMBER_RESTORE_ERROR='';
+  return true;
+ }catch(e){
+  window.__ALU_MEMBER_RESTORE_ERROR=restoreStep+': '+String(e&&e.message||e);
+  if(/invalid or expired session|bearer session required/i.test(String(e&&e.message||'')))clearToken();
+  console.warn('V101 Cloudflare session restore failed:',window.__ALU_MEMBER_RESTORE_ERROR);
+  return false;
+ }
 }
 async function createMemberAccount(email,name,password){
  var result=await api('/auth/register','POST',{email:email,password:password});

@@ -3068,21 +3068,18 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const cached=s.audioKey?(aluAudioUrlCache.get(String(s.audioKey))||''):'';
     if(cached)return Promise.resolve(cached);
     if(s.audioDataUrl)return Promise.resolve(s.audioDataUrl);
-    if(s.audioKey){
-      return aluGetAudio(s.audioKey).then(async function(blob){
-        if(blob){const u=URL.createObjectURL(blob);aluAudioUrlCache.set(String(s.audioKey),u);return u;}
-        if(validRemote(s.audioRemoteUrl))return s.audioRemoteUrl;
-        if(typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){try{const u=await window.ALU_RESOLVE_CLOUD_AUDIO_URL(s);if(u)return u;}catch(e){console.warn('Admin cloud audio recovery skipped:',e)}}
-        return (s.audioUrl && !String(s.audioUrl).startsWith('blob:'))?s.audioUrl:false;
-      }).catch(async function(){
-        if(validRemote(s.audioRemoteUrl))return s.audioRemoteUrl;
-        if(typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){try{const u=await window.ALU_RESOLVE_CLOUD_AUDIO_URL(s);if(u)return u;}catch(e){console.warn('Admin cloud audio recovery skipped:',e)}}
-        return (s.audioUrl && !String(s.audioUrl).startsWith('blob:'))?s.audioUrl:false;
-      });
+    if(/^https?:\/\//i.test(String(s.audioRemoteUrl||'')))return Promise.resolve(String(s.audioRemoteUrl));
+    if(s.audioStoragePath&&window.ALU_R2_PUBLIC_BASE_URL){
+      const base=String(window.ALU_R2_PUBLIC_BASE_URL).replace(/\/$/,'');
+      return Promise.resolve(base+'/'+String(s.audioStoragePath).split('/').map(encodeURIComponent).join('/'));
     }
-    if(validRemote(s.audioRemoteUrl))return Promise.resolve(s.audioRemoteUrl);
-    if(s.audioStoragePath&&window.ALU_R2_PUBLIC_BASE_URL){const base=String(window.ALU_R2_PUBLIC_BASE_URL).replace(/\/$/,'');return Promise.resolve(base+'/'+String(s.audioStoragePath).split('/').map(encodeURIComponent).join('/'));}
-    return Promise.resolve(s.audioUrl && !String(s.audioUrl).startsWith('blob:')?s.audioUrl:false);
+    if(s.audioKey){
+      return aluGetAudio(s.audioKey).then(function(blob){
+        if(blob){const u=URL.createObjectURL(blob);aluAudioUrlCache.set(String(s.audioKey),u);return u;}
+        return s.audioUrl&&!String(s.audioUrl).startsWith('blob:')?s.audioUrl:false;
+      }).catch(function(){return s.audioUrl&&!String(s.audioUrl).startsWith('blob:')?s.audioUrl:false;});
+    }
+    return Promise.resolve(s.audioUrl&&!String(s.audioUrl).startsWith('blob:')?s.audioUrl:false);
   }
   window.ALU_DURABLE_AUDIO_SOURCE=durableAudioSource;
   const oldPlay=window.play;

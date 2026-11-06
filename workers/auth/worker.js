@@ -219,7 +219,7 @@ async function publicVideosRoute(request, env, url) {
   if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
   const limit = Math.min(50, rawLimit);
   const rows = await env.DB.prepare(
-    "SELECT id, artist_id, title, description, video_url, thumbnail_url, status, tiktok_url, instagram_url, facebook_url, youtube_url, views, likes, created_at FROM artist_videos WHERE status IN ('approved', 'published') ORDER BY created_at DESC LIMIT ?"
+    "SELECT v.id, v.artist_id, a.artist_name, v.title, v.description, v.video_url, v.thumbnail_url, v.status, v.tiktok_url, v.instagram_url, v.facebook_url, v.youtube_url, v.views, v.likes, v.created_at, v.song_id, s.title AS song_title, s.audio_url AS song_audio_url, s.cover_url AS song_cover_url, s.status AS song_status FROM artist_videos v LEFT JOIN artists a ON a.id = v.artist_id LEFT JOIN songs s ON s.id = v.song_id WHERE v.status IN ('approved', 'published') ORDER BY v.created_at DESC LIMIT ?"
   ).bind(limit).all();
   return json({ videos: rows.results || [] }, 200, corsHeaders(request, env));
 }

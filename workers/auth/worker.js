@@ -569,7 +569,7 @@ async function marketplaceRoute(request, env, userId, url) {
   }
   if (url.pathname === "/api/me/marketplace/orders" && request.method === "GET") {
     const rows = await env.DB.prepare(
-      "SELECT id, beat_id, beat_title, producer_name, license, amount_ngn, currency, status, paid_at, created_at FROM marketplace_orders WHERE buyer_user_id = ? ORDER BY created_at DESC LIMIT 100"
+      "SELECT id, beat_id, beat_title, producer_name, license, amount_ngn, currency, status, paystack_reference, paid_at, created_at FROM marketplace_orders WHERE buyer_user_id = ? ORDER BY created_at DESC LIMIT 100"
     ).bind(userId).all();
     return json({ orders: rows.results || [] }, 200, cors);
   }

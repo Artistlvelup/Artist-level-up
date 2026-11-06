@@ -99,7 +99,7 @@ async function profileRoute(request, env, userId) {
   const avatarUrl = cleanText(body.avatar_url, 2048);
   const now = new Date().toISOString();
   await env.DB.prepare(
-    "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, ?, 'artist', ?, ?) ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, avatar_url = excluded.avatar_url, updated_at = excluded.updated_at"
+    "INSERT INTO profiles (id, display_name, avatar_url, role, created_at, updated_at) VALUES (?, ?, ?, 'user', ?, ?) ON CONFLICT(id) DO UPDATE SET display_name = excluded.display_name, avatar_url = excluded.avatar_url, updated_at = excluded.updated_at"
   ).bind(userId, displayName, avatarUrl, now, now).run();
   const row = await env.DB.prepare(
     "SELECT id, display_name, avatar_url, role, created_at, updated_at FROM profiles WHERE id = ? LIMIT 1"
@@ -725,7 +725,7 @@ async function validateSession(request, env) {
     "UPDATE app_sessions SET expires_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
   ).bind(now + SESSION_TTL_SECONDS, tokenHash, now).run();
   const row = await env.DB.prepare(
-    "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'artist' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
+    "SELECT s.user_id, s.expires_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'user' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
   ).bind(tokenHash, now).first();
   return row || null;
 }

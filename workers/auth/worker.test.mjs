@@ -63,6 +63,13 @@ class FakeD1 {
         throw new Error("Unexpected SQL in first(): " + sql);
       },
       async run() {
+        if (sql.includes("UPDATE app_sessions SET expires_at = ?")) {
+          const [expiresAt, hash, now] = this.values;
+          const session = db.sessions.get(hash);
+          if (!session || session.revoked_at !== null || session.expires_at <= now) return { success: true, meta: { changes: 0 } };
+          session.expires_at = expiresAt;
+          return { success: true, meta: { changes: 1 } };
+        }
         if (sql.includes("INSERT INTO app_users") && sql.includes("SELECT ?, 0, 'active'")) {
           const [userId, createdAt, updatedAt, adminId, profileId] = this.values;
           if (!db.ownerAdminMapped || !db.ownerProfileExists || adminId !== userId || profileId !== userId) {
@@ -141,8 +148,6 @@ function setup() {
   return {
     DB: new FakeD1(),
     SESSION_PEPPER: "test-only-pepper-with-at-least-32-characters",
-    SUPABASE_URL: "https://project.supabase.co",
-    SUPABASE_ANON_KEY: "test-supabase-anon-key",
     ALLOWED_ORIGINS: "https://artistlevelup.com.ng",
   };
 }
@@ -151,26 +156,16 @@ const request = (path, method = "GET", headers = {}) =>
   new Request("https://auth.example.test" + path, { method, headers });
 
 
-const ownerBridgeRequest = token => new Request("https://auth.example.test/auth/bridge/supabase", {
-  method: "POST",
-  headers: { Origin: "https://artistlevelup.com.ng", "Content-Type": "application/json" },
-  body: JSON.stringify({ access_token: token })
-});
-
-test("rejects every legacy Supabase identity while no Cloudflare account is approved", async () => {
+test("does not expose a legacy Supabase authentication bridge", async () => {
   const env = setup();
-  const previousFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(JSON.stringify({
-    id: "11111111-1111-4111-8111-111111111111", is_anonymous: false
-  }), { status: 200 });
-  try {
-    const response = await worker.fetch(ownerBridgeRequest("s".repeat(80)), env);
-    assert.equal(response.status, 403);
-    assert.equal(env.DB.users.size, 0);
-    assert.equal(env.DB.sessions.size, 0);
-  } finally {
-    globalThis.fetch = previousFetch;
-  }
+  const response = await worker.fetch(new Request("https://auth.example.test/auth/bridge/supabase", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ access_token: "x".repeat(80) })
+  }), env);
+  assert.equal(response.status, 404);
+  assert.equal(env.DB.users.size, 0);
+  assert.equal(env.DB.sessions.size, 0);
 });
 
 test("keeps owner bootstrap disabled and validates the new password-auth routes", async () => {
@@ -212,7 +207,7 @@ test("creates an anonymous identity and returns a usable opaque session", async 
   assert.equal(response.headers.get("Cache-Control"), "no-store");
 });
 
-test("anonymous artist sessions cannot access any protected admin API", async () => {
+test("ordinary member sessions cannot access any protected admin API", async () => {
   const env = setup();
   const created = await worker.fetch(request("/auth/anonymous", "POST"), env);
   assert.equal(created.status, 201);

@@ -559,11 +559,71 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
   return json({ ok: true, title: order.beat_title, download_url: order.audio_file_url }, 200, corsHeaders(request, env));
 }
 
+async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
+  const cors = corsHeaders(request, env);
+  if (admin && sessionRoleForMarketplace !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (!admin && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 100"
+    ).all();
+    return json({ beats: rows.results || [] }, 200, cors);
+  }
+  if (admin && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, producer_user_id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at FROM marketplace_beats ORDER BY created_at DESC LIMIT 100"
+    ).all();
+    return json({ beats: rows.results || [] }, 200, cors);
+  }
+  if (!admin && request.method === "GET" && url.pathname === "/api/me/marketplace/beats") {
+    const rows = await env.DB.prepare(
+      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at FROM marketplace_beats WHERE producer_user_id = ? ORDER BY created_at DESC LIMIT 100"
+    ).bind(userId).all();
+    return json({ beats: rows.results || [] }, 200, cors);
+  }
+  if (!admin && request.method === "POST" && url.pathname === "/api/me/marketplace/beats") {
+    const artist = await env.DB.prepare("SELECT id, artist_name FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1").bind(userId).first();
+    if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+    let body;
+    try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const title = cleanText(body?.title, 120, true);
+    const genre = cleanText(body?.genre, 80);
+    const mood = cleanText(body?.mood, 80);
+    const bpm = body?.bpm == null || body.bpm === "" ? null : Number(body.bpm);
+    const price = Number(body?.price_ngn);
+    const audioUrl = cleanText(body?.audio_file_url, 2048, true);
+    const license = cleanText(body?.default_license || "Premium", 24, true);
+    if (!title || !audioUrl || !Number.isFinite(price) || price <= 0 || (bpm != null && (!Number.isInteger(bpm) || bpm < 30 || bpm > 300))) {
+      return json({ error: "Enter a title, valid price, and uploaded beat audio" }, 400, cors);
+    }
+    if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "beats")) return json({ error: "BEAT_AUDIO_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    if (!new Set(["Basic", "Premium", "Exclusive"]).has(license)) return json({ error: "Invalid default licence" }, 400, cors);
+    const id = crypto.randomUUID(), now = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO marketplace_beats (id, producer_user_id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 'pending', ?)"
+    ).bind(id, userId, title, artist.artist_name, genre, mood, bpm, price, license, audioUrl, audioUrl, now).run();
+    return json({ ok: true, beat: { id, title, producer_name: artist.artist_name, status: "draft", moderation_status: "pending" } }, 201, cors);
+  }
+  if (admin && request.method === "PATCH") {
+    const beatId = url.pathname.slice("/api/admin/marketplace/beats/".length);
+    if (!/^[0-9a-f-]{36}$/i.test(beatId)) return json({ error: "Invalid beat ID" }, 400, cors);
+    let body;
+    try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const status = String(body?.status || "");
+    if (!new Set(["approved", "rejected", "archived"]).has(status)) return json({ error: "Invalid moderation status" }, 400, cors);
+    const published = status === "approved" ? "published" : status === "archived" ? "archived" : "draft";
+    const result = await env.DB.prepare("UPDATE marketplace_beats SET moderation_status = ?, status = ? WHERE id = ?")
+      .bind(status, published, beatId).run();
+    if (!result.meta?.changes) return json({ error: "Beat not found" }, 404, cors);
+    return json({ ok: true, id: beatId, status }, 200, cors);
+  }
+  return null;
+}
+
 async function marketplaceRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
   if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
     const rows = await env.DB.prepare(
-      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' ORDER BY created_at DESC LIMIT 100"
+      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 100"
     ).all();
     return json({ beats: rows.results || [] }, 200, cors);
   }
@@ -767,16 +827,16 @@ async function videoUploadIntentRoute(request, env, userId) {
   if (!artist) return json({ error: "Active artist account required" }, 403, cors);
   const body = await readJson(request);
   const purpose = body.purpose == null ? "video" : cleanText(body.purpose, 16, true);
-  if (!["video", "thumbnail", "audio"].includes(purpose)) return json({ error: "INVALID_PURPOSE" }, 400, cors);
+  if (!["video", "thumbnail", "audio", "beat", "picture"].includes(purpose)) return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const filename = cleanText(body.filename, 180, true);
   const contentType = cleanText(body.contentType, 100, true).toLowerCase();
   const size = Number(body.size);
-  const allowed = purpose === "video" ? VIDEO_TYPES : purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
-  const maxBytes = purpose === "video" ? MAX_VIDEO_BYTES : purpose === "audio" ? MAX_AUDIO_BYTES : 10 * 1024 * 1024;
+  const allowed = purpose === "video" ? VIDEO_TYPES : (purpose === "audio" || purpose === "beat") ? AUDIO_TYPES : IMAGE_TYPES;
+  const maxBytes = purpose === "video" ? MAX_VIDEO_BYTES : (purpose === "audio" || purpose === "beat") ? MAX_AUDIO_BYTES : 10 * 1024 * 1024;
   if (!allowed.has(contentType)) return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes) return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
-  const key = artist.id + "/" + (purpose === "video" ? "videos" : purpose === "audio" ? "audio" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
+  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : (purpose === "audio" || purpose === "beat") ? "mp3" : "jpg")).toLowerCase();
+  const key = artist.id + "/" + (purpose === "video" ? "videos" : purpose === "audio" ? "audio" : purpose === "beat" ? "beats" : purpose === "picture" ? "pictures" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
   try {
     const signed = await presignR2Put(env, key, contentType);
     return json(signed, 200, cors);
@@ -995,9 +1055,20 @@ export default {
         const result = await adminDashboardRoute(request, env, session);
         if (result) return result;
       }
+      if (url.pathname === "/api/admin/marketplace/beats" || /^\/api\/admin\/marketplace\/beats\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+        const result = await marketplaceBeatsRoute(request, env, session.user_id, url, true, session.role);
+        if (result) return result;
+      }
 
       if (url.pathname === "/api/marketplace/beats" && request.method === "GET") {
         const result = await marketplaceRoute(request, env, null, url);
+        if (result) return result;
+      }
+      if (url.pathname === "/api/public/marketplace/beats" && request.method === "GET") {
+        const result = await marketplaceBeatsRoute(request, env, null, url, false);
         if (result) return result;
       }
 
@@ -1005,6 +1076,13 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return await marketplaceCheckoutRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/me/marketplace/beats") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await marketplaceBeatsRoute(request, env, session.user_id, url, false);
+        if (result) return result;
+        return json({ error: "Method not allowed" }, 405, cors);
       }
 
       if (url.pathname === "/api/me/marketplace/orders" || /^\/api\/me\/marketplace\/orders\/[0-9a-f-]{36}\/download$/i.test(url.pathname)) {

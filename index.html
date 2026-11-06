@@ -1973,26 +1973,10 @@ window.ALU_ACTIVE_PAGE=window.ALU_ACTIVE_PAGE||((location.hash||'#home').slice(1
 const ALU_DB='artist_level_up_audio_v1';
 function aluOpenDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('artist_level_up_audio_v1',2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('audio'))db.createObjectStore('audio');if(!db.objectStoreNames.contains('offlineDownloads'))db.createObjectStore('offlineDownloads');};r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>db.close();resolve(db)};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(new Error('Offline storage is busy. Please close and reopen the app.'))})}
 async function aluPutAudio(key,file){
-  if(window.ALU_SUPABASE_CLIENT){
-    if(window.ALU_CLOUD?.ensureSession){
-      const uid=await window.ALU_CLOUD.ensureSession();
-      if(!uid) throw new Error('Supabase sign-in failed before music upload.');
-    }
-    const safe=String(file?.name||'audio.mp3').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
-    const path='songs/'+String(key)+'-'+safe;
-    const ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
-    const rawType=String(file?.type||'').toLowerCase();
-    const normalizedType=(ext==='m4a'||rawType==='audio/x-m4a'||rawType==='audio/m4a')?'audio/mp4':(rawType.startsWith('audio/')?rawType:'audio/mpeg');
-    const uploadFile=(normalizedType===rawType||!file)?file:new File([file],file.name||('audio.'+ext),{type:normalizedType,lastModified:file.lastModified||Date.now()});
-    const {error}=await window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).upload(path,uploadFile,{cacheControl:'31536000',upsert:false,contentType:normalizedType});
-    if(error) throw new Error('Supabase Storage: '+(error.message||'upload failed'));
-    const {data}=window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).getPublicUrl(path);
-    const publicUrl=String(data?.publicUrl||'').trim() || (String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'')+'/storage/v1/object/public/'+encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'))+'/'+String(path).split('/').map(encodeURIComponent).join('/'));
-    if(!/^https?:\/\//i.test(publicUrl)) throw new Error('Supabase Storage upload succeeded but no public audio URL was returned.');
-    return {remote:true,path,url:publicUrl};
-  }
-  const db=await aluOpenDB();
-  return new Promise((res,rej)=>{let done=false;try{const tx=db.transaction('audio','readwrite');const store=tx.objectStore('audio');const blob=(file instanceof Blob)?file:new Blob([file],{type:file?.type||'audio/mpeg'});const req=store.put(blob,key);req.onerror=()=>{if(!done){done=true;rej(req.error||new Error('Audio storage failed'))}};tx.oncomplete=()=>{if(!done){done=true;res({remote:false})}};tx.onerror=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction failed'))}};tx.onabort=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction aborted'))}}}catch(e){if(!done){done=true;rej(e)}}});
+  const gate=window.ALU_MEMBER_GATE_V101;
+  if(!gate?.uploadAudio)throw new Error('Cloudflare upload service is not ready. Sign in and try again.');
+  await gate.ensureArtist();
+  return gate.uploadAudio(file);
 }
 async function aluGetAudio(key){const db=await aluOpenDB();return new Promise((res,rej)=>{const tx=db.transaction('audio');const r=tx.objectStore('audio').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 function aluOfflineUserKey(){
@@ -6816,22 +6800,40 @@ async function createCloudflareArtist(details){
  if(!result.artist?.id)throw new Error('Cloudflare could not create your artist profile.');
  return result.artist;
 }
-async function uploadAudioToCloudflare(file){
+async function uploadMediaToCloudflare(file,purpose){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
- var safe=String(file?.name||'audio.mp3').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
- var raw=String(file?.type||'').toLowerCase(),ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
- var contentType=(ext==='m4a'||raw==='audio/x-m4a'||raw==='audio/m4a')?'audio/mp4':(raw.startsWith('audio/')?raw:'audio/mpeg');
- var intent=await api('/api/me/videos/upload-intent','POST',{purpose:'audio',filename:safe,contentType:contentType,size:file.size},t);
- if(!intent.uploadUrl||!intent.publicUrl||!intent.objectKey)throw new Error('Cloudflare did not return a valid audio upload link.');
+ if(!file||!Number(file.size))throw new Error('Choose a file to upload.');
+ var safe=String(file.name||'upload.bin').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
+ var raw=String(file.type||'').toLowerCase(),ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
+ var byExt={mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',opus:'audio/opus',mp4:'video/mp4',mov:'video/quicktime',webm:purpose==='video'?'video/webm':'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+ var fallback=purpose==='video'?'video/mp4':purpose==='thumbnail'?'image/jpeg':'audio/mpeg';
+ var contentType=raw&&raw!=='application/octet-stream'?raw:(byExt[ext]||fallback);
+ var intent=await api('/api/me/videos/upload-intent','POST',{purpose:purpose,filename:safe,contentType:contentType,size:file.size},t);
+ if(!intent.uploadUrl||!intent.publicUrl||!intent.objectKey)throw new Error('Cloudflare did not return a valid upload link.');
  var uploaded=await fetch(intent.uploadUrl,{method:'PUT',headers:{'Content-Type':contentType},body:file});
- if(!uploaded.ok)throw new Error('Cloudflare audio storage upload failed ('+uploaded.status+').');
- return {remote:true,path:intent.objectKey,url:intent.publicUrl};
+ if(!uploaded.ok)throw new Error('Cloudflare storage upload failed ('+uploaded.status+').');
+ return {remote:true,path:intent.objectKey,url:intent.publicUrl,contentType:contentType};
 }
+async function uploadAudioToCloudflare(file){return uploadMediaToCloudflare(file,'audio')}
 async function createCloudflareSong(row){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
- return api('/api/me/songs','POST',{title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:null,duration_seconds:null,status:'pending'},t);
+ var payload={title:String(row.title||'').trim(),genre:String(row.genre||'Music'),audio_url:String(row.audio_url||''),cover_url:row.cover_url||null,duration_seconds:row.duration_seconds||null};
+ if(!payload.title||!payload.audio_url)throw new Error('Song title and uploaded audio are required.');
+ var list=await api('/api/me/songs','GET',null,t);
+ var existing=(list.songs||[]).find(function(x){return String(x.audio_url||'')===payload.audio_url});
+ if(existing)return {song:existing,existing:true};
+ return api('/api/me/songs','POST',payload,t);
 }
-window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,createArtist:createCloudflareArtist,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong};
+async function createCloudflareVideo(row){
+ var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
+ var payload={title:String(row.title||'').trim(),description:String(row.description||''),video_url:String(row.video_url||''),thumbnail_url:row.thumbnail_url||null,tiktok_url:row.tiktok_url||null,instagram_url:row.instagram_url||null,facebook_url:row.facebook_url||null,youtube_url:row.youtube_url||null};
+ if(!payload.title||!payload.video_url)throw new Error('Video title and uploaded video are required.');
+ var list=await api('/api/me/videos','GET',null,t);
+ var existing=(list.videos||[]).find(function(x){return String(x.video_url||'')===payload.video_url});
+ if(existing)return {video:existing,existing:true};
+ return api('/api/me/videos','POST',payload,t);
+}
+window.ALU_MEMBER_GATE_V101={open:open,openLogin:function(){open('login');return true},close:close,isRegistered:registered,logout:logout,ensureArtist:ensureCloudflareArtist,createArtist:createCloudflareArtist,uploadMedia:uploadMediaToCloudflare,uploadAudio:uploadAudioToCloudflare,createSong:createCloudflareSong,createVideo:createCloudflareVideo};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action="openMemberLogin"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();open('login')},true);
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){

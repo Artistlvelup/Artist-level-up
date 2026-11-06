@@ -3585,9 +3585,8 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   function stateVideos(st){st.videos=Array.isArray(st.videos)?st.videos:[];return st.videos}
   function durableVideoPublicUrl(v){
     const direct=String(v?.videoUrl||'').trim(); if(/^https?:\/\//i.test(direct)) return direct;
-    const path=String(v?.storagePath||'').trim(); const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-    if(base&&path) return base+'/storage/v1/object/public/'+bucket+'/'+path.split('/').map(encodeURIComponent).join('/');
+    const path=String(v?.storagePath||'').trim(); const base=String(window.ALU_R2_PUBLIC_BASE_URL||'').replace(/\/$/,'');
+    if(base&&path) return base+'/'+path.split('/').map(encodeURIComponent).join('/');
     return '';
   }
   function repairVideoDurableUrls(st){
@@ -3644,31 +3643,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     document.getElementById('aluVideoFormat')?.addEventListener('change',()=>input.dispatchEvent(new Event('change')));
   }
   setupVideoFormatPreview();
-  async function aluTusUploadVideo(client,bucket,path,file,contentType,onProgress){
-    let tus;
-    try{ tus=await import('https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/+esm'); }
-    catch(e){ throw new Error('Resumable uploader could not load. Please check your internet connection and try again.'); }
-    let session=null;
-    try{ const r=await client.auth.getSession(); session=r?.data?.session||null; }catch(e){}
-    const token=session?.access_token||window.ALU_SUPABASE_PUBLISHABLE_KEY||'';
-    const endpoint='https://'+String(window.ALU_SUPABASE_URL||'').replace(/^https?:\/\//,'').split('.')[0]+'.storage.supabase.co/storage/v1/upload/resumable';
-    return await new Promise((resolve,reject)=>{
-      const upload=new tus.Upload(file,{
-        endpoint,
-        retryDelays:[0,1000,3000,5000],
-        chunkSize:6*1024*1024,
-        headers:{authorization:'Bearer '+token,apikey:String(window.ALU_SUPABASE_PUBLISHABLE_KEY||'')},
-        metadata:{bucketName:bucket,objectName:path,contentType,cacheControl:'31536000'},
-        onError:(err)=>reject(err),
-        onProgress:(bytesUploaded,bytesTotal)=>{ if(onProgress) onProgress(bytesUploaded,bytesTotal); },
-        onSuccess:()=>resolve(true)
-      });
-      upload.findPreviousUploads().then(previous=>{
-        if(previous.length) upload.resumeFromPreviousUpload(previous[0]);
-        upload.start();
-      }).catch(reject);
-    });
-  }
   const ALU_VIDEO_DB_NAME='ALU_VIDEO_QUEUE_DB', ALU_VIDEO_DB_VERSION=1, ALU_VIDEO_STORE='videos', ALU_FREE_VIDEO_LIMIT=50*1024*1024;
   function aluVideoDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_VIDEO_DB_NAME,ALU_VIDEO_DB_VERSION);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(ALU_VIDEO_STORE))db.createObjectStore(ALU_VIDEO_STORE,{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Device storage is unavailable.'));});}
   async function aluVideoQueuePut(item){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).put(item);tx.oncomplete=()=>{db.close();resolve(item)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not save video on this device.'))}})}
@@ -3690,80 +3664,47 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }catch(e){console.warn('Local video queue restore skipped:',e)}
   }
   async function aluVideoUploadQueueItem(item){
-    const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-    const apiKey=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');
-    if(!base||!apiKey)throw new Error('Supabase cloud configuration is missing.');
-    const client=window.ALU_CLOUD?.client||null;
-    const file=item.blob;if(!file)throw new Error('The saved video copy is missing from device storage.');
-    if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='Supabase Free project limit is 50 MB.';await aluVideoQueuePut(item);return {blocked:true};}
-    /* Use the real Supabase session JWT for Storage and PostgREST. The anon API key
-       alone cannot insert artist_videos rows with a non-null artist_id under V101 RLS. */
-    if(typeof window.ALU_CLOUD?.ensureSession==='function') await window.ALU_CLOUD.ensureSession();
-    const sessionResult=client?.auth?.getSession?await client.auth.getSession():null;
-    const accessToken=String(sessionResult?.data?.session?.access_token||'');
-    if(!accessToken)throw new Error('Cloud sign-in is missing. Sign in to the registered Artist account, then retry.');
-    const authHeaders={apikey:apiKey,authorization:'Bearer '+accessToken};
-    const artistId=window.ALU_CLOUD?.artistId||await window.ALU_CLOUD?.ensureArtist?.();
-    if(!artistId)throw new Error('Cloud artist account is not ready. Please sign in to the registered Artist account and try again.');
+    const gate=window.ALU_MEMBER_GATE_V101;
+    const file=item.blob;
+    if(!file)throw new Error('The saved video copy is missing from device storage.');
+    if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='This video exceeds the current 50 MB upload limit.';await aluVideoQueuePut(item);return {blocked:true};}
+    if(!gate?.uploadMedia||!gate?.createVideo)throw new Error('Cloudflare video upload is not ready. Sign in and try again.');
     item.status='uploading';item.attempts=Number(item.attempts||0)+1;item.lastAttemptAt=new Date().toISOString();await aluVideoQueuePut(item);
-    const ext=(item.filename?.split('.').pop()||'mp4').toLowerCase();const storagePath=item.storagePath||('videos/'+item.id+'.'+ext);item.storagePath=storagePath;
-    item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
-    /* A previous attempt may have uploaded the file and created its database row, but
-       the phone can lose the response before saving the returned row ID. Check for that
-       existing row first so retries do not keep showing a false local-only status. */
     try{
-      const existingRes=await fetch(base+'/rest/v1/artist_videos?select=id,video_url,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&limit=1',{headers:authHeaders});
-      if(existingRes.ok){
-        const existingRows=await existingRes.json().catch(()=>[]);
-        if(Array.isArray(existingRows)&&existingRows[0]?.id){
-          item.remoteVideoId=String(existingRows[0].id);item.status='cloud_synced';item.cloudSaved=true;item.syncedAt=item.syncedAt||new Date().toISOString();item.lastError='';await aluVideoQueuePut(item);
-          const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,remoteVideoId:item.remoteVideoId,cloudSaved:true,localOnly:false,status:existingRows[0].status==='published'?'Published':existingRows[0].status==='approved'?'Approved':'Pending Review',cloudStatus:'cloud_synced',cloudError:''});saveState(st);renderVideos();
-          return {success:true,reconciled:true};
-        }
+      await gate.ensureArtist();
+      if(!item.storageUploaded||!item.videoUrl){
+        const uploaded=await gate.uploadMedia(file,'video');
+        item.storagePath=uploaded.path;item.videoUrl=uploaded.url;item.storageUploaded=true;item.storageUploadedAt=new Date().toISOString();await aluVideoQueuePut(item);
       }
-    }catch(checkError){console.warn('Existing cloud video check skipped:',checkError)}
-    const detectedType=item.mimeType||'video/mp4';
-    const progressText=(done,total)=>{const pct=total?Math.round(done/total*100):0;toastMsg(`Cloud upload… ${pct}%`)};
-    try{
-      // Direct REST upload: this does not depend on the Supabase JS CDN loading in Chrome.
-      const storageUrl=base+'/storage/v1/object/'+encodeURIComponent('music')+'/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      /* Persist successful storage upload before writing the database row. If the row
-         insert fails, the next retry must reuse the uploaded object instead of trying
-         to create the same path again (the bucket intentionally disallows upsert). */
-      if(!item.storageUploaded){
-        const uploadRes=await fetch(storageUrl,{method:'POST',headers:{...authHeaders,'Content-Type':detectedType,'x-upsert':'false','cache-control':'31536000'},body:file});
-        if(!uploadRes.ok){let detail='';try{detail=await uploadRes.text()}catch(e){};throw new Error('Storage upload '+uploadRes.status+': '+(detail||uploadRes.statusText||'failed'));}
-        item.storageUploaded=true;
-        item.storageUploadedAt=new Date().toISOString();
-        await aluVideoQueuePut(item);
+      if(item.thumbnailData&&!item.thumbnailUrl){
+        try{
+          const thumbBlob=await fetch(item.thumbnailData).then(r=>r.blob());
+          const uploadedThumb=await gate.uploadMedia(thumbBlob,'thumbnail');
+          item.thumbnailUrl=uploadedThumb.url;await aluVideoQueuePut(item);
+        }catch(thumbError){console.warn('Optional video thumbnail upload skipped:',thumbError)}
       }
-      item.videoUrl=base+'/storage/v1/object/public/music/'+storagePath.split('/').map(encodeURIComponent).join('/');
-      const row={artist_id:artistId,title:item.title,description:item.description||'',video_url:item.videoUrl,thumbnail_url:null,status:'pending',tiktok_url:'',instagram_url:'',facebook_url:'',youtube_url:'',song_id:item.songId||null};
-      let recordRes;
-      if(item.remoteVideoId){
-        recordRes=await fetch(base+'/rest/v1/artist_videos?id=eq.'+encodeURIComponent(item.remoteVideoId),{method:'PATCH',headers:{...authHeaders,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
-      }else{
-        recordRes=await fetch(base+'/rest/v1/artist_videos',{method:'POST',headers:{...authHeaders,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(row)});
-      }
-      if(!recordRes.ok){let detail='';try{detail=await recordRes.text()}catch(e){};throw new Error('Database save '+recordRes.status+': '+(detail||recordRes.statusText||'failed'));}
-      const recordText=await recordRes.text().catch(()=>''), recordData=(()=>{try{return recordText?JSON.parse(recordText):null}catch(_){return null}})();
-      if(!item.remoteVideoId){
-        item.remoteVideoId=Array.isArray(recordData)?String(recordData?.[0]?.id||''):String(recordData?.id||'');
-        /* Some Supabase/PostgREST responses can be empty/non-JSON even after a successful insert. Verify by the unique video URL before treating it as a failure. */
-        if(!item.remoteVideoId){
-          try{
-            const verify=await fetch(base+'/rest/v1/artist_videos?select=id,status&video_url=eq.'+encodeURIComponent(item.videoUrl)+'&order=created_at.desc&limit=1',{headers:authHeaders});
-            const verifyText=await verify.text().catch(()=>''), verifyData=(()=>{try{return verifyText?JSON.parse(verifyText):[]}catch(_){return []}})();
-            if(verify.ok&&Array.isArray(verifyData)&&verifyData[0]?.id)item.remoteVideoId=String(verifyData[0].id);
-          }catch(_){ }
-        }
-      }
-      if(!item.remoteVideoId)throw new Error('Cloud video record could not be confirmed. The video is still saved on this device and will retry.');
-      item.status='cloud_synced';item.cloudSaved=true;item.syncedAt=new Date().toISOString();await aluVideoQueuePut(item);
-      const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,thumbnailUrl:'',remoteVideoId:item.remoteVideoId,songId:item.songId||null,cloudSaved:true,localOnly:false,status:'Pending Review',cloudStatus:'cloud_synced'});saveState(st);renderVideos();
-      return {success:true};
+      const result=await gate.createVideo({
+        title:item.title,
+        description:item.description||'',
+        video_url:item.videoUrl,
+        thumbnail_url:item.thumbnailUrl||null,
+        tiktok_url:item.tiktok||null,
+        instagram_url:item.instagram||null,
+        facebook_url:item.facebook||null,
+        youtube_url:item.youtube||null
+      });
+      const record=result?.video;
+      if(!record?.id)throw new Error('Cloudflare did not confirm the video record.');
+      item.remoteVideoId=String(record.id);item.status='cloud_synced';item.cloudSaved=true;item.syncedAt=new Date().toISOString();item.lastError='';await aluVideoQueuePut(item);
+      const st=getState()||{},vs=stateVideos(st);let v=vs.find(x=>String(x.id)===String(item.id));if(!v){v=aluVideoLocalRecord(item);vs.unshift(v);}
+      Object.assign(v,{videoUrl:item.videoUrl,storagePath:item.storagePath,thumbnailUrl:item.thumbnailUrl||'',remoteVideoId:item.remoteVideoId,cloudSaved:true,localOnly:false,status:record.status==='published'?'Published':record.status==='approved'?'Approved':'Pending Review',cloudStatus:'cloud_synced',cloudError:''});
+      saveState(st);renderVideos();
+      return {success:true,existing:!!result.existing};
     }catch(e){
-      const msg=String(e?.message||e?.statusText||e||'Unknown upload error');item.status=/size|exceed|too large|payload/i.test(msg)?'blocked_size':'pending';item.lastError=msg.slice(0,500);await aluVideoQueuePut(item);try{const st=getState()||{},vs=stateVideos(st);const v=vs.find(x=>String(x.id)===String(item.id));if(v){v.cloudStatus=item.status;v.cloudError=item.lastError;v.localOnly=true;v.cloudSaved=false;saveState(st);renderVideos();}}catch(syncError){console.warn('Video error status display skipped:',syncError)}throw e;
+      const msg=String(e?.message||e?.statusText||e||'Unknown upload error');
+      item.status=/size|exceed|too large|payload/i.test(msg)?'blocked_size':'pending';item.lastError=msg.slice(0,500);await aluVideoQueuePut(item);
+      try{const st=getState()||{},vs=stateVideos(st);const v=vs.find(x=>String(x.id)===String(item.id));if(v){v.cloudStatus=item.status;v.cloudError=item.lastError;v.localOnly=true;v.cloudSaved=false;saveState(st);renderVideos();}}catch(syncError){console.warn('Video error status display skipped:',syncError)}
+      throw e;
     }
   }
   let aluVideoRetryRunning=false;
@@ -3772,13 +3713,19 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     try{const items=await aluVideoQueueAll();for(const item of items.filter(aluVideoQueueIsRetryable)){try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Cloud sync complete ✓')}catch(e){console.warn('Video cloud retry failed:',e)}}await aluVideoQueueRenderLocals();}
     finally{aluVideoRetryRunning=false;}
   }
-  async function retryVideoCloud(id){const item=await aluVideoQueueGet(id);if(!item){toastMsg('Saved video copy was not found on this device.');return}if(item.status==='blocked_size'){toastMsg('This video is over the current 50 MB cloud limit. It remains saved on this device.');return}try{if(item.status==='cloud_synced'&&item.remoteVideoId){const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');const apiKey=String(window.ALU_SUPABASE_ANON_KEY||window.ALU_SUPABASE_PUBLISHABLE_KEY||'');const client=window.ALU_CLOUD?.client;if(typeof window.ALU_CLOUD?.ensureSession==='function')await window.ALU_CLOUD.ensureSession();const sessionResult=client?.auth?.getSession?await client.auth.getSession():null;const accessToken=String(sessionResult?.data?.session?.access_token||'');if(!base||!apiKey||!accessToken)throw new Error('Cloud sign-in is missing. Sign in and retry.');const check=await fetch(base+'/rest/v1/artist_videos?select=id,video_url&id=eq.'+encodeURIComponent(item.remoteVideoId)+'&limit=1',{headers:{apikey:apiKey,authorization:'Bearer '+accessToken}});if(!check.ok)throw new Error('Could not verify the existing cloud video record. Please retry.');const found=await check.json().catch(()=>[]);if(Array.isArray(found)&&found.length){toastMsg('This video already has a cloud record. Refresh My Uploads.');return;}item.remoteVideoId='';item.status='pending';item.cloudSaved=false;await aluVideoQueuePut(item);}await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to cloud ✓')}catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual cloud retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120));}await aluVideoQueueRenderLocals();}
+  async function retryVideoCloud(id){
+    const item=await aluVideoQueueGet(id);
+    if(!item){toastMsg('Saved video copy was not found on this device.');return}
+    if(item.status==='blocked_size'){toastMsg('This video exceeds the current 50 MB cloud upload limit.');return}
+    try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to Cloudflare ✓')}
+    catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual Cloudflare video retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120))}
+    await aluVideoQueueRenderLocals();
+  }
   window.ALU_RETRY_VIDEO_CLOUD=retryVideoCloud;
   window.addEventListener('online',()=>{retryPendingVideoUploads();});
   setTimeout(()=>{aluVideoQueueRenderLocals();if(navigator.onLine)retryPendingVideoUploads()},1200);
   /* Retry pending uploads while the page is open; retry after auth/session recovery too. */
   setInterval(()=>{if(navigator.onLine&&!document.hidden)retryPendingVideoUploads()},30000);
-  try{window.ALU_CLOUD?.client?.auth?.onAuthStateChange?.((event,session)=>{if(session&&(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'))setTimeout(()=>retryPendingVideoUploads(),700);});}catch(e){console.warn('Video retry auth hook unavailable:',e)}
   function populateVideoSongPicker(){
     const sel=document.getElementById('aluVideoSong');if(!sel)return;
     const current=String(sel.value||'');

@@ -1917,7 +1917,7 @@ async function validateSquareArtwork(file){
     img.src=URL.createObjectURL(file);
   });
 }
-document.getElementById('audioCoverFile')?.addEventListener('change',async e=>{const f=e.target.files[0];const p=document.getElementById('audioCoverPreview');if(f&&!await validateSquareArtwork(f)){e.target.value='';if(p)p.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';return;}if(f&&p){p.innerHTML=`<img src="${await imageToDataURL(f,800,.9)}" alt="Selected cover art">`;const box=document.getElementById('coverUploadBox');if(box)box.querySelector('.tiny').textContent='Square picture selected ✓ Tap to change';}});document.getElementById('profileAvatar')?.addEventListener('change',async e=>{const f=e.target.files[0],p=document.getElementById('profileAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});document.getElementById('search')?.addEventListener('input',renderAll);document.getElementById('adminArtistSearch')?.addEventListener('input',renderAll);renderAll();let aluSavedPage='home';try{aluSavedPage=localStorage.getItem('alu_last_page_v101')||'home'}catch(e){}const aluHashPage=(location.hash||'').slice(1);const aluRequestedPage=document.getElementById(aluHashPage)?aluHashPage:aluSavedPage;const aluInitialPage=document.getElementById(aluRequestedPage)?aluRequestedPage:'home';go(aluInitialPage,false);
+document.getElementById('audioCoverFile')?.addEventListener('change',async e=>{const f=e.target.files[0];const p=document.getElementById('audioCoverPreview');if(f&&!await validateSquareArtwork(f)){e.target.value='';if(p)p.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';return;}if(f&&p){p.innerHTML=`<img src="${await imageToDataURL(f,800,.9)}" alt="Selected cover art">`;const box=document.getElementById('coverUploadBox');if(box)box.querySelector('.tiny').textContent='Square picture selected ✓ Tap to change';}});document.getElementById('profileAvatar')?.addEventListener('change',async e=>{const f=e.target.files[0],p=document.getElementById('profileAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});document.getElementById('search')?.addEventListener('input',renderAll);document.getElementById('adminArtistSearch')?.addEventListener('input',renderAll);renderAll();let aluSavedPage='home';try{aluSavedPage=localStorage.getItem('alu_last_page_v101')||'home'}catch(e){}const aluHashPage=(location.hash||'').slice(1);let aluRequestedPage=document.getElementById(aluHashPage)?aluHashPage:aluSavedPage;if(aluRequestedPage==='register')aluRequestedPage='home';const aluInitialPage=document.getElementById(aluRequestedPage)?aluRequestedPage:'home';go(aluInitialPage,false);
 
 async function completeArtistProPaymentReturn(attempt=0){
  const params=new URLSearchParams(window.location.search);
@@ -7747,7 +7747,7 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   var KEY='alu_last_page_v101', SESSION_KEY='alu_v101_route_session', ready=false;
   function pageById(id){var p=id&&document.getElementById(id);return p&&p.classList.contains('page')?p:null;}
   function activeId(){var p=document.querySelector('.app > .page.active')||document.querySelector('.page.active');return p&&p.id||'';}
-  function save(id){if(!pageById(id)||['admin','ownerDashboard','commissionEarningsPage'].indexOf(id)>=0)return;try{localStorage.setItem(KEY,id)}catch(_){}try{sessionStorage.setItem(SESSION_KEY,id)}catch(_){}window.ALU_ACTIVE_PAGE=id;}
+  function save(id){if(id==='register')id=(window.state&&window.state.artistRegistered===true)?'profile':'home';if(!pageById(id)||['admin','ownerDashboard','commissionEarningsPage'].indexOf(id)>=0)return;try{localStorage.setItem(KEY,id)}catch(_){}try{sessionStorage.setItem(SESSION_KEY,id)}catch(_){}window.ALU_ACTIVE_PAGE=id;}
   async function restore(){
     try{
       if(window.ALU_MEMBER_RESTORE_PROMISE)await window.ALU_MEMBER_RESTORE_PROMISE;
@@ -7756,6 +7756,7 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
       var saved='';try{saved=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(KEY)||''}catch(_){}
       var target=pageById(hash)?hash:(pageById(saved)?saved:'home');
       if((!hash||hash==='home')&&pageById(saved))target=saved;
+      if(target==='register')target=(window.state&&window.state.artistRegistered===true)?'profile':'home';
       if(pageById(target)&&typeof window.go==='function')window.go(target,false);
       ready=true;save(activeId()||target);
     }catch(e){console.warn('V101 global route restore deferred:',e)}

@@ -68,7 +68,7 @@ class SongsD1 {
     this.sessions.set(s[0],{user_id:s[1],family_id:s[2],created_at:s[3],expires_at:s[4],revoked_at:null});
   }
 }
-const env=()=>{const DB=new SongsD1();return {DB,SESSION_PEPPER:"test-pepper-long-enough-for-authentication-123",ALLOWED_ORIGINS:"https://artistlevelup.com.ng"};};
+const env=()=>{const DB=new SongsD1();return {DB,SESSION_PEPPER:"test-pepper-long-enough-for-authentication-123",ALLOWED_ORIGINS:"https://artistlevelup.com.ng",R2_PUBLIC_BASE_URL:"https://media.example.test"};};
 async function session(e){
   const r=await worker.fetch(new Request("https://worker.test/auth/anonymous",{method:"POST"}),e);
   const body=await r.json();
@@ -88,7 +88,7 @@ test("song creation is scoped to the session artist and ignores client status or
   const song=(await r.json()).song;
   assert.equal(song.artist_id,s.artistId);
   assert.equal(song.status,"pending");
-  assert.equal(song.audio_url,null);
+  assert.equal(song.audio_url,"https://media.example.test/"+s.artistId+"/audio/track.mp3");
   assert.equal((await worker.fetch(req("/api/me/songs","GET",s.token),e)).status,200);
 });
 

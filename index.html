@@ -2069,22 +2069,7 @@ async function aluSaveOfflineSong(song,title){
   if(!blob){
     let url=String(song.audioRemoteUrl||song.audioUrl||song.audio_url||song.fileUrl||song.url||song.src||'').trim();
     if(!/^https?:\/\//i.test(url)&&typeof window.ALU_RESOLVE_CLOUD_AUDIO_URL==='function'){try{url=String(await window.ALU_RESOLVE_CLOUD_AUDIO_URL(song)||'').trim()}catch(e){sourceError=e}}
-    if(url&&window.ALU_SUPABASE_CLIENT?.storage){
-      try{
-        const u=new URL(url,window.location.href),marker='/storage/v1/object/public/',pos=u.pathname.indexOf(marker);
-        if(pos>=0){
-          const rest=u.pathname.slice(pos+marker.length),slash=rest.indexOf('/');
-          if(slash>0){
-            const bucket=decodeURIComponent(rest.slice(0,slash));
-            const objectPath=rest.slice(slash+1).split('/').map(part=>decodeURIComponent(part)).join('/');
-            const dl=await window.ALU_SUPABASE_CLIENT.storage.from(bucket).download(objectPath);
-            if(!dl.error&&dl.data instanceof Blob&&dl.data.size)blob=dl.data;
-            else if(dl.error)sourceError=new Error('Supabase Storage download: '+(dl.error.message||'download failed'));
-          }
-        }
-      }catch(e){sourceError=e;console.warn('Supabase Storage fallback failed:',e)}
-    }
-    if(!blob&&url){
+if(!blob&&url){
       try{const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'no-store'});if(!response.ok)throw new Error('Audio download returned HTTP '+response.status);blob=await response.blob()}
       catch(e){sourceError=e;console.warn('Direct audio download failed:',e)}
     }
@@ -5329,26 +5314,10 @@ window.ALU_ACTIVE_PAGE=window.ALU_ACTIVE_PAGE||((location.hash||'#home').slice(1
 const ALU_DB_V101_NAME='artist_level_up_audio_v1';
 function aluOpenDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('audio');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function aluPutAudio(key,file){
-  if(window.ALU_SUPABASE_CLIENT){
-    if(window.ALU_CLOUD?.ensureSession){
-      const uid=await window.ALU_CLOUD.ensureSession();
-      if(!uid) throw new Error('Supabase sign-in failed before music upload.');
-    }
-    const safe=String(file?.name||'audio.mp3').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
-    const path='songs/'+String(key)+'-'+safe;
-    const ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
-    const rawType=String(file?.type||'').toLowerCase();
-    const normalizedType=(ext==='m4a'||rawType==='audio/x-m4a'||rawType==='audio/m4a')?'audio/mp4':(rawType.startsWith('audio/')?rawType:'audio/mpeg');
-    const uploadFile=(normalizedType===rawType||!file)?file:new File([file],file.name||('audio.'+ext),{type:normalizedType,lastModified:file.lastModified||Date.now()});
-    const {error}=await window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).upload(path,uploadFile,{cacheControl:'31536000',upsert:false,contentType:normalizedType});
-    if(error) throw new Error('Supabase Storage: '+(error.message||'upload failed'));
-    const {data}=window.ALU_SUPABASE_CLIENT.storage.from(window.ALU_SUPABASE_BUCKET).getPublicUrl(path);
-    const publicUrl=String(data?.publicUrl||'').trim() || (String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'')+'/storage/v1/object/public/'+encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'))+'/'+String(path).split('/').map(encodeURIComponent).join('/'));
-    if(!/^https?:\/\//i.test(publicUrl)) throw new Error('Supabase Storage upload succeeded but no public audio URL was returned.');
-    return {remote:true,path,url:publicUrl};
-  }
-  const db=await aluOpenDB();
-  return new Promise((res,rej)=>{let done=false;try{const tx=db.transaction('audio','readwrite');const store=tx.objectStore('audio');const blob=(file instanceof Blob)?file:new Blob([file],{type:file?.type||'audio/mpeg'});const req=store.put(blob,key);req.onerror=()=>{if(!done){done=true;rej(req.error||new Error('Audio storage failed'))}};tx.oncomplete=()=>{if(!done){done=true;res({remote:false})}};tx.onerror=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction failed'))}};tx.onabort=()=>{if(!done){done=true;rej(tx.error||new Error('Audio storage transaction aborted'))}}}catch(e){if(!done){done=true;rej(e)}}});
+  const gate=window.ALU_MEMBER_GATE_V101;
+  if(!gate?.uploadAudio)throw new Error('Cloudflare upload service is not ready. Sign in and try again.');
+  await gate.ensureArtist();
+  return gate.uploadAudio(file);
 }
 async function aluGetAudio(key){const db=await aluOpenDB();return new Promise((res,rej)=>{const tx=db.transaction('audio');const r=tx.objectStore('audio').get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
 const aluAudioUrlCache=new Map();

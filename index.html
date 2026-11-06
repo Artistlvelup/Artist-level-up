@@ -6455,9 +6455,9 @@ var PENDING_KEY='alu_v101_pending_member';
 function getState(){return (typeof state!=='undefined'&&state)?state:null}
 function persist(){var s=getState();if(!s)return;try{if(typeof save==='function')save();else localStorage.setItem('alu_full_v1',JSON.stringify(s))}catch(e){}try{if(typeof renderAll==='function')renderAll()}catch(e){}}
 function emailOK(e){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)}
-function token(){try{return localStorage.getItem(TOKEN_KEY)||''}catch(e){return ''}}
-function saveToken(value){try{localStorage.setItem(TOKEN_KEY,value)}catch(e){}}
-function clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(e){}}
+function token(){try{return localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||''}catch(e){try{return sessionStorage.getItem(TOKEN_KEY)||''}catch(_){return ''}}}
+function saveToken(value){var saved=false;try{localStorage.setItem(TOKEN_KEY,value);saved=true}catch(e){}if(!saved){try{sessionStorage.setItem(TOKEN_KEY,value);saved=true}catch(e){}}if(!saved)window.__ALU_MEMBER_RESTORE_ERROR='saving login session: browser storage is unavailable';}
+function clearToken(){try{localStorage.removeItem(TOKEN_KEY)}catch(e){}try{sessionStorage.removeItem(TOKEN_KEY)}catch(e){}}
 async function api(path,method,body,bearer){
  var headers={'Content-Type':'application/json'};
  if(bearer)headers.Authorization='Bearer '+bearer;
@@ -6470,7 +6470,7 @@ function pending(){try{return JSON.parse(localStorage.getItem(PENDING_KEY)||'{}'
 function setPending(value){try{localStorage.setItem(PENDING_KEY,JSON.stringify(value||{}))}catch(e){}}
 function registered(){var s=getState();return !!(s&&s.userRegistered===true&&s.userAccount&&String(s.userAccount.email||'').trim()&&s.memberAccessV101===true)}
 async function resumeCloudMember(){
- var t=token(),s=getState();if(s)s.artistRegistered=false;if(!t||!s)return false;
+ var t=token(),s=getState();if(s)s.artistRegistered=false;if(!t){window.__ALU_MEMBER_RESTORE_ERROR='checking saved login session: the browser did not retain the session token';return false}if(!s){window.__ALU_MEMBER_RESTORE_ERROR='restoring member state: Artist Level Up state is not initialized';return false}
  var restoreStep='checking session';
  try{
   var session=await api('/auth/session','GET',null,t);

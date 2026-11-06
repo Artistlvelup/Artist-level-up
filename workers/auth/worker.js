@@ -390,6 +390,66 @@ async function adminVideosRoute(request, env, session, url) {
   return json({ error: "Method not allowed" }, 405, cors);
 }
 
+async function deriveAdminPinHash(pin, salt, iterations) {
+  const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: new TextEncoder().encode(salt), iterations, hash: "SHA-256" },
+    material, 256
+  );
+  return paystackHex(bits);
+}
+
+function constantTimeTextEqual(a, b) {
+  const left = new TextEncoder().encode(String(a || ""));
+  const right = new TextEncoder().encode(String(b || ""));
+  if (left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) diff |= left[i] ^ right[i];
+  return diff === 0;
+}
+
+async function adminPinRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  const admin = await env.DB.prepare("SELECT pin_hash, pin_salt, pin_iterations FROM platform_admins WHERE user_id = ? AND active = 1 LIMIT 1")
+    .bind(session.user_id).first();
+  if (!admin) return json({ error: "Admin account not found" }, 403, cors);
+  let body;
+  try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  if (request.method === "POST" && new URL(request.url).pathname === "/api/admin/pin/setup") {
+    const pin = String(body?.pin || "");
+    if (!/^\\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
+    if (admin.pin_hash) return json({ error: "Admin PIN is already configured" }, 409, cors);
+    const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16)));
+    const iterations = 210000;
+    const hash = await deriveAdminPinHash(pin, salt, iterations);
+    await env.DB.prepare("UPDATE platform_admins SET pin_hash = ?, pin_salt = ?, pin_iterations = ?, pin_changed_at = ? WHERE user_id = ?")
+      .bind(hash, salt, iterations, new Date().toISOString(), session.user_id).run();
+    return json({ ok: true, pinConfigured: true }, 200, cors);
+  }
+  if (request.method === "POST" && new URL(request.url).pathname === "/api/admin/pin/verify") {
+    if (!admin.pin_hash || !admin.pin_salt || !admin.pin_iterations) return json({ error: "Admin PIN has not been configured", pinConfigured: false }, 409, cors);
+    const pin = String(body?.pin || "");
+    if (!/^\\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
+    const hash = await deriveAdminPinHash(pin, admin.pin_salt, Number(admin.pin_iterations));
+    if (!constantTimeTextEqual(hash, admin.pin_hash)) return json({ error: "Incorrect Admin PIN" }, 401, cors);
+    return json({ ok: true, verified: true }, 200, cors);
+  }
+  if (request.method === "PUT" && new URL(request.url).pathname === "/api/admin/pin") {
+    if (!admin.pin_hash || !admin.pin_salt || !admin.pin_iterations) return json({ error: "Admin PIN has not been configured" }, 409, cors);
+    const currentPin = String(body?.currentPin || ""), newPin = String(body?.newPin || "");
+    if (!/^\\d{4,6}$/.test(newPin)) return json({ error: "New PIN must contain 4–6 digits" }, 400, cors);
+    const currentHash = await deriveAdminPinHash(currentPin, admin.pin_salt, Number(admin.pin_iterations));
+    if (!constantTimeTextEqual(currentHash, admin.pin_hash)) return json({ error: "Current PIN is incorrect" }, 401, cors);
+    const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16))), iterations = 210000;
+    const hash = await deriveAdminPinHash(newPin, salt, iterations);
+    await env.DB.prepare("UPDATE platform_admins SET pin_hash = ?, pin_salt = ?, pin_iterations = ?, pin_changed_at = ? WHERE user_id = ?")
+      .bind(hash, salt, iterations, new Date().toISOString(), session.user_id).run();
+    return json({ ok: true, pinConfigured: true }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+
 async function adminDashboardRoute(request, env, session) {
   const cors = corsHeaders(request, env);
   if (request.method !== "GET") return null;
@@ -1248,6 +1308,11 @@ export default {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return json({ ok: true, isAdmin: session.role === "admin", role: session.role }, 200, cors);
+      }
+      if (["/api/admin/pin/setup", "/api/admin/pin/verify", "/api/admin/pin"].includes(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await adminPinRoute(request, env, session);
       }
 
       if (url.pathname === "/auth/logout" && request.method === "POST") {

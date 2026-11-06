@@ -4186,13 +4186,11 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     if(pin && !/^\d{4,6}$/.test(pin)){toast('PIN must be 4–6 digits.');return}
     if(btn){btn.disabled=true;btn.textContent='SAVING PROFILE…'}
     if(pin){
-      const pinClient=window.ALU_SUPABASE_CLIENT;
       try{
-        const authResult=await pinClient?.auth.getSession();
-        if(!authResult?.data?.session?.user?.id){if(btn){btn.disabled=false;btn.textContent='Save Profile'}toast('Sign in with your verified member email to update your secure PIN.');return}
-        const pinResult=await pinClient.rpc('set_account_pin_v101',{p_pin:pin});
-        if(pinResult?.error||pinResult?.data!==true){if(btn){btn.disabled=false;btn.textContent='Save Profile'}toast('Your PIN could not be secured on the server. Profile not saved.');return}
-      }catch(pinError){if(btn){btn.disabled=false;btn.textContent='Save Profile'}toast('Secure PIN update failed. Please retry.');return}
+        const gate=window.ALU_MEMBER_GATE_V101;
+        if(!gate){throw new Error('Cloudflare member session is not ready.');}
+        await gate.request('/api/me/pin','POST',{pin:pin});
+      }catch(pinError){if(btn){btn.disabled=false;btn.textContent='Save Profile'}toast(pinError?.message||'Your PIN could not be secured on the server. Profile not saved.');return}
     }
     let localSaved=false;
     try{
@@ -7209,16 +7207,13 @@ else addProfileLogout();
       }
       if(a==='confirmDelete'){
         const entered=String(document.getElementById('deletePin')?.value||'').trim();
-        const client=window.ALU_SUPABASE_CLIENT;
-        if(!entered||!client){toast('Enter your secure PIN and sign in with your verified member account.');return}
+        const gate=window.ALU_MEMBER_GATE_V101;
+        if(!entered||!gate){toast('Enter your Account PIN and sign in with your verified member account.');return}
         try{
-          const authResult=await client.auth.getSession();
-          if(!authResult?.data?.session?.user?.id){toast('Please sign in again with your verified member email.');return}
-          const result=await client.rpc('verify_account_pin_v101',{p_pin:entered});
-          if(result?.error||result?.data!==true){toast('PIN incorrect or temporarily locked. Try again later.');return}
+          await gate.request('/api/me/pin/verify','POST',{pin:entered});
           window.__ALU_SERVER_PIN_VERIFIED=true;
           try{return await baseAction.apply(this,arguments)}finally{window.__ALU_SERVER_PIN_VERIFIED=false}
-        }catch(e){toast('Secure PIN verification failed. Please retry.');return}
+        }catch(e){toast(e?.message||'PIN incorrect or temporarily locked. Try again later.');return}
       }
       if(a==='forgotDeletePin'){
         toast('For security, local PIN reset is disabled. Sign in with your verified member email, then set a new PIN in Profile.');
@@ -7240,36 +7235,7 @@ else addProfileLogout();
 </script>
 
 <script id="aluV101LegacyPinMigration">
-(function(){
-  'use strict';
-  async function migrateLegacyPin(){
-    try{
-      if(typeof state==='undefined'||!window.ALU_SUPABASE_CLIENT)return;
-      const legacy=String(state.profile?.pin||state.userAccount?.pin||'').trim();
-      if(!/^\d{4,6}$/.test(legacy))return;
-      const expected=String(state.userAccount?.email||state.profile?.email||'').trim().toLowerCase();
-      const auth=await window.ALU_SUPABASE_CLIENT.auth.getSession();
-      const session=auth?.data?.session;
-      if(!session?.user?.id||!expected||String(session.user.email||'').trim().toLowerCase()!==expected)return;
-      const result=await window.ALU_SUPABASE_CLIENT.rpc('set_account_pin_v101',{p_pin:legacy});
-      if(result?.error||result?.data!==true)return;
-      if(state.profile)state.profile.pin='';
-      if(state.userAccount)delete state.userAccount.pin;
-      state.ownerPin='';
-      state.adminAuthenticated=false;
-      if(typeof persistStateOnly==='function')persistStateOnly();
-      else localStorage.setItem('alu_full_v1',JSON.stringify(state));
-      toast('Your existing PIN is now secured on the server.');
-    }catch(e){console.warn('V101 legacy PIN migration deferred:',e);}
-  }
-  window.ALU_MIGRATE_LEGACY_PIN=migrateLegacyPin;
-  window.addEventListener('load',function(){setTimeout(migrateLegacyPin,900);},{once:true});
-  if(window.ALU_SUPABASE_CLIENT){
-    window.ALU_SUPABASE_CLIENT.auth.onAuthStateChange(function(event,session){
-      if(event==='SIGNED_IN'&&session)setTimeout(migrateLegacyPin,250);
-    });
-  }
-})();
+(function(){'use strict';window.ALU_MIGRATE_LEGACY_PIN=function(){return Promise.resolve(false)};})();
 </script>
 
 

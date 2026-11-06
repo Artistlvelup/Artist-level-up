@@ -38,8 +38,8 @@ class SongsD1 {
           return {success:true,meta:{changes:1}};
         }
         if(sql.includes("INSERT INTO songs")) {
-          const [id,artist_id,title,genre,audio_url,cover_url,duration_seconds,status,created_at,updated_at]=v;
-          db.songs.set(id,{id,artist_id,title,genre,audio_url,cover_url,duration_seconds,status,created_at,updated_at});
+          const [id,artist_id,title,genre,audio_url,cover_url,duration_seconds,created_at,updated_at]=v;
+          db.songs.set(id,{id,artist_id,title,genre,audio_url,cover_url,duration_seconds,status:"pending",created_at,updated_at});
           return {success:true};
         }
         if(sql.startsWith("UPDATE songs SET")) {

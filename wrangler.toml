@@ -4,7 +4,10 @@ main = "workers/auth/worker.js"
 compatibility_date = "2026-10-29"
 
 [vars]
-ALLOWED_ORIGINS = "https://artist-level-up-v101-launch-hardening-vwiq.onrender.com,https://artistlevelup.com.ng"
+ALLOWED_ORIGINS = "https://artist-level-up-v101-launch-hardening-vwiq.onrender.com,https://artistlevelup.com.ng,https://www.artistlevelup.com.ng"
+CLOUDFLARE_ACCOUNT_ID = "2fc40d7fc6991a70d81f33bf57bd5cb4"
+R2_BUCKET = "artist-level-up-videos"
+R2_PUBLIC_BASE_URL = "https://pub-7e08b998aa8f48778971fec0f38c0993.r2.dev"
 
 [[d1_databases]]
 binding = "DB"

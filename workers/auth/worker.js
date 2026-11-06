@@ -430,7 +430,7 @@ async function memberAccountPinRoute(request, env, session) {
   let body;
   try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
   const pin = String(body?.pin || "");
-  if (!/^\\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
+  if (!/^\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
   const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16)));
   const iterations = 210000;
   const hash = await deriveAdminPinHash(pin, salt, iterations);
@@ -446,7 +446,7 @@ async function verifyMemberAccountPin(request, env, session) {
   let body;
   try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
   const pin = String(body?.pin || "");
-  if (!/^\\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
+  if (!/^\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
   const saved = await env.DB.prepare(
     "SELECT pin_hash, pin_salt, pin_iterations FROM member_account_pins WHERE user_id = ? LIMIT 1"
   ).bind(session.user_id).first();
@@ -468,7 +468,7 @@ async function adminPinRoute(request, env, session) {
   try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
   if (request.method === "POST" && new URL(request.url).pathname === "/api/admin/pin/setup") {
     const pin = String(body?.pin || "");
-    if (!/^\\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
+    if (!/^\d{4,6}$/.test(pin)) return json({ error: "PIN must contain 4–6 digits" }, 400, cors);
     if (admin.pin_hash) return json({ error: "Admin PIN is already configured" }, 409, cors);
     const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16)));
     const iterations = 210000;
@@ -480,7 +480,7 @@ async function adminPinRoute(request, env, session) {
   if (request.method === "POST" && new URL(request.url).pathname === "/api/admin/pin/verify") {
     if (!admin.pin_hash || !admin.pin_salt || !admin.pin_iterations) return json({ error: "Admin PIN has not been configured", pinConfigured: false }, 409, cors);
     const pin = String(body?.pin || "");
-    if (!/^\\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
+    if (!/^\d{4,6}$/.test(pin)) return json({ error: "Enter your 4–6 digit PIN" }, 400, cors);
     const hash = await deriveAdminPinHash(pin, admin.pin_salt, Number(admin.pin_iterations));
     if (!constantTimeTextEqual(hash, admin.pin_hash)) return json({ error: "Incorrect Admin PIN" }, 401, cors);
     return json({ ok: true, verified: true }, 200, cors);
@@ -488,7 +488,7 @@ async function adminPinRoute(request, env, session) {
   if (request.method === "PUT" && new URL(request.url).pathname === "/api/admin/pin") {
     if (!admin.pin_hash || !admin.pin_salt || !admin.pin_iterations) return json({ error: "Admin PIN has not been configured" }, 409, cors);
     const currentPin = String(body?.currentPin || ""), newPin = String(body?.newPin || "");
-    if (!/^\\d{4,6}$/.test(newPin)) return json({ error: "New PIN must contain 4–6 digits" }, 400, cors);
+    if (!/^\d{4,6}$/.test(newPin)) return json({ error: "New PIN must contain 4–6 digits" }, 400, cors);
     const currentHash = await deriveAdminPinHash(currentPin, admin.pin_salt, Number(admin.pin_iterations));
     if (!constantTimeTextEqual(currentHash, admin.pin_hash)) return json({ error: "Current PIN is incorrect" }, 401, cors);
     const salt = paystackHex(crypto.getRandomValues(new Uint8Array(16))), iterations = 210000;

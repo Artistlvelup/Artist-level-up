@@ -5772,34 +5772,27 @@ document.addEventListener('click',function(e){if(e.target.closest?.('[data-actio
     if(!force&&now-lastFetch<10000){renderPublic();return;}
     busy=true;
     try{
-      const client=window.ALU_SUPABASE_CLIENT;
-      if(client){
-        let q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artists(artist_name)').eq('status','published').order('created_at',{ascending:false}).limit(60);
-        let artistJoinAvailable=true;
-        if(q.error){
-          artistJoinAvailable=false;
-          q=await client.from('songs').select('id,title,genre,audio_url,cover_url,status,created_at,artist_id').eq('status','published').order('created_at',{ascending:false}).limit(60);
-        }
-        if(!q.error && Array.isArray(q.data)){
-          const eligibleRows=artistJoinAvailable?q.data.filter(r=>{
-            const name=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||'';
-            const normalized=String(name).trim().toLowerCase();
-            return !!String(r.artist_id||'').trim()&&!!normalized&&!['artist level up','artist','unknown artist'].includes(normalized);
-          }):[];
-          eligibleRows.forEach(r=>{
-            const id=String(r.id);
-            let s=(state.songs||[]).find(x=>String(x.remoteSongId||'')===id);
-            const artist=(r.artists&&((Array.isArray(r.artists)&&r.artists[0]?.artist_name)||r.artists.artist_name))||s?.artist||'';
-            const mapped={id:'cloud_'+id,remoteSongId:id,title:r.title||'Untitled',genre:r.genre||'Music',artist,country:s?.country||'Global',streams:Number(s?.streams||0),plays:Number(s?.plays||0),likes:Number(s?.likes||0),liked:!!s?.liked,status:'Published',local:true,audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',createdAt:r.created_at||'',createdAtTs:new Date(r.created_at||0).getTime(),cloudSaved:true};
-            if(s){const keepId=s.id;Object.assign(s,mapped);s.id=keepId;}else state.songs.push(mapped);
-          });
-          try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
-        }
-      }
+      const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');
+      if(!base)throw new Error('Cloudflare API is not configured.');
+      const response=await fetch(base+'/api/public/songs?limit=60',{cache:'no-store'});
+      if(!response.ok)throw new Error('Cloudflare music feed returned '+response.status);
+      const payload=await response.json();
+      const rows=Array.isArray(payload?.songs)?payload.songs:[];
+      const eligibleRows=rows.filter(r=>{
+        const normalized=String(r.artist_name||'').trim().toLowerCase();
+        return !!String(r.artist_id||'').trim()&&!!normalized&&!['artist level up','artist','unknown artist'].includes(normalized);
+      });
+      eligibleRows.forEach(r=>{
+        const id=String(r.id);
+        let existing=(state.songs||[]).find(x=>String(x.remoteSongId||'')===id);
+        const mapped={id:'cloud_'+id,remoteSongId:id,title:r.title||'Untitled',genre:r.genre||'Music',artist:r.artist_name||'Artist',country:existing?.country||'Global',streams:Number(existing?.streams||0),plays:Number(existing?.plays||0),likes:Number(existing?.likes||0),liked:!!existing?.liked,status:'Published',local:true,audioRemoteUrl:r.audio_url||'',audioUrl:r.audio_url||'',coverArt:r.cover_url||'',createdAt:r.created_at||'',createdAtTs:new Date(r.created_at||0).getTime(),cloudSaved:true};
+        if(existing){const keepId=existing.id;Object.assign(existing,mapped);existing.id=keepId;}else state.songs.push(mapped);
+      });
+      try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
       lastFetch=Date.now();
       renderPublic();
-    }catch(e){console.warn('Public music recovery failed:',e)}
-    finally{busy=false}
+    }catch(e){console.warn('Cloudflare public music recovery failed:',e);renderPublic();}
+    finally{busy=false;}
   }
 
   function hook(){

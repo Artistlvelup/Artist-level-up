@@ -14,7 +14,6 @@ import { registerPasswordAccount, resendPasswordVerification, verifyPasswordAcco
  * Data APIs are partially ported. Keep unimplemented features on their existing adapters until replacement routes are tested.
  */
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 365;
-const LEGACY_OWNER_USER_ID = ""; // No legacy/test account is authorized for Cloudflare identity migration.
 
 function allowedOrigins(env) {
   return new Set(String(env.ALLOWED_ORIGINS || "")

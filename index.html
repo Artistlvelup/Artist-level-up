@@ -4271,12 +4271,14 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
     const status=document.getElementById('marketplaceStatus');
     if(status)status.textContent='Loading published beats…';
     try{
-      if(!window.ALU_CLOUD?.client) throw new Error('Supabase connection is not ready.');
-      const q=await window.ALU_CLOUD.client.from('marketplace_beats').select('id,title,producer_user_id,producer_name,genre,mood,bpm,price_ngn,default_license,audio_preview_url,status,created_at').eq('status','published').order('created_at',{ascending:false});
-      if(q.error)throw q.error;
-      marketBeats=Array.isArray(q.data)?q.data:[]; renderBeats();
+      const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');
+      const response=await fetch(base+'/api/marketplace/beats',{cache:'no-store'});
+      if(!response.ok)throw new Error('Cloudflare marketplace returned '+response.status);
+      const payload=await response.json();
+      marketBeats=Array.isArray(payload?.beats)?payload.beats:[];
+      renderBeats();
       if(status)status.textContent=marketBeats.length?marketBeats.length+' published beat'+(marketBeats.length===1?'':'s')+' available.':'No published beats are available yet.';
-    }catch(e){console.error('Marketplace load failed',e);marketBeats=[];renderBeats();if(status)status.textContent='Marketplace could not load: '+(e?.message||e);}
+    }catch(e){console.error('Cloudflare marketplace load failed',e);marketBeats=[];renderBeats();if(status)status.textContent='Marketplace could not load: '+(e?.message||e);}
   }
   function renderBeats(){
     const box=document.getElementById('marketplaceList'); if(!box)return;
@@ -4864,18 +4866,16 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   async function loadOwnerDashboard(){
     const status=document.getElementById('ownerDashboardStatus'),list=document.getElementById('ownerRecentSales');
     if(!status||!list)return;
-    status.textContent='Loading live owner data…'; list.innerHTML='';
+    status.textContent='Loading live owner data…';list.innerHTML='';
     try{
-      const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Supabase connection is not ready.');
-      const {data,error}=await c.functions.invoke('owner-dashboard',{body:{}});
-      if(error)throw new Error(error.message||'Owner dashboard request failed.');
-      if(!data?.ok)throw new Error(data?.error||'Owner dashboard access denied.');
-      const st=data.stats||{};
+      const result=await window.ALU_MEMBER_GATE_V101.request('/api/admin/dashboard','GET');
+      if(!result?.ok)throw new Error(result?.error||'Owner dashboard access denied.');
+      const st=result.stats||{};
       const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
       set('ownerTotalSales',money(st.totalSales));set('ownerCommission',money(st.platformCommission));set('ownerProducerPayouts',money(st.producerPayouts));
       set('ownerPaidOrders',st.paidOrders||0);set('ownerPendingOrders',st.pendingOrders||0);set('ownerPublishedBeats',st.publishedBeats||0);
       set('ownerConnectedProducers',st.connectedProducers||0);set('ownerTotalUsers',st.totalUsers||0);set('ownerTotalOrders',st.totalOrders||0);
-      const rows=data.recentSales||[];
+      const rows=result.recentSales||[];
       status.textContent=rows.length?rows.length+' recent paid sale'+(rows.length===1?'':'s')+' loaded.':'No completed marketplace sales yet.';
       if(!rows.length){list.innerHTML='<p class="muted">Completed marketplace sales will appear here automatically.</p>';return;}
       list.innerHTML=rows.map(r=>'<div class="owner-sale"><div class="row"><div class="grow"><b>'+escO(r.beat_title||'Beat sale')+'</b><div class="tiny muted">'+escO(r.producer_name||'Producer')+' · '+escO(r.paid_at?new Date(r.paid_at).toLocaleString('en-NG'):'Paid')+'</div><div class="tiny muted">Ref: '+escO(r.paystack_reference||'—')+'</div></div><div style="text-align:right"><b>'+money(r.amount_ngn)+'</b><div class="tiny muted">Commission '+money(r.platform_fee_ngn)+'</div><div class="tiny muted">Producer '+money(r.producer_payout_ngn)+'</div></div></div></div>').join('');

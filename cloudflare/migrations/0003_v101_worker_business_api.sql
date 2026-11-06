@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_beats_status_created ON marketplace_b
 CREATE TABLE IF NOT EXISTS marketplace_orders (
   id TEXT PRIMARY KEY NOT NULL,
   buyer_user_id TEXT REFERENCES app_users(user_id) ON DELETE SET NULL,
-  beat_id TEXT,
+  beat_id TEXT REFERENCES marketplace_beats(id) ON DELETE SET NULL,
   beat_title TEXT NOT NULL,
   producer_name TEXT NOT NULL,
   license TEXT,

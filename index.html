@@ -6485,7 +6485,7 @@ async function resumeCloudMember(){
   }
   s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
   s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-  s.profile={...(s.profile||{}),name:displayName,email:s.userAccount.email,saved:!!artist,country:s.profile?.country||'Nigeria'};
+  s.profile={...(s.profile||{}),name:artist?.artist_name||displayName,email:s.userAccount.email,saved:!!artist,country:artist?.country||s.profile?.country||'Nigeria',artistId:artist?.id||s.profile?.artistId||''};
   s.artistRegistered=!!artist;
   persist();
   return !!session.userId;
@@ -6576,9 +6576,21 @@ async function createCloudflareArtist(details){
  var t=token();if(!t)throw new Error('Please sign in again before creating your artist account.');
  var payload={artist_name:String(details?.artist_name||'').trim(),bio:String(details?.bio||''),genre:String(details?.genre||''),country:String(details?.country||'Nigeria')};
  if(!payload.artist_name)throw new Error('Enter your artist or stage name first.');
- var result=await api('/api/me/artist','POST',payload,t);
- if(!result.artist?.id)throw new Error('Cloudflare could not create your artist profile.');
- return result.artist;
+ // Recover an existing server-side artist before attempting a new insert.
+ var current=await api('/api/me/artist','GET',null,t);
+ if(current?.artist?.id)return current.artist;
+ try{
+  var result=await api('/api/me/artist','POST',payload,t);
+  if(!result.artist?.id)throw new Error('Cloudflare could not create your artist profile.');
+  return result.artist;
+ }catch(createError){
+  // A duplicate response means the artist record already exists; fetch it instead of failing registration.
+  if(/already exists|409/i.test(String(createError?.message||''))){
+   var recovered=await api('/api/me/artist','GET',null,t);
+   if(recovered?.artist?.id)return recovered.artist;
+  }
+  throw createError;
+ }
 }
 async function uploadMediaToCloudflare(file,purpose){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');

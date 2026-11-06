@@ -6,3 +6,5 @@ CREATE TABLE IF NOT EXISTS member_account_pins (
   pin_changed_at TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES app_users(user_id) ON DELETE CASCADE
 );
+
+-- Stores only salted PBKDF2 hashes for each signed-in member's Account PIN.

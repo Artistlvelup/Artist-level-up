@@ -561,12 +561,6 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
 
 async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
   const cors = corsHeaders(request, env);
-  if (!admin && request.method === "GET") {
-    const rows = await env.DB.prepare(
-      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 100"
-    ).all();
-    return json({ beats: rows.results || [] }, 200, cors);
-  }
   if (admin && request.method === "GET") {
     const rows = await env.DB.prepare(
       "SELECT id, producer_user_id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at FROM marketplace_beats ORDER BY created_at DESC LIMIT 100"
@@ -577,6 +571,12 @@ async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
     const rows = await env.DB.prepare(
       "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, audio_file_url, status, moderation_status, created_at FROM marketplace_beats WHERE producer_user_id = ? ORDER BY created_at DESC LIMIT 100"
     ).bind(userId).all();
+    return json({ beats: rows.results || [] }, 200, cors);
+  }
+  if (!admin && request.method === "GET") {
+    const rows = await env.DB.prepare(
+      "SELECT id, title, producer_name, genre, mood, bpm, price_ngn, default_license, audio_preview_url, created_at FROM marketplace_beats WHERE status = 'published' AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 100"
+    ).all();
     return json({ beats: rows.results || [] }, 200, cors);
   }
   if (!admin && request.method === "POST" && url.pathname === "/api/me/marketplace/beats") {

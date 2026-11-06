@@ -366,9 +366,11 @@ async function adminVideosRoute(request, env, session, url) {
     const rows = await query.all();
     return json({ videos: rows.results || [] }, 200, cors);
   }
+  const videoId = url.pathname.slice("/api/admin/videos/".length);
+  if (url.pathname !== "/api/admin/videos" && !/^[0-9a-f-]{36}$/.test(videoId)) {
+    return json({ error: "Invalid video ID" }, 400, cors);
+  }
   if (request.method === "PATCH") {
-    const videoId = url.pathname.slice("/api/admin/videos/".length);
-    if (!/^[0-9a-f-]{36}$/.test(videoId)) return json({ error: "Invalid video ID" }, 400, cors);
     let body;
     try { body = await request.json(); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
     const status = String(body?.status || "");
@@ -379,6 +381,11 @@ async function adminVideosRoute(request, env, session, url) {
       .bind(status, videoId).run();
     if (!result.meta?.changes) return json({ error: "Video not found" }, 404, cors);
     return json({ success: true, id: videoId, status }, 200, cors);
+  }
+  if (request.method === "DELETE") {
+    const result = await env.DB.prepare("DELETE FROM artist_videos WHERE id = ?").bind(videoId).run();
+    if (!result.meta?.changes) return json({ error: "Video not found" }, 404, cors);
+    return json({ success: true, id: videoId, storageObjectRetained: true }, 200, cors);
   }
   return json({ error: "Method not allowed" }, 405, cors);
 }

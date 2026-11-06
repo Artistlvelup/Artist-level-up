@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY REFERENCES app_users(user_id) ON DELETE CASCADE,
   display_name TEXT,
   avatar_url TEXT,
-  role TEXT NOT NULL DEFAULT 'artist' CHECK (role IN ('artist','admin','user')),
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('artist','admin','user')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

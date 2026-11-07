@@ -3961,15 +3961,38 @@ function observe77(){
  if('onscrollend' in track)track.addEventListener('scrollend',()=>{clearTimeout(scrollTimer);scheduleVisiblePlayback(20)},{passive:true});
  setTimeout(()=>scheduleVisiblePlayback(20),60);
 }
+/* Bridge music attached to a Discover post into the V101 Cloudflare music player. */
+window.ALU_PLAY_CLOUD_SONG=async function(song){
+ const audioUrl=String(song?.audioRemoteUrl||song?.audioUrl||'').trim();
+ if(!/^https?:\\/\\//i.test(audioUrl))throw new Error('No playable Cloudflare audio URL');
+ state.songs=Array.isArray(state.songs)?state.songs:[];
+ const id=String(song.id||('discover_'+Date.now()));
+ let saved=state.songs.find(x=>String(x.remoteSongId||'')===id||String(x.id)===id);
+ if(!saved){
+  saved={id,remoteSongId:id,title:song.title||'Music',artist:song.artist||'Artist Level Up',genre:'Music',status:'Published',local:true,audioUrl,audioRemoteUrl:audioUrl,coverArt:song.coverArt||''};
+  state.songs.unshift(saved);
+ }else{
+  saved.audioRemoteUrl=audioUrl;saved.audioUrl=audioUrl;
+  if(song.title)saved.title=song.title;
+  if(song.artist)saved.artist=song.artist;
+  if(song.coverArt)saved.coverArt=song.coverArt;
+ }
+ try{save()}catch(e){console.warn('Discover music state save skipped:',e)}
+ if(typeof play!=='function')throw new Error('V101 music player is unavailable');
+ await play(saved.id);
+ const audio=document.getElementById('audioEngine');
+ return !!audio&&!audio.paused;
+};
 async function playPromotedSong(v){
  try{
-  const audioUrl=String(v?.song_audio_url||v?.sound_audio_url||'');
-  if(!audioUrl||!(audioUrl.startsWith('http://')||audioUrl.startsWith('https://')))throw new Error('No attached music');
+  const audioUrl=String(v?.song_audio_url||v?.sound_audio_url||'').trim();
+  if(!/^https?:\\/\\//i.test(audioUrl))throw new Error('No attached music');
   track.querySelectorAll('video').forEach(x=>{try{x.pause()}catch(_){}});
   activeVideo=null;
-  const ok=typeof window.ALU_PLAY_CLOUD_SONG==='function'&&await window.ALU_PLAY_CLOUD_SONG({id:v.song_id||('picture_'+v.id),title:v.song_title||v.sound_title||'Music',artist:v.artist_name||'Artist Level Up',audioRemoteUrl:audioUrl,coverArt:v.song_cover_url||''});
+  const ok=await window.ALU_PLAY_CLOUD_SONG({id:v.song_id||('picture_'+v.id),title:v.song_title||v.sound_title||'Music',artist:v.artist_name||'Artist Level Up',audioRemoteUrl:audioUrl,coverArt:v.song_cover_url||''});
   if(ok)toastMsg('🎵 '+(v.song_title||v.sound_title||'Music')+' is playing');
- }catch(e){console.warn('Promoted music playback failed',e);toastMsg('Tap 🎵 again to play the attached music');}
+  else toastMsg('The music file could not start. Please try again.');
+ }catch(e){console.warn('Promoted music playback failed',e);toastMsg('Music could not play: '+String(e?.message||e).slice(0,100));}
 }
 function shareItem(v){
  const shareUrl=location.href.split('#')[0]+'#discover-post='+encodeURIComponent(keyFor(v));const data={title:v.title||'Artist Level Up',text:'Check this post on Artist Level Up',url:shareUrl};
@@ -4066,7 +4089,7 @@ async function open77(){
  // Keep Global Feed isolated from local picture/video state refreshes.
  // The feed queries published cloud videos directly, so opening it does not rewrite local video state.
  Promise.resolve().then(()=>syncLocalApprovedPictures()).catch(e=>console.warn('Global picture sync skipped:',e));
- setTimeout(autoplayVisible,300);
+ setTimeout(()=>scheduleVisiblePlayback(20),300);
 }
 function close77(e){
  if(e){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation()}

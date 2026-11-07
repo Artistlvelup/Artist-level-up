@@ -3860,36 +3860,8 @@ function renderComments(v){
 }
 function stopOtherVideos(except){track.querySelectorAll('video').forEach(v=>{if(v===except)return;try{v.pause()}catch(_){ }markPlayState(v,false)});activeVideo=except||null}
 function markPlayState(v,playing){const item=v?.closest('.g77-item');if(!item)return;item.classList.toggle('g77-playing',!!playing);if(playing)v.classList.add('g77-active-video');else v.classList.remove('g77-active-video')}
-async function playVideo(v){if(!v||!root.classList.contains('active'))throw new Error('feed closed');if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();stopOtherVideos(v);v.playsInline=true;v.muted=muted;v.defaultMuted=muted;try{await v.play()}catch(err){console.warn('Global video play retry:',err);v.muted=true;v.defaultMuted=true;await v.play()}activeVideo=v;markPlayState(v,true)}
-function stopMusicForPicture(){
- const audio=document.getElementById('audioEngine');
- if(!audio||audio.paused||audio.ended)return;
- try{
-  if(typeof window.fullToggle==='function')window.fullToggle();
-  else audio.pause();
- }catch(_){}
-}
-function syncPictureAudioGuard(){
- if(!root.classList.contains('active'))return;
- const cards=[...track.querySelectorAll('.g77-item')];
- if(!cards.length)return;
- const rr=track.getBoundingClientRect(),center=rr.top+rr.height/2;
- let best=null,bestDist=Infinity;
- cards.forEach(card=>{
-  const r=card.getBoundingClientRect(),visible=Math.max(0,Math.min(r.bottom,rr.bottom)-Math.max(r.top,rr.top));
-  if(visible<=0)return;
-  const dist=Math.abs((r.top+r.height/2)-center);
-  if(dist<bestDist){bestDist=dist;best=card}
- });
- if(best?.classList.contains('g77-picture-item'))stopMusicForPicture();
-}
-function bindPictureAudioGuard(){
- if(track.__g77PictureAudioGuard)return;
- const guard=()=>{clearTimeout(track.__g77PictureAudioTimer);track.__g77PictureAudioTimer=setTimeout(syncPictureAudioGuard,90)};
- track.addEventListener('scroll',guard,{passive:true});
- track.__g77PictureAudioGuard=true;
- setTimeout(syncPictureAudioGuard,60);
-}
+async function playVideo(v){if(!v||!root.classList.contains('active'))throw new Error('feed closed');window.__ALU_FEED_MUSIC_ACTIVE=false;if(typeof window.ALU_pauseMusicForVideo==='function')window.ALU_pauseMusicForVideo();stopOtherVideos(v);v.playsInline=true;v.muted=muted;v.defaultMuted=muted;try{await v.play()}catch(err){console.warn('Global video play retry:',err);v.muted=true;v.defaultMuted=true;await v.play()}activeVideo=v;markPlayState(v,true)}
+/* Feed pictures must not pause music selected by the listener. */
 function getVisibleVideo(){
  const tr=track.getBoundingClientRect(),center=tr.top+tr.height/2;
  const items=[...track.querySelectorAll('.g77-item')];
@@ -3926,6 +3898,7 @@ function scheduleVisiblePlayback(delay=140){
  clearTimeout(scrollTimer);
  scrollTimer=setTimeout(()=>{
   if(!root.classList.contains('active'))return;
+  if(window.__ALU_FEED_MUSIC_ACTIVE){pauseAllVideos();return}
   const v=getVisibleVideo();
   if(!v){pauseAllVideos();return}
   pauseNonVisible();
@@ -3941,6 +3914,7 @@ function observe77(){
    clearTimeout(scrollTimer);
    scrollTimer=setTimeout(()=>{
      if(!root.classList.contains('active'))return;
+     if(window.__ALU_FEED_MUSIC_ACTIVE){pauseAllVideos();return}
      const visible=getVisibleVideo();
      if(!visible){pauseAllVideos();return}
      track.querySelectorAll('video').forEach(v=>{
@@ -3985,6 +3959,7 @@ window.ALU_PLAY_CLOUD_SONG=async function(song){
 };
 async function playPromotedSong(v){
  try{
+  window.__ALU_FEED_MUSIC_ACTIVE=true;
   const audioUrl=String(v?.song_audio_url||v?.sound_audio_url||'').trim();
   if(!/^https?:\/\//i.test(audioUrl))throw new Error('No attached music');
   track.querySelectorAll('video').forEach(x=>{try{x.pause()}catch(_){}});
@@ -4077,15 +4052,16 @@ async function render77(){
     item?.addEventListener('click',e=>{if(e.target.closest('[data-act]')||e.target.closest('.g77-video-controls'))return;if(v.paused)playVideo(v).catch(()=>{});else{v.pause();activeVideo=null}});
   });
   observe77();
-  bindPictureAudioGuard();
+  // No picture visibility handler: attached music must remain audible.
 }
 async function open77(){
+ window.__ALU_FEED_MUSIC_ACTIVE=false;
  root.classList.add('active');root.setAttribute('aria-hidden','false');document.body.classList.add('g77-open');soundBtn.textContent=muted?'🔇':'🔊';
  track.innerHTML='<div class="g77-empty"><div><div style="font-size:34px;margin-bottom:12px">🌍</div><b>Global Feed</b><div style="opacity:.7;margin-top:8px">Loading published videos and approved pictures…</div></div></div>';
  // Render first. Do not block the feed on picture syncing or video-state repair.
  try{await render77()}catch(e){console.warn('Global feed render skipped:',e)}
  applyDiscoverPostDeepLink77();
- syncPictureAudioGuard();
+ window.__ALU_FEED_MUSIC_ACTIVE=false;
  // Keep Global Feed isolated from local picture/video state refreshes.
  // The feed queries published cloud videos directly, so opening it does not rewrite local video state.
  Promise.resolve().then(()=>syncLocalApprovedPictures()).catch(e=>console.warn('Global picture sync skipped:',e));

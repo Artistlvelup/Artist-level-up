@@ -609,6 +609,12 @@ async function courseCheckoutRoute(request, env, userId) {
     "SELECT id FROM course_enrollments WHERE user_id = ? AND course_key = 'music-growth-2026' AND status = 'active' LIMIT 1"
   ).bind(userId).first();
   if (existing) return json({ ok: true, enrolled: true }, 200, cors);
+  const lessonReadiness = await env.DB.prepare(
+    "SELECT COUNT(*) AS published FROM course_lessons WHERE course_key = 'music-growth-2026' AND status = 'published' AND r2_object_key IS NOT NULL"
+  ).first();
+  if (Number(lessonReadiness?.published || 0) < 15) {
+    return json({ error: "Course checkout will open after all 15 lessons are uploaded to secure course storage.", code: "COURSE_CONTENT_NOT_READY", published_lessons: Number(lessonReadiness?.published || 0) }, 409, cors);
+  }
   if (!env.PAYSTACK_SECRET_KEY) return json({ error: "Paystack is not configured. Course checkout is disabled." }, 503, cors);
   const body = await readJson(request);
   const reference = "ALU-COURSE-" + crypto.randomUUID();
@@ -660,7 +666,11 @@ async function courseAccessRoute(request, env, userId) {
   const latest = await env.DB.prepare(
     "SELECT reference, status, amount_ngn, currency FROM payment_transactions WHERE user_id = ? AND purpose = 'course' ORDER BY created_at DESC LIMIT 1"
   ).bind(userId).first();
-  return json({ ok: true, enrolled: !!enrollment, enrollment: enrollment || null, payment: latest || null }, 200, cors);
+  const lessonReadiness = await env.DB.prepare(
+    "SELECT COUNT(*) AS published FROM course_lessons WHERE course_key = 'music-growth-2026' AND status = 'published' AND r2_object_key IS NOT NULL"
+  ).first();
+  const publishedLessons = Number(lessonReadiness?.published || 0);
+  return json({ ok: true, enrolled: !!enrollment, enrollment: enrollment || null, payment: latest || null, published_lessons: publishedLessons, ready: publishedLessons >= 15 }, 200, cors);
 }
 
 async function marketplaceCheckoutRoute(request, env, userId) {

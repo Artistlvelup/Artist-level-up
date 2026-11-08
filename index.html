@@ -2405,16 +2405,7 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
     }
   })();
   setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},1200);
-  // Retry any pending private-portal transfer immediately after a registered member signs in.
-  // The backend still verifies the user's real session before listing or retrying releases.
-  const streamingAuthClient=streamingClient();
-  if(streamingAuthClient?.auth?.onAuthStateChange){
-    streamingAuthClient.auth.onAuthStateChange((event,session)=>{
-      if(session?.user?.id && ['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event)){
-        setTimeout(()=>{streamingRefreshMine();},350);
-      }
-    });
-  }
+  // Cloudflare session is checked on every distribution request; the member can refresh the request list after sign-in.
   // V26 unified music uploader owns the Create upload button. Do not install the old capture-phase handler here: it intercepted the tap and launched a separate Paystack fee checkout before the unified uploader could run.
 
   async function aluFileToDataURL(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(String(fr.result||""));fr.onerror=()=>reject(fr.error||new Error("Audio read failed"));fr.readAsDataURL(file)})}

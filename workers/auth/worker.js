@@ -571,7 +571,7 @@ async function paystackWebhookRoute(request, env) {
   if (eventAmount !== expectedAmount || eventCurrency !== String(payment.currency || "NGN")) {
     return json({ error: "Payment amount or currency does not match the transaction" }, 400);
   }
-  if (payment.purpose === "artist_level_up_course") {
+  if (payment.purpose === "course") {
     if (Number(payment.amount_ngn) !== 15000 || String(payment.currency) !== "NGN") {
       return json({ error: "Course payment configuration mismatch" }, 409);
     }

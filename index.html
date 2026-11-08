@@ -1847,25 +1847,11 @@ else if(a==='approveCampaignPayment'){const id=Number(el?.dataset?.campaignId);c
 const plan=String(el?.dataset?.paytype||'').includes('Yearly')?'Yearly':'Monthly';
 const status=document.getElementById('paymentStatus');
 const button=el;
-if(!window.ALU_CLOUD?.client){if(status)status.textContent='Secure payment connection is not ready. Please refresh and try again.';toast('Secure payment connection is not ready.');return;}
 if(button)button.disabled=true;
 if(status)status.textContent='Preparing secure Paystack checkout…';
 (async()=>{
- try{
-  const client=window.ALU_CLOUD.client;
-  const {data:{session},error:sessionError}=await client.auth.getSession();
-  if(sessionError||!session?.access_token)throw new Error('Please sign in to your Artist Level Up account before paying.');
-  const {data,error}=await client.functions.invoke('artist-pro-checkout',{body:{plan}});
-  if(error)throw new Error(error.message||'Could not start secure checkout.');
-  if(!data?.ok||!data?.authorization_url)throw new Error(data?.error||'Paystack could not start checkout. No payment or subscription was recorded.');
-  if(status)status.textContent='Opening secure Paystack checkout…';
-  window.location.href=data.authorization_url;
- }catch(err){
-  const msg=String(err?.message||err||'Could not start Paystack checkout.');
-  if(status)status.textContent=msg;
-  toast(msg.slice(0,180));
-  if(button)button.disabled=false;
- }
+ try{await startArtistProCheckout(plan);}
+ catch(err){const msg=String(err?.message||err||'Could not start secure checkout.');if(status)status.textContent=msg;toast(msg.slice(0,180));if(button)button.disabled=false;}
 })();
 return;
 }
@@ -1899,27 +1885,31 @@ async function validateSquareArtwork(file){
 }
 document.getElementById('audioCoverFile')?.addEventListener('change',async e=>{const f=e.target.files[0];const p=document.getElementById('audioCoverPreview');if(f&&!await validateSquareArtwork(f)){e.target.value='';if(p)p.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';return;}if(f&&p){p.innerHTML=`<img src="${await imageToDataURL(f,800,.9)}" alt="Selected cover art">`;const box=document.getElementById('coverUploadBox');if(box)box.querySelector('.tiny').textContent='Square picture selected ✓ Tap to change';}});document.getElementById('profileAvatar')?.addEventListener('change',async e=>{const f=e.target.files[0],p=document.getElementById('profileAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});document.getElementById('search')?.addEventListener('input',renderAll);document.getElementById('adminArtistSearch')?.addEventListener('input',renderAll);renderAll();let aluSavedPage='home';try{aluSavedPage=localStorage.getItem('alu_last_page_v101')||'home'}catch(e){}const aluHashPage=(location.hash||'').slice(1);let aluRequestedPage=document.getElementById(aluHashPage)?aluHashPage:aluSavedPage;if(aluRequestedPage==='register')aluRequestedPage='home';const aluInitialPage=document.getElementById(aluRequestedPage)?aluRequestedPage:'home';go(aluInitialPage,false);
 
+async function startArtistProCheckout(plan){
+ const gate=window.ALU_MEMBER_GATE_V101;
+ if(!gate)throw new Error('Cloudflare member access is not ready. Please sign in again.');
+ const cleanPlan=plan==='Yearly'?'Yearly':'Monthly';
+ const status=document.getElementById('paymentStatus');
+ if(status)status.textContent='Preparing secure '+cleanPlan+' Artist Pro checkout…';
+ const result=await gate.request('/api/me/artist-pro/checkout','POST',{plan:cleanPlan});
+ if(!result?.ok||!result.authorization_url)throw new Error(result?.error||'Paystack did not return a secure checkout link.');
+ if(status)status.textContent='Opening secure Paystack checkout…';
+ window.location.href=result.authorization_url;
+}
 async function completeArtistProPaymentReturn(attempt=0){
  const params=new URLSearchParams(window.location.search);
  if(params.get('alu_pro_payment')!=='1')return;
  const reference=String(params.get('reference')||'').trim();
  const status=document.getElementById('paymentStatus');
  if(!reference){if(status)status.textContent='Paystack returned without a payment reference. Please contact support.';return;}
- const client=window.ALU_CLOUD?.client;
- if(!client){
-  if(attempt<20){setTimeout(()=>completeArtistProPaymentReturn(attempt+1),500);return;}
-  if(status)status.textContent='Payment returned. Secure verification is not ready yet; refresh this page to retry.';
-  return;
- }
+ const gate=window.ALU_MEMBER_GATE_V101;
+ if(!gate){if(attempt<20){setTimeout(()=>completeArtistProPaymentReturn(attempt+1),500);return;}if(status)status.textContent='Payment returned. Sign in to the same account and refresh to verify it.';return;}
  try{
-  const {data:{session},error:sessionError}=await client.auth.getSession();
-  if(sessionError||!session?.access_token){if(status)status.textContent='Payment returned. Sign in to the same account and refresh this page to verify it.';return;}
   if(status)status.textContent='Verifying your Paystack payment securely…';
-  const {data,error}=await client.functions.invoke('artist-pro-verify',{body:{reference}});
-  if(error)throw new Error(error.message||'Could not verify payment yet.');
-  if(!data?.ok||!data?.subscription)throw new Error(data?.error||'Paystack has not confirmed this payment yet. If you were charged, refresh shortly to check again.');
+  const data=await gate.request('/api/me/artist-pro/verify','POST',{reference});
+  if(!data?.ok||!data?.paid||!data?.subscription)throw new Error(data?.error||'Paystack has not confirmed this payment yet. If you were charged, refresh shortly to check again.');
   const sub=data.subscription,plan=String(sub.plan||'Monthly'),amount=Number(sub.amount_ngn||0);
-  state.pro={active:true,plan,price:amount,activatedAt:sub.starts_at||sub.paid_at||new Date().toISOString(),expiresAt:sub.expires_at||'',status:'Active',reference};
+  state.pro={active:true,plan,price:amount,activatedAt:sub.starts_at||new Date().toISOString(),expiresAt:sub.expires_at||'',status:'Active',reference};
   state.transactions=Array.isArray(state.transactions)?state.transactions:[];
   if(!state.transactions.some(t=>String(t.reference||'')===reference)){
    state.transactions.unshift({id:'pro_'+reference,type:'Artist Pro · '+plan,amount:'-₦'+amount.toLocaleString('en-NG'),amountNum:amount,kind:'outgoing',status:'Paid',reference,date:new Date(sub.paid_at||Date.now()).toLocaleString('en-NG')});
@@ -1929,16 +1919,25 @@ async function completeArtistProPaymentReturn(attempt=0){
   if(status)status.textContent='Payment verified ✓ Artist Pro is active'+(expiry?' until '+expiry:'')+'.';
   toast('Paystack payment verified — Artist Pro activated ✓');
   params.delete('alu_pro_payment');params.delete('reference');
-  const query=params.toString();
-  history.replaceState({},'',window.location.pathname+(query?'?'+query:'')+window.location.hash);
- }catch(err){
-  const msg=String(err?.message||err||'Could not verify your payment.');
-  if(status)status.textContent=msg;
-  toast(msg.slice(0,180));
- }
+  const query=params.toString();history.replaceState({},'',window.location.pathname+(query?'?'+query:'')+window.location.hash);
+ }catch(err){const msg=String(err?.message||err||'Could not verify your payment.');if(status)status.textContent=msg;toast(msg.slice(0,180));}
 }
-setTimeout(()=>completeArtistProPaymentReturn(),800);
-window.addEventListener('focus',()=>completeArtistProPaymentReturn());
+async function syncArtistProStatus(attempt=0){
+ const gate=window.ALU_MEMBER_GATE_V101;
+ if(!gate){if(attempt<12){setTimeout(()=>syncArtistProStatus(attempt+1),500);}return;}
+ try{
+  const result=await gate.request('/api/me/artist-pro/status','GET');
+  if(!result?.ok)return;
+  if(result.active&&result.subscription){
+   const sub=result.subscription;
+   state.pro={active:true,plan:String(sub.plan||'Monthly'),price:Number(sub.amount_ngn||0),activatedAt:sub.starts_at||'',expiresAt:sub.expires_at||'',status:'Active',reference:sub.payment_reference||''};
+  }else{state.pro={active:false,status:'Free'};}
+  save();renderAll();
+ }catch(_){}
+}
+setTimeout(()=>completeArtistProPaymentReturn(),900);
+setTimeout(()=>syncArtistProStatus(),1400);
+window.addEventListener('focus',()=>{completeArtistProPaymentReturn();syncArtistProStatus();});
 
 // OWNER ADMIN ACCESS: hidden from artists; production should authenticate on a server.
 window.openOwnerAdmin=async function(){let ok=false;try{ok=await window.ALU_REQUIRE_SERVER_ADMIN?.()}catch(e){}if(!ok){state.adminAuthenticated=false;toast("Owner-only area. Sign in with the authorized owner account.");return false;}window.__ALU_SERVER_ADMIN_VERIFIED=true;state.adminAuthenticated=true;document.body&&document.body.classList.add("alu-server-admin-verified");go("admin");return true;};
@@ -3306,9 +3305,9 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const modal=document.getElementById('modal'),body=document.getElementById('modalBody');
     if(!modal||!body)return;
     if(state.pro&&state.pro.active){
-      body.innerHTML='<span class="pill">💎 ARTIST PRO ACTIVE</span><h2>Your Artist Pro membership is active</h2><div class="card"><h3 style="margin:0 0 6px">'+(state.pro.plan||'Monthly')+' Plan</h3><div style="font-size:22px;font-weight:900">PRO ACTIVE 💎</div><p class="muted">Your Artist Pro access is active in this prototype.</p></div><p class="muted">Your membership is already active.</p><button type="button" class="btn primary full" data-pro-close="1">Continue</button>';
+      body.innerHTML='<span class="pill">💎 ARTIST PRO ACTIVE</span><h2>Your Artist Pro membership is active</h2><div class="card"><h3 style="margin:0 0 6px">'+(state.pro.plan||'Monthly')+' Plan</h3><div style="font-size:22px;font-weight:900">PRO ACTIVE 💎</div><p class="muted">Your Artist Pro access is active until '+(state.pro.expiresAt?new Date(state.pro.expiresAt).toLocaleDateString('en-NG'):'your expiry date')+'.</p></div><button type="button" class="btn primary full" data-pro-close="1">Continue</button>';
     }else{
-      body.innerHTML='<span class="pill">💎 ARTIST PRO</span><h2>Subscription checkout not yet available</h2><div class="card"><h3 style="margin:0 0 6px">'+plan+' Plan</h3><div style="font-size:28px;font-weight:900">₦'+Number(price).toLocaleString()+'</div><p class="muted">'+(plan==='Yearly'?'12 months of access':'30 days of access')+'</p></div><p class="muted">We are completing Paystack live activation and secure server-side payment verification. No payment will be taken and Pro access will not be activated until that is ready.</p><button type="button" class="btn full" data-pro-close="1">Close</button>';
+      body.innerHTML='<span class="pill">💎 ARTIST PRO</span><h2>Upgrade your artist account</h2><div class="card"><h3 style="margin:0 0 6px">'+plan+' Plan</h3><div style="font-size:28px;font-weight:900">₦'+Number(price).toLocaleString('en-NG')+'</div><p class="muted">'+(plan==='Yearly'?'12 months of access':'30 days of access')+'</p></div><p class="muted">Continue to secure Paystack checkout. Your membership activates only after Cloudflare verifies the exact payment.</p><button type="button" class="btn primary full" data-pro-confirm="1" data-pro-plan="'+plan+'">Continue to Paystack</button><button type="button" class="btn full" data-pro-close="1">Cancel</button>';
     }
     modal.classList.add('show');
   }
@@ -3322,7 +3321,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const goBtn=e.target.closest('[data-pro-go]');
     if(goBtn){e.preventDefault();e.stopImmediatePropagation();document.getElementById('modal')?.classList.remove('show');go(goBtn.dataset.proGo);return;}
     const confirm=e.target.closest('[data-pro-confirm="1"]');
-    if(confirm){e.preventDefault();e.stopImmediatePropagation();toast('Artist Pro checkout is locked until live Paystack verification is complete.');document.getElementById('modal')?.classList.remove('show');return;}
+    if(confirm){e.preventDefault();e.stopImmediatePropagation();const plan=confirm.dataset.proPlan==='Yearly'?'Yearly':'Monthly';startArtistProCheckout(plan).catch(err=>toast(String(err?.message||'Could not start secure checkout.').slice(0,180)));return;}
   },true);
 })();
 </script>

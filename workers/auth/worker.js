@@ -561,6 +561,23 @@ async function paystackWebhookRoute(request, env) {
   if (event?.event !== "charge.success") return json({ received: true }, 200);
   const reference = String(event?.data?.reference || "").trim();
   if (!reference) return json({ error: "Missing payment reference" }, 400);
+  const distributionPayment = await env.DB.prepare(
+    "SELECT request_id, user_id, amount_ngn, currency, status FROM music_distribution_payments WHERE reference = ? LIMIT 1"
+  ).bind(reference).first();
+  if (distributionPayment) {
+    const expected = Math.round(Number(distributionPayment.amount_ngn || 0) * 100);
+    if (Number(event?.data?.amount || 0) !== expected || String(event?.data?.currency || "") !== String(distributionPayment.currency || "NGN")) {
+      return json({ error: "Distribution payment amount or currency does not match" }, 400);
+    }
+    if (distributionPayment.status !== "paid") {
+      const paidAt = new Date().toISOString();
+      await env.DB.batch([
+        env.DB.prepare("UPDATE music_distribution_payments SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE reference = ?").bind(paidAt, reference),
+        env.DB.prepare("UPDATE music_distribution_requests SET status = 'paid', paid_at = COALESCE(paid_at, ?), updated_at = ? WHERE id = ? AND user_id = ? AND status = 'quoted'").bind(paidAt, paidAt, distributionPayment.request_id, distributionPayment.user_id)
+      ]);
+    }
+    return json({ received: true, distribution_paid: true }, 200);
+  }
   const payment = await env.DB.prepare(
     "SELECT id, user_id, purpose, status, amount_ngn, currency, metadata_json FROM payment_transactions WHERE reference = ? LIMIT 1"
   ).bind(reference).first();
@@ -1080,6 +1097,282 @@ async function videoUploadIntentRoute(request, env, userId) {
   }
 }
 
+
+// V101 music distribution — Cloudflare D1 + private R2 replacement for Supabase.
+async function presignR2Object(env, objectKey, method, contentType = "") {
+  const account = String(env.CLOUDFLARE_ACCOUNT_ID || "");
+  const accessKey = String(env.R2_ACCESS_KEY_ID || "");
+  const secret = String(env.R2_SECRET_ACCESS_KEY || "");
+  const bucket = String(env.R2_DISTRIBUTION_BUCKET || "");
+  if (!/^[a-f0-9]{32}$/i.test(account) || !accessKey || !secret || !bucket) {
+    throw new Error("DISTRIBUTION_R2_NOT_CONFIGURED");
+  }
+  const host = account + ".r2.cloudflarestorage.com";
+  const path = "/" + awsEncode(bucket) + "/" + awsPath(objectKey);
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\\.\\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const scope = dateStamp + "/auto/s3/aws4_request";
+  const params = new URLSearchParams({
+    "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
+    "X-Amz-Credential": accessKey + "/" + scope,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": "300",
+    "X-Amz-SignedHeaders": method === "PUT" ? "content-type;host" : "host"
+  });
+  const headers = method === "PUT" ? "content-type:" + contentType + "\\nhost:" + host + "\\n" : "host:" + host + "\\n";
+  const signedHeaders = method === "PUT" ? "content-type;host" : "host";
+  const canonicalRequest = [method, path, awsQuery(params), headers, signedHeaders, "UNSIGNED-PAYLOAD"].join("\\n");
+  const encoder = new TextEncoder();
+  const requestHash = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(canonicalRequest))));
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, requestHash].join("\\n");
+  const kDate = await hmacSha256(encoder.encode("AWS4" + secret), dateStamp);
+  const kRegion = await hmacSha256(kDate, "auto");
+  const kService = await hmacSha256(kRegion, "s3");
+  const kSigning = await hmacSha256(kService, "aws4_request");
+  const signature = hex(await hmacSha256(kSigning, stringToSign));
+  return "https://" + host + path + "?" + awsQuery(params) + "&X-Amz-Signature=" + signature;
+}
+
+async function distributionObjectExists(env, key) {
+  const url = await presignR2Object(env, key, "HEAD");
+  const response = await fetch(url, { method: "HEAD" });
+  return response.ok;
+}
+
+function parseDistributionRow(row) {
+  return {
+    id: row.id, artist_name: row.artist_name, release_title: row.release_title,
+    release_type: row.release_type, genre: row.genre, preferred_release_date: row.preferred_release_date,
+    explicit_content: row.explicit_content, notes: row.notes,
+    platforms: JSON.parse(row.platforms_json || "[]"),
+    audio_files: JSON.parse(row.audio_files_json || "[]"),
+    artwork_key: row.artwork_key, status: row.status,
+    quote_amount_minor: row.quote_amount_minor, quote_currency: row.quote_currency,
+    admin_note: row.admin_note, created_at: row.created_at, updated_at: row.updated_at,
+    paid_at: row.paid_at, portal_transfer_status: "not_configured"
+  };
+}
+
+async function distributionUploadIntentRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  const body = await readJson(request);
+  const requestId = cleanText(body.request_id, 64, true);
+  const purpose = cleanText(body.purpose, 16, true);
+  const filename = cleanText(body.filename, 180, true);
+  const contentType = cleanText(body.contentType, 100, true).toLowerCase();
+  const size = Number(body.size);
+  if (!/^[0-9a-f-]{36}$/i.test(requestId) || !["audio", "artwork"].includes(purpose)) {
+    return json({ error: "INVALID_UPLOAD_REQUEST" }, 400, cors);
+  }
+  const owned = await env.DB.prepare(
+    "SELECT id FROM music_distribution_requests WHERE id = ? AND user_id = ? AND status = 'draft' LIMIT 1"
+  ).bind(requestId, session.user_id).first();
+  if (!owned) return json({ error: "Distribution draft not found" }, 404, cors);
+  const allowed = purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
+  const maxBytes = purpose === "audio" ? 250 * 1024 * 1024 : 15 * 1024 * 1024;
+  if (!allowed.has(contentType) || !Number.isSafeInteger(size) || size < 1 || size > maxBytes) {
+    return json({ error: "UNSUPPORTED_FILE_OR_SIZE" }, 415, cors);
+  }
+  const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+  const objectKey = session.user_id + "/" + requestId + "/" + purpose + "/" + crypto.randomUUID() + "-" + safeName + "." + extension;
+  try {
+    const uploadUrl = await presignR2Object(env, objectKey, "PUT", contentType);
+    return json({ uploadUrl, objectKey, contentType, expiresIn: 300 }, 200, cors);
+  } catch (error) {
+    return json({ error: error?.message === "DISTRIBUTION_R2_NOT_CONFIGURED" ? "Private music distribution storage is not configured." : "Could not prepare secure upload." }, 503, cors);
+  }
+}
+
+async function verifyDistributionPayment(env, userId, reference) {
+  if (!env.PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured.");
+  const payment = await env.DB.prepare(
+    "SELECT request_id, amount_ngn, currency, status FROM music_distribution_payments WHERE reference = ? AND user_id = ? LIMIT 1"
+  ).bind(reference, userId).first();
+  if (!payment) throw new Error("Distribution payment reference not found.");
+  if (payment.status !== "paid") {
+    const response = await fetch("https://api.paystack.co/transaction/verify/" + encodeURIComponent(reference), {
+      headers: { Authorization: "Bearer " + env.PAYSTACK_SECRET_KEY }
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.status !== true || result.data?.status !== "success" ||
+        Number(result.data?.amount) !== Math.round(Number(payment.amount_ngn) * 100) ||
+        String(result.data?.currency) !== String(payment.currency)) {
+      throw new Error("Paystack has not confirmed this distribution payment.");
+    }
+    const paidAt = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE music_distribution_payments SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE reference = ?").bind(paidAt, reference),
+      env.DB.prepare("UPDATE music_distribution_requests SET status = 'paid', paid_at = COALESCE(paid_at, ?), updated_at = ? WHERE id = ? AND user_id = ? AND status = 'quoted'").bind(paidAt, paidAt, payment.request_id, userId)
+    ]);
+  }
+  return { ok: true, paid: true, reference, request_id: payment.request_id };
+}
+
+async function musicDistributionRoute(request, env, session, url, admin = false) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  const body = await readJson(request);
+  const operation = cleanText(body.operation, 32, true);
+  const isAdmin = session.role === "admin";
+  if (operation === "admin_list" || operation === "quote" || operation === "set_status") {
+    if (!isAdmin) return json({ error: "Admin access required" }, 403, cors);
+  }
+  if (operation === "create_draft") {
+    const artist = await env.DB.prepare(
+      "SELECT id, artist_name FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
+    ).bind(session.user_id).first();
+    if (!artist) return json({ error: "Active artist account required" }, 403, cors);
+    const credentials = await env.DB.prepare(
+      "SELECT email_verified_at FROM app_credentials WHERE user_id = ? LIMIT 1"
+    ).bind(session.user_id).first();
+    if (!credentials?.email_verified_at) return json({ error: "Verify your member email before submitting a release." }, 403, cors);
+    const artistName = cleanText(body.artist_name || artist.artist_name, 100, true);
+    const releaseTitle = cleanText(body.release_title, 160, true);
+    const releaseType = cleanText(body.release_type || "Single", 16, true);
+    const genre = cleanText(body.genre || "Afrobeats", 80, true);
+    if (!["Single", "EP", "Album"].includes(releaseType)) return json({ error: "Invalid release type" }, 400, cors);
+    const platforms = Array.isArray(body.platforms) ? body.platforms.map(x => cleanText(x, 60, true)).filter(Boolean).slice(0, 20) : [];
+    if (!platforms.length) return json({ error: "Choose at least one streaming platform." }, 400, cors);
+    if (body.rights_confirmed !== true) return json({ error: "Confirm that you own or control the rights to this release." }, 400, cors);
+    const now = new Date().toISOString();
+    let requestId = cleanText(body.request_id, 64);
+    if (requestId) {
+      const existing = await env.DB.prepare(
+        "SELECT id FROM music_distribution_requests WHERE id = ? AND user_id = ? AND status = 'draft' LIMIT 1"
+      ).bind(requestId, session.user_id).first();
+      if (!existing) requestId = null;
+    }
+    if (requestId) {
+      await env.DB.prepare(
+        "UPDATE music_distribution_requests SET artist_name = ?, release_title = ?, release_type = ?, genre = ?, preferred_release_date = ?, explicit_content = ?, notes = ?, platforms_json = ?, updated_at = ? WHERE id = ? AND user_id = ? AND status = 'draft'"
+      ).bind(artistName, releaseTitle, releaseType, genre, cleanText(body.preferred_release_date, 20), cleanText(body.explicit_content || "No", 8), cleanText(body.notes, 2000), JSON.stringify(platforms), now, requestId, session.user_id).run();
+    } else {
+      requestId = crypto.randomUUID();
+      await env.DB.prepare(
+        "INSERT INTO music_distribution_requests (id, user_id, artist_id, artist_name, release_title, release_type, genre, preferred_release_date, explicit_content, notes, platforms_json, audio_files_json, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', 'draft', ?, ?)"
+      ).bind(requestId, session.user_id, artist.id, artistName, releaseTitle, releaseType, genre, cleanText(body.preferred_release_date, 20), cleanText(body.explicit_content || "No", 8), cleanText(body.notes, 2000), JSON.stringify(platforms), now, now).run();
+    }
+    const row = await env.DB.prepare("SELECT * FROM music_distribution_requests WHERE id = ? AND user_id = ? LIMIT 1").bind(requestId, session.user_id).first();
+    return json({ ok: true, request: parseDistributionRow(row) }, 200, cors);
+  }
+  if (operation === "list_mine") {
+    const rows = await env.DB.prepare(
+      "SELECT * FROM music_distribution_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 50"
+    ).bind(session.user_id).all();
+    return json({ ok: true, requests: (rows.results || []).map(parseDistributionRow) }, 200, cors);
+  }
+  if (operation === "submit") {
+    const requestId = cleanText(body.request_id, 64, true);
+    const row = await env.DB.prepare(
+      "SELECT * FROM music_distribution_requests WHERE id = ? AND user_id = ? AND status = 'draft' LIMIT 1"
+    ).bind(requestId, session.user_id).first();
+    if (!row) return json({ error: "Distribution draft not found or already submitted." }, 404, cors);
+    const audioFiles = Array.isArray(body.audio_files) ? body.audio_files : [];
+    const artworkKey = cleanText(body.artwork_key, 512, true);
+    if ((row.release_type === "Single" && audioFiles.length !== 1) ||
+        (["EP", "Album"].includes(row.release_type) && audioFiles.length < 2) || audioFiles.length > 30) {
+      return json({ error: "The number of audio masters does not match the selected release type." }, 400, cors);
+    }
+    const expectedPrefix = session.user_id + "/" + requestId + "/";
+    const validAudio = audioFiles.every(f => typeof f?.path === "string" &&
+      f.path.startsWith(expectedPrefix + "audio/") && Number(f.size) > 0 &&
+      Number(f.size) <= 250 * 1024 * 1024 && AUDIO_TYPES.has(String(f.type || "").toLowerCase()));
+    if (!validAudio || !artworkKey.startsWith(expectedPrefix + "artwork/")) {
+      return json({ error: "Uploaded files do not belong to this distribution request." }, 400, cors);
+    }
+    try {
+      const checks = await Promise.all([
+        ...audioFiles.map(f => distributionObjectExists(env, f.path)),
+        distributionObjectExists(env, artworkKey)
+      ]);
+      if (checks.some(ok => !ok)) return json({ error: "One or more uploaded files are missing from secure storage. Upload them again." }, 400, cors);
+    } catch (error) {
+      return json({ error: "Could not verify private R2 uploads. Please retry." }, 503, cors);
+    }
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      "UPDATE music_distribution_requests SET audio_files_json = ?, artwork_key = ?, status = 'submitted', updated_at = ? WHERE id = ? AND user_id = ? AND status = 'draft'"
+    ).bind(JSON.stringify(audioFiles), artworkKey, now, requestId, session.user_id).run();
+    const updated = await env.DB.prepare("SELECT * FROM music_distribution_requests WHERE id = ? LIMIT 1").bind(requestId).first();
+    return json({ ok: true, request: parseDistributionRow(updated) }, 200, cors);
+  }
+  if (operation === "checkout") {
+    const requestId = cleanText(body.request_id, 64, true);
+    const row = await env.DB.prepare(
+      "SELECT id, status, quote_amount_minor FROM music_distribution_requests WHERE id = ? AND user_id = ? LIMIT 1"
+    ).bind(requestId, session.user_id).first();
+    if (!row || row.status !== "quoted" || !Number.isInteger(Number(row.quote_amount_minor)) || Number(row.quote_amount_minor) < 10000) {
+      return json({ error: "A valid admin quote is required before payment." }, 409, cors);
+    }
+    const credentials = await env.DB.prepare("SELECT email_normalized, email_verified_at FROM app_credentials WHERE user_id = ? LIMIT 1").bind(session.user_id).first();
+    if (!credentials?.email_verified_at) return json({ error: "Verify your member email before payment." }, 403, cors);
+    if (!env.PAYSTACK_SECRET_KEY) return json({ error: "Paystack is not configured. Payment is disabled." }, 503, cors);
+    const amountNgn = Number(row.quote_amount_minor) / 100;
+    const reference = "ALU-DIST-" + crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      "INSERT INTO music_distribution_payments (id, request_id, user_id, reference, amount_ngn, currency, status, created_at) VALUES (?, ?, ?, ?, ?, 'NGN', 'pending', ?)"
+    ).bind(crypto.randomUUID(), requestId, session.user_id, reference, amountNgn, now).run();
+    try {
+      const checkout = await initializePaystack(env, {
+        email: credentials.email_normalized, amountNgn, reference,
+        metadata: { purpose: "music_distribution", request_id: requestId, user_id: session.user_id },
+        returnUrl: body.return_url
+      });
+      return json({ ok: true, authorization_url: checkout.authorization_url, reference }, 200, cors);
+    } catch (error) {
+      await env.DB.prepare("UPDATE music_distribution_payments SET status = 'failed' WHERE reference = ?").bind(reference).run();
+      return json({ error: String(error?.message || "Paystack checkout failed") }, 503, cors);
+    }
+  }
+  if (operation === "verify_payment") {
+    try { return json(await verifyDistributionPayment(env, session.user_id, cleanText(body.reference, 120, true)), 200, cors); }
+    catch (error) { return json({ error: error?.message || "Payment verification failed" }, 409, cors); }
+  }
+  if (operation === "admin_list") {
+    const rows = await env.DB.prepare(
+      "SELECT r.*, c.email_normalized AS contact_email FROM music_distribution_requests r LEFT JOIN app_credentials c ON c.user_id = r.user_id ORDER BY r.created_at DESC LIMIT 100"
+    ).all();
+    const requests = [];
+    for (const row of rows.results || []) {
+      const item = parseDistributionRow(row);
+      item.contact_email = row.contact_email || "";
+      item.signed_files = {};
+      for (const file of item.audio_files) {
+        if (file?.path) item.signed_files[file.path] = await presignR2Object(env, file.path, "GET");
+      }
+      if (item.artwork_key) item.signed_files[item.artwork_key] = await presignR2Object(env, item.artwork_key, "GET");
+      requests.push(item);
+    }
+    return json({ ok: true, requests }, 200, cors);
+  }
+  if (operation === "quote") {
+    const requestId = cleanText(body.request_id, 64, true);
+    const amount = Number(body.amount_ngn);
+    if (!Number.isSafeInteger(amount) || amount < 100 || amount > 10000000) return json({ error: "Enter a valid distribution fee in naira." }, 400, cors);
+    const note = cleanText(body.admin_note, 2000);
+    const result = await env.DB.prepare(
+      "UPDATE music_distribution_requests SET status = 'quoted', quote_amount_minor = ?, quote_currency = 'NGN', admin_note = ?, updated_at = ? WHERE id = ? AND status IN ('submitted','quoted')"
+    ).bind(amount * 100, note, new Date().toISOString(), requestId).run();
+    if (!result.meta?.changes) return json({ error: "Submitted distribution request not found." }, 404, cors);
+    return json({ ok: true, id: requestId, status: "quoted" }, 200, cors);
+  }
+  if (operation === "set_status") {
+    const requestId = cleanText(body.request_id, 64, true);
+    const status = cleanText(body.status, 20, true);
+    if (!["in_review", "approved", "rejected"].includes(status)) return json({ error: "Invalid distribution review status." }, 400, cors);
+    const result = await env.DB.prepare(
+      "UPDATE music_distribution_requests SET status = ?, admin_note = ?, updated_at = ? WHERE id = ? AND status IN ('paid','in_review')"
+    ).bind(status, cleanText(body.admin_note, 2000), new Date().toISOString(), requestId).run();
+    if (!result.meta?.changes) return json({ error: "Paid distribution request not found." }, 404, cors);
+    return json({ ok: true, id: requestId, status }, 200, cors);
+  }
+  return json({ error: "Unknown music distribution operation." }, 400, cors);
+}
+
 async function revokeSessionFamily(env, familyId, now) {
   await env.DB.batch([
     env.DB.prepare(
@@ -1387,6 +1680,23 @@ export default {
         const result = await withdrawalRoute(request, env, session.user_id);
         if (result) return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+
+      if (url.pathname === "/api/me/distribution/upload-intent") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await distributionUploadIntentRoute(request, env, session);
+      }
+      if (url.pathname === "/api/me/distribution") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await musicDistributionRoute(request, env, session, url, false);
+      }
+      if (url.pathname === "/api/admin/distribution") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+        return await musicDistributionRoute(request, env, session, url, true);
       }
 
       if (url.pathname === "/api/me/promotions") {

@@ -3483,7 +3483,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     if(!(file.type.startsWith('video/')||/\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(file.name||''))){toastMsg('Please choose a valid video file (MP4, WebM, MOV, M4V, AVI or MKV).');return}
     const id='video_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),localUrl=URL.createObjectURL(file);
     const fullDescription=[description,hashtags].filter(Boolean).join('\n\n');
-    const item={id,title,artist:artistName,description:fullDescription,hashtags,songId,blob:file,filename:file.name,mimeType:file.type||'video/mp4',size:file.size,status:file.size>ALU_FREE_VIDEO_LIMIT?'blocked_size':'pending',attempts:0,lastError:file.size>ALU_FREE_VIDEO_LIMIT?'Supabase Free project limit is 50 MB.':'',storagePath:'',videoUrl:'',thumbnailUrl:'',createdAt:new Date().toISOString(),localUrl};
+    const item={id,title,artist:artistName,description:fullDescription,hashtags,songId,blob:file,filename:file.name,mimeType:file.type||'video/mp4',size:file.size,status:file.size>ALU_FREE_VIDEO_LIMIT?'blocked_size':'pending',attempts:0,lastError:file.size>ALU_FREE_VIDEO_LIMIT?'Cloudflare video upload limit is 5 GB.':'',storagePath:'',videoUrl:'',thumbnailUrl:'',createdAt:new Date().toISOString(),localUrl};
     try{await aluVideoQueuePut(item);}catch(e){try{URL.revokeObjectURL(localUrl)}catch(_){}toastMsg('Could not save this video on the device. Please allow browser storage and try again.');return}
     const st=getState()||{},vs=stateVideos(st);vs.unshift(aluVideoLocalRecord(item));saveState(st);renderVideos();
     ['aluVideoArtistName','aluVideoTitle','aluVideoDescription','aluVideoHashtags','aluVideoFile'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''});const songPicker=document.getElementById('aluVideoSong');if(songPicker)songPicker.value='';if(document.getElementById('aluVideoFormatPreview'))document.getElementById('aluVideoFormatPreview').style.display='none';
@@ -3647,7 +3647,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
 (function(){
   function campaignReceivingBank(){state.campaignReceivingBank=state.campaignReceivingBank||{bankName:'',accountName:'',accountNumber:''};return state.campaignReceivingBank}
   function renderCampaignReceivingBank(){const c=campaignReceivingBank();const t=document.getElementById('campaignReceivingBankText');if(t)t.innerHTML=(c.bankName&&c.accountName&&c.accountNumber)?`<b>Bank:</b> ${esc(c.bankName)}<br><b>Account Name:</b> ${esc(c.accountName)}<br><b>Account Number:</b> ${esc(c.accountNumber)}<br><span class="tiny muted">Pay the campaign total into this account, then submit your transfer reference to Admin.</span>`:'Admin has not set the campaign receiving bank details yet.';const b=document.getElementById('campaignOwnerBank'),n=document.getElementById('campaignOwnerAccountName'),a=document.getElementById('campaignOwnerAccountNumber');if(b&&document.activeElement!==b)b.value=c.bankName||'';if(n&&document.activeElement!==n)n.value=c.accountName||'';if(a&&document.activeElement!==a)a.value=c.accountNumber||'';const st=document.getElementById('campaignOwnerBankStatus');if(st)st.textContent=(c.bankName&&c.accountName&&c.accountNumber)?'Campaign receiving bank details saved ✓':'No campaign receiving bank details saved yet.'}
-  async function loadOwnerBankSettings(){try{const client=window.ALU_CLOUD?.client;if(!client?.functions?.invoke){setTimeout(loadOwnerBankSettings,900);return}const {data,error}=await client.functions.invoke('owner-bank-settings',{body:{}});if(error||!data?.ok)throw error||new Error(data?.error||'Could not load receiving bank details');const b=data.bankSettings||{},bankName=String(b.bankName||''),accountName=String(b.accountName||''),accountNumber=String(b.accountNumber||'');state.coursePayment=state.coursePayment||{};state.coursePayment.bankName=bankName;state.coursePayment.accountName=accountName;state.coursePayment.accountNumber=accountNumber;state.campaignReceivingBank={bankName,accountName,accountNumber};try{save()}catch(e){}try{window.renderCourse?.()}catch(e){}renderCampaignReceivingBank();}catch(e){console.warn('V101 shared receiving bank settings unavailable:',e)}}
+  async function loadOwnerBankSettings(){state.coursePayment=state.coursePayment||{};state.coursePayment.bankName='';state.coursePayment.accountName='';state.coursePayment.accountNumber='';state.campaignReceivingBank={bankName:'',accountName:'',accountNumber:''};renderCampaignReceivingBank();}
   window.ALU_LOAD_OWNER_BANK_SETTINGS=loadOwnerBankSettings;
   function adState(){state.advertisements=Array.isArray(state.advertisements)?state.advertisements:[];return state.advertisements}
   function adPackagePrice(){const el=document.getElementById('adPackage');const o=el?.selectedOptions?.[0];return Number(o?.dataset?.price||0)}
@@ -3726,8 +3726,8 @@ function publishedVideos(){
  });
 }
 async function syncLocalApprovedPictures(){
- const client=window.ALU_CLOUD?.client;if(!client||typeof window.ALU_CLOUD?.ensureSession!=='function')return;
- let uid=null;try{uid=await window.ALU_CLOUD.ensureSession()}catch(_){return}if(!uid)return;
+ const gate=window.ALU_MEMBER_GATE_V101;if(!gate)return;
+ let session=null;try{session=await gate.getSession()}catch(_){return}if(!session?.userId)return;
  let list=[];try{list=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]')}catch(_){return}
  if(!Array.isArray(list))return;
  let changed=false;
@@ -3736,53 +3736,36 @@ async function syncLocalApprovedPictures(){
    let imageUrl=normalizeImageUrl(p.imageUrl||'');
    if(!(imageUrl.startsWith('http://')||imageUrl.startsWith('https://'))){
     const blob=await fetch(p.image).then(r=>{if(!r.ok)throw new Error('Picture data could not be read');return r.blob()});
-    const path='pictures/'+uid+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,9)+'.jpg';
-    const up=await client.storage.from('music').upload(path,blob,{contentType:'image/jpeg',cacheControl:'31536000',upsert:false});
-    if(up.error)throw up.error;
-    imageUrl=client.storage.from('music').getPublicUrl(path).data?.publicUrl||'';
+    const intent=await gate.request('/api/me/videos/upload-intent','POST',{purpose:'picture',filename:'artist-picture.jpg',contentType:blob.type||'image/jpeg',size:blob.size});
+    const uploaded=await fetch(intent.uploadUrl,{method:'PUT',headers:{'Content-Type':blob.type||'image/jpeg'},body:blob});
+    if(!uploaded.ok)throw new Error('Cloudflare picture upload failed');
+    imageUrl=intent.publicUrl||'';
    }
-   if(!imageUrl)throw new Error('No public picture URL');
-   const ins=await client.from('picture_posts').insert({user_id:uid,image_url:imageUrl,caption:p.caption||'',artist_name:p.artist||state?.profile?.name||'Artist Level Up artist',status:'published',created_at:p.createdAt||new Date().toISOString()}).select('id').single();
-   if(ins.error)throw ins.error;
-   p.cloudId=ins.data.id;p.imageUrl=imageUrl;p.cloudSynced=true;changed=true;
-  }catch(err){console.warn('Approved picture cloud sync skipped:',err?.message||err)}
+   if(!imageUrl)throw new Error('No Cloudflare picture URL was returned');
+   const saved=await gate.request('/api/me/pictures','POST',{image_url:imageUrl,caption:p.caption||'',sound_title:p.soundTitle||'',sound_audio_url:p.soundAudioUrl||''});
+   p.cloudId=saved.picture?.id||'';p.imageUrl=imageUrl;p.cloudSynced=!!p.cloudId;changed=!!p.cloudId||changed;
+  }catch(err){console.warn('Cloudflare picture sync skipped:',err?.message||err)}
  }
  if(changed){try{localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(list.slice(0,30)))}catch(_){}}
 }
 async function loadCloudPictures(){
- const client=window.ALU_CLOUD?.client;
  let cloud=[];
- if(client){
-  try{
-   const q=await Promise.race([client.from('picture_posts').select('id,user_id,image_url,caption,artist_name,status,created_at,sound_title,sound_audio_url').eq('status','published').order('created_at',{ascending:false}).limit(50),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Picture feed request timed out')),4000))]);
-   if(q.error)throw q.error;
-   cloud=(q.data||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
-  }catch(e){console.warn('Global cloud picture feed load skipped:',e?.message||e)}
- }
+ try{
+  const base=String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\\/$/,'');
+  const response=await fetch(base+'/api/public/pictures',{cache:'no-store'});
+  if(!response.ok)throw new Error('Cloudflare picture feed unavailable');
+  const payload=await response.json();
+  cloud=(payload.pictures||[]).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.image_url),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist_name||'Artist Level Up artist',createdAt:p.created_at||'',createdAtTs:new Date(p.created_at||0).getTime(),sound_title:p.sound_title||'',sound_audio_url:p.sound_audio_url||'',raw:p})).filter(p=>p.image_url);
+ }catch(e){console.warn('Cloudflare picture feed load skipped:',e?.message||e)}
  let local=[];
  try{
   const raw=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');
   if(Array.isArray(raw)){
-   local=raw.filter(p=>!p.cloudId&&!p.cloudSynced&&['approved','published'].includes(String(p.status||'').toLowerCase())).map(p=>({
-    kind:'picture',
-    id:p.cloudId||p.id,
-    image_url:normalizeImageUrl(p.imageUrl||p.image_url||p.image||''),
-    caption:p.caption||'',
-    title:p.caption||'Picture post',
-    artist_name:p.artist||p.artist_name||state?.profile?.name||'Artist Level Up artist',
-    createdAt:p.createdAt||p.created_at||'',
-    createdAtTs:new Date(p.createdAt||p.created_at||0).getTime(),
-    raw:p
-   })).filter(p=>p.image_url);
+   local=raw.filter(p=>!p.cloudId&&!p.cloudSynced&&['approved','published'].includes(String(p.status||'').toLowerCase())).map(p=>({kind:'picture',id:p.id,image_url:normalizeImageUrl(p.imageUrl||p.image_url||p.image||''),caption:p.caption||'',title:p.caption||'Picture post',artist_name:p.artist||p.artist_name||state?.profile?.name||'Artist Level Up artist',createdAt:p.createdAt||p.created_at||'',createdAtTs:new Date(p.createdAt||p.created_at||0).getTime(),raw:p})).filter(p=>p.image_url);
   }
  }catch(e){console.warn('Local approved picture feed load skipped:',e?.message||e)}
- const seen=new Set(), merged=[];
- for(const p of [...cloud,...local]){
-  const key=String(p.cloudId||p.id||p.image_url||'');
-  const imageKey=String(p.image_url||'');
-  if(seen.has(key)||seen.has('img:'+imageKey))continue;
-  seen.add(key);seen.add('img:'+imageKey);merged.push(p);
- }
+ const seen=new Set(),merged=[];
+ for(const p of [...cloud,...local]){const key=String(p.cloudId||p.id||p.image_url||''),imageKey=String(p.image_url||'');if(seen.has(key)||seen.has('img:'+imageKey))continue;seen.add(key);seen.add('img:'+imageKey);merged.push(p)}
  return merged.sort((a,b)=>b.createdAtTs-a.createdAtTs).slice(0,50);
 }
 function renderComments(v){
@@ -4071,7 +4054,7 @@ if(String(location.hash||'').startsWith('#discover-post=')){
  setTimeout(()=>open77().catch(err=>console.warn('Global Feed shared post startup skipped:',err)),120);
 }
 const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('[data-global-discovery-open]')){const b=document.createElement('button');b.type='button';b.setAttribute('data-global-discovery-open','1');b.textContent='🌍 Discover';const homeBtn=nav.querySelector('[data-go="home"]');if(homeBtn&&homeBtn.nextSibling)nav.insertBefore(b,homeBtn.nextSibling);else nav.appendChild(b)}
-setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(render77).catch(()=>{})},500);
+setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(render77).catch(()=>{})},500);
 })();
 </script>
 
@@ -4151,16 +4134,13 @@ setTimeout(()=>{if(window.ALU_CLOUD?.client)syncLocalApprovedPictures().then(ren
         const status=document.getElementById('aluCloudDiagStatus');
         this.disabled=true;this.textContent='CHECKING…';
         try{
-          const cc=window.ALU_SUPABASE_CLIENT;
-          if(!cc?.auth)throw new Error('Cloud client unavailable');
-          const sr=await cc.auth.getSession();
-          if(sr.error)throw sr.error;
-          const su=sr.data?.session?.user;
-          if(!su?.id){status.textContent='Cloud session: none';return;}
-          const pr=await cc.from('profiles').select('display_name,role').eq('id',su.id).maybeSingle();
-          if(pr.error)throw pr.error;
-          const pd=pr.data||{};
-          status.textContent='Cloud session: '+(su.is_anonymous?'ANONYMOUS':'SIGNED IN')+' | UID: '+su.id+' | Profile: '+(pd.display_name||'not found')+' | Role: '+(pd.role||'not found');
+          const gate=window.ALU_MEMBER_GATE_V101;
+          if(!gate)throw new Error('Cloudflare member access unavailable');
+          const session=await gate.getSession();
+          if(!session?.userId){status.textContent='Cloudflare session: none';return;}
+          const profile=await gate.request('/api/me/profile','GET');
+          const pd=profile?.profile||{};
+          status.textContent='Cloudflare session: SIGNED IN | Account: '+session.userId+' | Profile: '+(pd.display_name||'not set');
         }catch(e){status.textContent='Cloud check failed: '+String(e?.message||e).slice(0,160);}
         finally{this.disabled=false;this.textContent='Check Cloud Session';}
       });
@@ -4447,84 +4427,11 @@ window.addEventListener('pageshow',()=>{if(window.ALU_ACTIVE_PAGE==='producerDas
 <script id="producerGlobalPayoutV101">
 (function(){
 'use strict';
-const $g=id=>document.getElementById(id),BANK_FN='producer-global-bank-list';
-const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const branchCountries=new Set(['GH','TZ','RW','UG']);
-const sepaCountries=new Set(['AT','BE','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','IE','IT','LT','LU','LV','MT','NL','PL','PT','SE','SI','SK']);
-const currencyMap={US:['USD'],GB:['GBP'],NG:['NGN','USD'],GH:['GHS'],KE:['KES'],UG:['UGX'],TZ:['TZS'],RW:['RWF'],ZA:['ZAR'],ZM:['ZMW'],MW:['MWK'],CM:['XAF'],CI:['XOF'],SN:['XOF'],SL:['SLL'],BF:['XOF'],ET:['ETB'],EG:['EGP'],CZ:['CZK'],DK:['DKK'],PL:['PLN'],SE:['SEK']};
-function gm(t){const e=$g('globalPayoutMessage');if(e)e.textContent=t}
-async function globalUser(){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Supabase connection is not ready.');const r=await c.auth.getUser();if(r.error||!r.data?.user)throw new Error('Please sign in to connect a global payout account.');return r.data.user}
-function setFieldVisibility(country){
- const rw=$g('globalPayoutRoutingWrap'),sw=$g('globalPayoutSwiftWrap'),bw=$g('globalPayoutBranchWrap');
- const needRouting=country==='US',needSwift=country==='US'||sepaCountries.has(country),needBranch=branchCountries.has(country);
- if(rw)rw.classList.toggle('hidden',!needRouting);
- if(sw)sw.classList.toggle('hidden',!needSwift);
- if(bw)bw.classList.toggle('hidden',!needBranch);
- const r=$g('globalPayoutRouting'),s=$g('globalPayoutSwift');
- if(r&&!needRouting)r.value='';if(s&&!needSwift)s.value='';
-}
-function setCurrencies(country){
- const s=$g('globalPayoutCurrency');if(!s)return;
- const vals=currencyMap[country]||(sepaCountries.has(country)?['EUR']:[]);
- s.innerHTML='<option value="">Select payout currency</option>'+vals.map(v=>'<option value="'+v+'">'+v+'</option>').join('');
- if(vals.length===1)s.value=vals[0];
-}
-async function loadBanks(country){
- const s=$g('globalPayoutBankName'),code=$g('globalPayoutBankCode'),id=$g('globalPayoutBankId'),status=$g('globalPayoutBankLoading'),branch=$g('globalPayoutBranch'),branchCode=$g('globalPayoutBranchCode');
- if(!s)return;
- s.disabled=true;s.innerHTML='<option value="">Loading banks…</option>';if(code)code.value='';if(id)id.value='';if(branch){branch.disabled=true;branch.innerHTML='<option value="">Select bank first</option>'}if(branchCode)branchCode.value='';
- if(status)status.textContent='Loading the current bank list…';
- if(!country){s.innerHTML='<option value="">Select country first</option>';if(status)status.textContent='';return}
- try{
-  const r=await fetch(window.ALU_SUPABASE_URL+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country),{headers:{apikey:window.ALU_SUPABASE_PUBLISHABLE_KEY||window.ALU_SUPABASE_ANON_KEY||''}});
-  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load banks.');
-  const banks=Array.isArray(j.banks)?j.banks:[];
-  s.innerHTML='<option value="">Select your bank</option>'+banks.map(x=>'<option value="'+esc(x.name)+'" data-id="'+esc(x.id)+'" data-code="'+esc(x.code)+'">'+esc(x.name)+'</option>').join('');
-  s.disabled=!banks.length;
-  if(status)status.textContent=banks.length?(banks.length+' banks available — tap to choose yours.'):'No bank directory returned for this country.';
- }catch(e){s.innerHTML='<option value="">Bank list unavailable</option>';if(status)status.textContent='Bank list error: '+(e.message||String(e))}
-}
-async function loadBranches(bankId,country){
- const wrap=$g('globalPayoutBranchWrap'),s=$g('globalPayoutBranch'),code=$g('globalPayoutBranchCode');if(!s)return;
- s.disabled=true;s.innerHTML='<option value="">Loading branches…</option>';if(code)code.value='';
- if(!bankId||!branchCountries.has(country))return;
- try{
-  const r=await fetch(window.ALU_SUPABASE_URL+'/functions/v1/'+BANK_FN+'?country='+encodeURIComponent(country)+'&bank_id='+encodeURIComponent(bankId),{headers:{apikey:window.ALU_SUPABASE_PUBLISHABLE_KEY||window.ALU_SUPABASE_ANON_KEY||''}});
-  const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'Could not load branches.');
-  const rows=Array.isArray(j.banks)?j.banks:[];
-  s.innerHTML='<option value="">Select your branch</option>'+rows.map(x=>'<option value="'+esc(x.branch_code||x.code)+'" data-code="'+esc(x.branch_code||x.code)+'">'+esc(x.name)+(x.branch_code?' · '+esc(x.branch_code):'')+'</option>').join('');
-  s.disabled=!rows.length;
- }catch(e){s.innerHTML='<option value="">Branch list unavailable</option>';s.disabled=true}
-}
-async function loadGlobalPayout(){
- try{const u=await globalUser(),r=await window.ALU_CLOUD.client.from('artist_payout_accounts').select('status,country_code,currency,account_holder_name,bank_name,account_number,payout_country_code,payout_currency,flutterwave_subaccount_id').eq('artist_user_id',u.id).eq('provider','flutterwave').maybeSingle();if(r.error)throw r.error;const e=$g('globalPayoutStatus');if(!e)return;if(r.data?.status==='enabled'&&r.data?.flutterwave_subaccount_id){e.textContent='🌍 Flutterwave global payout connected ✓ · '+(r.data.account_holder_name||'Verified producer')+' · '+(r.data.payout_country_code||r.data.country_code)+' · '+(r.data.payout_currency||r.data.currency)+' · ••••'+String(r.data.account_number||'').slice(-4);}else e.textContent='No global payout account connected yet.'}catch(e){const x=$g('globalPayoutStatus');if(x)x.textContent='Global payout status: '+(e.message||String(e))}
-}
-async function connectGlobal(btn){
- try{
-  btn.disabled=true;btn.textContent='CONNECTING…';await globalUser();
-  let country=String($g('globalPayoutCountry')?.value||'').trim().toUpperCase();
-  const bankSel=$g('globalPayoutBankName'),bo=bankSel?.options?.[bankSel.selectedIndex];
-  const bankName=String(bankSel?.value||'').trim(),bankCode=String(bo?.dataset?.code||'').trim(),bankId=String(bo?.dataset?.id||'').trim();
-  const currency=String($g('globalPayoutCurrency')?.value||'').trim().toUpperCase();
-  const payload={account_holder_name:String($g('globalPayoutHolder')?.value||'').trim(),contact_email:String($g('globalPayoutEmail')?.value||'').trim().toLowerCase(),country_code:country,currency,bank_name:bankName,bank_code:bankCode,account_number:String($g('globalPayoutAccountNumber')?.value||'').trim(),routing_number:String($g('globalPayoutRouting')?.value||'').trim(),swift_code:String($g('globalPayoutSwift')?.value||'').trim(),branch_code:String($g('globalPayoutBranchCode')?.value||'').trim(),mobile_number:String($g('globalPayoutMobile')?.value||'').trim()};
-  const needsRouting=country==='US',needsSwift=country==='US'||sepaCountries.has(country),needsBranch=branchCountries.has(country);
-  if(!payload.account_holder_name||!/^\S+@\S+\.\S+$/.test(payload.contact_email)||!payload.mobile_number||!/^[A-Z]{2}$/.test(country)||!/^[A-Z]{3}$/.test(currency)||!bankName||!bankCode||!payload.account_number)throw new Error('Please complete the name, email, mobile, country, bank, currency and account number/IBAN.');
-  if(needsRouting&&!payload.routing_number)throw new Error('This country requires a routing number.');
-  if(needsSwift&&!payload.swift_code)throw new Error('This country requires a SWIFT/BIC code.');
-  if(needsBranch&&!payload.branch_code)throw new Error('Select the producer’s bank branch.');
-  const r=await window.ALU_CLOUD.client.functions.invoke('producer-flutterwave-connect',{body:payload});if(r.error)throw new Error(r.error.message||'Flutterwave connection failed.');if(!r.data?.ok)throw new Error(r.data?.error||'Flutterwave connection failed.');
-  gm('🌍 Flutterwave global payout connected ✓');await loadGlobalPayout();
- }catch(e){gm('Global payout error: '+(e.message||String(e)))}finally{btn.disabled=false;btn.textContent='🌍 Connect Flutterwave Global Payout'}
-}
-document.addEventListener('change',e=>{
- if(e.target?.id==='globalPayoutCountry'){const c=e.target.value;setCurrencies(c);setFieldVisibility(c);void loadBanks(c)}
- if(e.target?.id==='globalPayoutBankName'){const o=e.target.options[e.target.selectedIndex];const country=$g('globalPayoutCountry')?.value||'';$g('globalPayoutBankCode').value=o?.dataset?.code||'';$g('globalPayoutBankId').value=o?.dataset?.id||'';void loadBranches(o?.dataset?.id||'',country)}
- if(e.target?.id==='globalPayoutBranch'){const o=e.target.options[e.target.selectedIndex];$g('globalPayoutBranchCode').value=o?.dataset?.code||o?.value||''}
-},true);
-document.addEventListener('click',e=>{const b=e.target.closest?.('[data-action="producerConnectGlobalPayout"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();void connectGlobal(b)},true);
-document.addEventListener('DOMContentLoaded',()=>{if($g('globalPayoutStatus')){setFieldVisibility($g('globalPayoutCountry')?.value||'');loadGlobalPayout()}},{once:true});
-window.addEventListener('pageshow',()=>{if($g('globalPayoutStatus'))loadGlobalPayout()});
-const oldGo=window.go;if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arguments);if(id==='producerDashboard')setTimeout(()=>{setFieldVisibility($g('globalPayoutCountry')?.value||'');loadGlobalPayout()},80);return r};
+const message='Global payout setup is temporarily unavailable while its secure Cloudflare and Flutterwave integration is completed. No bank details have been submitted.';
+function show(){const s=document.getElementById('globalPayoutStatus');if(s)s.textContent=message;const m=document.getElementById('globalPayoutMessage');if(m)m.textContent=message;document.querySelectorAll('#globalPayoutCountry,#globalPayoutCurrency,#globalPayoutHolder,#globalPayoutEmail,#globalPayoutBankName,#globalPayoutAccountNumber,#globalPayoutRouting,#globalPayoutSwift,#globalPayoutMobile,#globalPayoutBranch').forEach(e=>{if(e)e.disabled=true});const b=document.querySelector('[data-action="producerConnectGlobalPayout"]');if(b){b.disabled=true;b.textContent='Global payout temporarily unavailable'}}
+window.ALU_GLOBAL_PAYOUT_READY=false;
+document.addEventListener('DOMContentLoaded',show,{once:true});
+document.addEventListener('click',e=>{const b=e.target.closest?.('[data-action="producerConnectGlobalPayout"]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();show()},true);
 })();
 </script>
 <script>
@@ -4585,7 +4492,7 @@ async function pictureAction(a,el){
   if(!p){if(window.toastMsg)toastMsg('Picture not found.');return true}
   if(a==='rejectPicture'){const reason=prompt('Reason for rejecting this picture:','Please review your picture and try again.');if(reason===null)return true;p.status='Rejected';p.rejectionReason=reason.trim()||'Rejected by admin';}
   else {p.status='Approved';p.approvedAt=new Date().toISOString();}
-  saveAdminPictures(list);if(p.cloudId&&window.ALU_CLOUD?.client){try{const r=await window.ALU_CLOUD.client.from('picture_posts').update({status:a==='approvePicture'?'published':'hidden'}).eq('id',p.cloudId);if(r.error)throw r.error;p.cloudSynced=true;}catch(e){console.warn('Picture moderation cloud sync failed:',e);if(window.toastMsg)toastMsg('Picture status could not sync to cloud: '+(e.message||String(e)));}}renderAdminPictures();
+  saveAdminPictures(list);if(p.cloudId){try{await window.ALU_MEMBER_GATE_V101.request('/api/admin/pictures/'+encodeURIComponent(p.cloudId),'PATCH',{status:a==='approvePicture'?'published':'hidden'});p.cloudSynced=true;saveAdminPictures(list);}catch(e){console.warn('Cloudflare picture moderation sync failed:',e);if(window.toastMsg)toastMsg('Picture status could not sync: '+(e.message||String(e)));}}renderAdminPictures();
   if(typeof renderCreateUploads==='function')renderCreateUploads();
   if(typeof window.ALU_CREATE_UPLOAD_CENTER?.refresh==='function')window.ALU_CREATE_UPLOAD_CENTER.refresh();
   if(window.toastMsg)toastMsg(a==='approvePicture'?'🖼️ Picture approved ✓':'🖼️ Picture rejected ✓');
@@ -7207,22 +7114,7 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   }
   window.ALU_SYNC_OWNER_VISIBILITY=syncOwnerVisibility;
   window.addEventListener('load',function(){setTimeout(syncOwnerVisibility,250)},{once:true});
-  if(window.ALU_SUPABASE_CLIENT){
-    window.ALU_SUPABASE_CLIENT.auth.onAuthStateChange(function(event,session){
-      setTimeout(function(){
-        if(event==='SIGNED_OUT'||!session){
-          window.__ALU_SERVER_ADMIN_VERIFIED=false;
-          if(window.state)window.state.adminAuthenticated=false;
-          document.body&&document.body.classList.remove('alu-server-admin-verified');
-          var card=document.getElementById('aluOwnerControlsCard');if(card)card.style.display='none';
-          var active=document.querySelector('.page.active');
-          if(active&&['admin','ownerDashboard','commissionEarningsPage'].includes(active.id)&&typeof window.go==='function')window.go('home',false);
-        }else{
-          syncOwnerVisibility();
-        }
-      },0);
-    });
-  }
+  // Owner visibility is checked against the Cloudflare session on page load and before every protected action.
 })();
 </script>
 

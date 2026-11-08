@@ -2212,12 +2212,8 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
           throw new Error('The audio uploaded, but its cloud song record was not saved. Your payment credit has not been used. Please retry after reconnecting.');
         }
       }
-      if(newSong.remoteSongId && window.__ALU_UPLOAD_FEE_PAYMENT_ID){
-        const consume=await window.ALU_CLOUD.client.functions.invoke('upload-fee-checkout',{body:{action:'consume',upload_type:'music',fee_payment_id:window.__ALU_UPLOAD_FEE_PAYMENT_ID,song_id:newSong.remoteSongId}});
-        if(consume.error || !consume.data?.ok){let message=consume.data?.error||consume.error?.message||'Payment credit could not be linked to the saved song.';throw new Error('Song saved, but payment confirmation needs attention: '+message);}
-        window.__ALU_UPLOAD_FEE_PAYMENT_ID='';
-      }else if(remoteAudio?.remote){
-        throw new Error('Song uploaded, but cloud confirmation is not ready. Your payment credit has not been used. Please retry.');
+      if(remoteAudio?.remote && !newSong.remoteSongId){
+        throw new Error('Song uploaded, but Cloudflare did not confirm the paid song record. Please retry from your library.');
       }
       const t=document.getElementById('songTitle'),a=document.getElementById('audioFile'),c=document.getElementById('audioCoverFile');
       if(t)t.value='';if(a)a.value='';if(c)c.value='';
@@ -3015,7 +3011,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     // V101 payment gate: the direct Create Music handler must use the same verified fee flow.
     const feePaid=await window.ALUEnsureUploadFee('music');
     if(!feePaid){const paymentRequired=new Error('PAYMENT_CHECKOUT_OPENED');paymentRequired.code='ALU_PAYMENT_CHECKOUT_OPENED';throw paymentRequired;}
-    const feePaymentId=String(window.__ALU_UPLOAD_FEE_PAYMENT_ID||'');
     const memberGate=window.ALU_MEMBER_GATE_V101;
     if(!memberGate?.ensureArtist||!memberGate?.uploadAudio||!memberGate?.createSong) throw new Error('Cloudflare music upload is not ready. Refresh the website and sign in again.');
     await memberGate.ensureArtist();
@@ -3035,11 +3030,6 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     state.songs=Array.isArray(state.songs)?state.songs:[];
     state.songs.unshift(song);
     try{save()}catch(e){console.warn('Local metadata save failed',e)}
-    if(feePaymentId){
-      const consume=await cloud.client.functions.invoke('upload-fee-checkout',{body:{action:'consume',upload_type:'music',fee_payment_id:feePaymentId,song_id:savedSongId}});
-      if(consume.error||!consume.data?.ok)throw new Error('Song saved, but payment confirmation needs attention: '+(consume.data?.error||consume.error?.message||'payment credit could not be linked.'));
-      window.__ALU_UPLOAD_FEE_PAYMENT_ID='';
-    }
     if(typeof finish==='function') finish(song);
     return song;
   }

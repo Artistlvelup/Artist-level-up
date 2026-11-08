@@ -615,7 +615,7 @@ async function courseCheckoutRoute(request, env, userId) {
   const now = new Date().toISOString();
   const metadata = { purpose: "artist_level_up_course", course_key: "music-growth-2026", user_id: userId };
   await env.DB.prepare(
-    "INSERT INTO payment_transactions (id, reference, user_id, purpose, amount_ngn, currency, status, metadata_json, created_at) VALUES (?, ?, ?, 'artist_level_up_course', 15000, 'NGN', 'pending', ?, ?)"
+    "INSERT INTO payment_transactions (id, reference, user_id, purpose, amount_ngn, currency, status, metadata_json, created_at) VALUES (?, ?, ?, 'course', 15000, 'NGN', 'pending', ?, ?)"
   ).bind(crypto.randomUUID(), reference, userId, JSON.stringify(metadata), now).run();
   try {
     const checkout = await initializePaystack(env, {
@@ -635,7 +635,7 @@ async function courseAccessRoute(request, env, userId) {
   const requestedReference = new URL(request.url).searchParams.get("reference");
   if (requestedReference && env.PAYSTACK_SECRET_KEY) {
     const pending = await env.DB.prepare(
-      "SELECT reference, amount_ngn, currency, status FROM payment_transactions WHERE reference = ? AND user_id = ? AND purpose = 'artist_level_up_course' LIMIT 1"
+      "SELECT reference, amount_ngn, currency, status FROM payment_transactions WHERE reference = ? AND user_id = ? AND purpose = 'course' LIMIT 1"
     ).bind(requestedReference, userId).first();
     if (pending && pending.status !== "paid") {
       const verifyResponse = await fetch("https://api.paystack.co/transaction/verify/" + encodeURIComponent(requestedReference), {
@@ -658,7 +658,7 @@ async function courseAccessRoute(request, env, userId) {
     "SELECT course_key, enrolled_at FROM course_enrollments WHERE user_id = ? AND course_key = 'music-growth-2026' AND status = 'active' LIMIT 1"
   ).bind(userId).first();
   const latest = await env.DB.prepare(
-    "SELECT reference, status, amount_ngn, currency FROM payment_transactions WHERE user_id = ? AND purpose = 'artist_level_up_course' ORDER BY created_at DESC LIMIT 1"
+    "SELECT reference, status, amount_ngn, currency FROM payment_transactions WHERE user_id = ? AND purpose = 'course' ORDER BY created_at DESC LIMIT 1"
   ).bind(userId).first();
   return json({ ok: true, enrolled: !!enrollment, enrollment: enrollment || null, payment: latest || null }, 200, cors);
 }

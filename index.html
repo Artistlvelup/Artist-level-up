@@ -7555,8 +7555,8 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
   }
   window.ALU_START_ARTIST_PRO_CHECKOUT=startCheckout;
   window.ALU_COMPLETE_ARTIST_PRO_PAYMENT_RETURN=verifyPaymentReturn;
-  setTimeout(function(){syncSubscriptionStatus();verifyPaymentReturn(0);},1400);
-  window.addEventListener('focus',function(){verifyPaymentReturn(0);});
+  setTimeout(function(){syncSubscriptionStatus();},1400);
+  window.addEventListener('focus',function(){syncSubscriptionStatus();verifyPaymentReturn(0);});
 })();
 </script>
 

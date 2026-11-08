@@ -2315,7 +2315,7 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
   }
   async function streamingPayRequest(id,button){
     const status=streamingStatus();button.disabled=true;button.textContent='CONNECTING TO PAYSTACK…';
-    try{const r=await streamingInvoke({operation:'checkout',request_id:id});if(!r.authorization_url)throw new Error('Paystack did not return a checkout link.');if(status)status.textContent='Opening secure Paystack checkout…';window.location.href=r.authorization_url;}
+    try{const r=await streamingInvoke({operation:'checkout',request_id:id,return_url:location.origin+'/?streaming_payment=return'});if(!r.authorization_url)throw new Error('Paystack did not return a checkout link.');if(status)status.textContent='Opening secure Paystack checkout…';window.location.href=r.authorization_url;}
     catch(e){if(status)status.textContent=e.message||'Could not start payment.';button.disabled=false;button.textContent='Retry secure payment';}
   }
   async function streamingLoadAdmin(){
@@ -2385,12 +2385,25 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
     if(status)status.textContent=boxes.filter(b=>b.checked).length+' destinations selected.';
     if(distributionSelectAll)distributionSelectAll.textContent=boxes.every(b=>b.checked)?'Select none':'Select all';
   }));
-  if(new URLSearchParams(location.search).get('streaming_payment')==='paid'){
-    const st=streamingStatus();if(st)st.textContent='Payment confirmed by the server. Your distribution request is marked PAID and ready for admin review.';
-    setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},900);
-  }else if(new URLSearchParams(location.search).get('streaming_payment')==='failed'){
-    const st=streamingStatus();if(st)st.textContent='Payment was not confirmed. Do not pay again until you refresh My Distribution Requests and check the status.';
-  }
+  (function verifyReturnedDistributionPayment(){
+    const params=new URLSearchParams(location.search);
+    const reference=params.get('reference')||params.get('trxref')||'';
+    if(reference.startsWith('ALU-DIST-')){
+      const st=streamingStatus();if(st)st.textContent='Verifying your Paystack payment securely…';
+      streamingInvoke({operation:'verify_payment',reference}).then(()=>{
+        if(st)st.textContent='Payment verified by Cloudflare. Your release is paid and ready for admin review.';
+        params.delete('reference');params.delete('trxref');params.delete('streaming_payment');
+        const clean=location.pathname+(params.toString()?'?'+params.toString():'')+location.hash;
+        history.replaceState({},'',clean);
+        return streamingRefreshMine();
+      }).catch(err=>{
+        if(st)st.textContent=(err?.message||'Payment is not confirmed yet.')+' Refresh My Distribution Requests before trying another payment.';
+        streamingRefreshMine().catch(()=>{});
+      });
+    }else if(params.get('streaming_payment')==='failed'){
+      const st=streamingStatus();if(st)st.textContent='Payment was not confirmed. Refresh My Distribution Requests before trying again.';
+    }
+  })();
   setTimeout(()=>{streamingRefreshMine();streamingLoadAdmin();},1200);
   // Retry any pending private-portal transfer immediately after a registered member signs in.
   // The backend still verifies the user's real session before listing or retrying releases.

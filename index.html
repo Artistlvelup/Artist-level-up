@@ -5954,7 +5954,6 @@ function filenameFor(title,song,url){
 function makeDownloadUrl(url,name,ext){
   try{
     var u=new URL(String(url),window.location.href);
-    if(/\.supabase\.co$/i.test(u.hostname)&&/\/storage\/v1\/object\/public\//i.test(u.pathname))u.searchParams.set('download',name+'.'+ext);
     return u.toString();
   }catch(e){return String(url||'');}
 }

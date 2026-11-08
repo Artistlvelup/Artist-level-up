@@ -1634,9 +1634,6 @@ boot();
 
 <script id="aluCloudflareAdminAccessV101">
 window.ALU_CLOUDFLARE_API='https://artistlevelup.com.ng';
-window.ALU_SUPABASE_CLIENT=null;
-window.ALU_SUPABASE_URL='';
-window.ALU_SUPABASE_PUBLISHABLE_KEY='';
 window.ALU_REQUIRE_SERVER_ADMIN=async function(){
   const gate=window.ALU_MEMBER_GATE_V101;
   if(!gate)return false;
@@ -2190,30 +2187,16 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
   const streamingArtworkPreview=document.getElementById('streamingArtworkPreview');
   const streamingArtworkImage=document.getElementById('streamingArtworkImage');
   const streamingStatus=()=>document.getElementById('streamingDraftStatus');
-  const streamingClient=()=>window.ALU_SUPABASE_CLIENT;
   const streamSafe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function streamingInvoke(body){
-    const client=streamingClient();
-    if(!client)throw new Error('Secure connection is not ready. Refresh the page and sign in again.');
-    // V101 fix: require a real registered cloud identity, not the temporary
-    // anonymous session used for public browsing. Keep the server-side check.
+    const gate=window.ALU_MEMBER_GATE_V101;
+    if(!gate)throw new Error('Cloudflare member access is not ready. Please sign in again.');
     try{
-      const sessionResult=await client.auth.getSession();
-      const session=sessionResult?.data?.session||null;
-      const member=session?.user&&!session.user.is_anonymous&&String(session.user.email||'').trim();
-      if(!member){
-        try{window.ALU_MEMBER_GATE_V101?.openLogin?.()}catch(_){}
-        throw new Error('Your browser is not signed in to a registered Artist Level Up account. The Log In window is open. Enter your registered email, open the secure link from your inbox, then return here and try again.');
-      }
-    }catch(sessionError){
-      if(sessionError instanceof Error && /not signed in to a registered Artist Level Up account/.test(sessionError.message))throw sessionError;
-      try{window.ALU_MEMBER_GATE_V101?.openLogin?.()}catch(_){}
-      throw new Error('We could not confirm your registered sign-in. Please log in with your registered email, open the secure link from your inbox, then retry.');
-    }
-    const {data,error}=await client.functions.invoke('streaming-distribution',{body});
-    if(error){let message=error.message||'Could not connect to the secure distribution service.';try{const detail=await error.context.json();if(detail?.error)message=detail.error;}catch(_){}throw new Error(message);}
-    if(!data?.ok)throw new Error(data?.error||'The distribution service could not complete this step.');
-    return data;
+      const session=await gate.getSession();
+      if(!session?.userId){try{gate.openLogin?.()}catch(_){}throw new Error('Sign in to your registered Artist Level Up account first.');}
+    }catch(e){if(/Sign in to your registered/.test(e.message||''))throw e;try{gate.openLogin?.()}catch(_){}throw new Error('Your Cloudflare sign-in could not be confirmed. Please sign in again.');}
+    const adminOperation=['admin_list','quote','set_status'].includes(String(body?.operation||''));
+    return gate.request(adminOperation?'/api/admin/distribution':'/api/me/distribution','POST',body);
   }
   function getStreamingDraft(){
     const platforms=Array.from(document.querySelectorAll('input[name="distributionPlatform"]:checked')).map(b=>b.value);
@@ -2239,9 +2222,11 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
     if(d.artwork&&(d.artwork.size<=0||d.artwork.size>15728640||!String(d.artwork.type).startsWith('image/')))throw new Error('Artwork must be an image no larger than 15 MB.');
   }
   async function streamingGetUser(){
-    const c=streamingClient();if(!c)throw new Error('Secure connection is not ready.');
-    const {data,error}=await c.auth.getUser();if(error||!data?.user)throw new Error('Please sign in to Artist Level Up first.');
-    return data.user;
+    const gate=window.ALU_MEMBER_GATE_V101;
+    if(!gate)throw new Error('Cloudflare member access is not ready.');
+    const session=await gate.getSession();
+    if(!session?.userId)throw new Error('Please sign in to Artist Level Up first.');
+    return session;
   }
   async function streamingCreateDraft(d){
     const existing=localStorage.getItem(streamingCurrentDraftKey)||'';
@@ -2254,36 +2239,36 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
   }
   async function streamingUploadAndSubmit(d,button){
     streamingFormCheck(d,true);
-    const status=streamingStatus(),client=streamingClient(),user=await streamingGetUser();
-    button.disabled=true;const old=button.textContent;button.textContent='PREPARING SECURE UPLOAD…';
+    const status=streamingStatus(),gate=window.ALU_MEMBER_GATE_V101;
+    await streamingGetUser();
+    button.disabled=true;const old=button.textContent;button.textContent='PREPARING SECURE CLOUDFLARE UPLOAD…';
     try{
       let id=localStorage.getItem(streamingCurrentDraftKey)||'';
       if(!id){
         id=await streamingCreateDraft(d);
       }else{
-        const {data:mine,error}=await client.functions.invoke('streaming-distribution',{body:{operation:'list_mine'}});
-        if(error||!mine?.ok||!(mine.requests||[]).some(r=>r.id===id&&r.status==='draft'))id=await streamingCreateDraft(d);
+        const mine=await streamingInvoke({operation:'list_mine'});
+        if(!(mine.requests||[]).some(r=>r.id===id&&r.status==='draft'))id=await streamingCreateDraft(d);
       }
-      const bucket=client.storage.from('streaming-releases'),audioFiles=[];
+      const audioFiles=[];
       for(let i=0;i<d.audioFiles.length;i++){
-        const file=streamingAudioInput.files[i],name=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||('track-'+(i+1)+'.mp3');
-        const path=user.id+'/'+id+'/audio/track-'+(i+1)+'-'+name;
-        if(status)status.textContent='Uploading audio '+(i+1)+' of '+d.audioFiles.length+'… Keep this page open until upload finishes.';
-        const {error}=await bucket.upload(path,file,{upsert:true,contentType:file.type||'audio/mpeg',cacheControl:'3600'});
-        if(error)throw new Error('Audio upload failed ('+file.name+'): '+error.message);
-        audioFiles.push({path,name:file.name,size:file.size,type:file.type||'audio/mpeg'});
+        const file=streamingAudioInput.files[i];
+        if(status)status.textContent='Preparing secure audio upload '+(i+1)+' of '+d.audioFiles.length+'…';
+        const intent=await gate.request('/api/me/distribution/upload-intent','POST',{request_id:id,purpose:'audio',filename:file.name,contentType:file.type||'audio/mpeg',size:file.size});
+        const uploaded=await fetch(intent.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type||'audio/mpeg'},body:file});
+        if(!uploaded.ok)throw new Error('Audio upload failed ('+file.name+'). Please retry.');
+        audioFiles.push({path:intent.objectKey,name:file.name,size:file.size,type:file.type||'audio/mpeg'});
       }
-      const art=streamingArtworkInput.files[0],artName=art.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120)||'cover.jpg';
-      const artworkPath=user.id+'/'+id+'/artwork/'+crypto.randomUUID()+'-'+artName;
-      if(status)status.textContent='Uploading release artwork…';
-      const {error:artError}=await bucket.upload(artworkPath,art,{upsert:true,contentType:art.type||'image/jpeg',cacheControl:'3600'});
-      if(artError)throw new Error('Artwork upload failed: '+artError.message);
-      if(status)status.textContent='Verifying uploaded files and submitting to admin…';
-      const submitted=await streamingInvoke({operation:'submit',request_id:id,audio_files:audioFiles,artwork_path:artworkPath});
+      const art=streamingArtworkInput.files[0];
+      if(status)status.textContent='Uploading release artwork securely…';
+      const artIntent=await gate.request('/api/me/distribution/upload-intent','POST',{request_id:id,purpose:'artwork',filename:art.name,contentType:art.type||'image/jpeg',size:art.size});
+      const artUpload=await fetch(artIntent.uploadUrl,{method:'PUT',headers:{'Content-Type':art.type||'image/jpeg'},body:art});
+      if(!artUpload.ok)throw new Error('Artwork upload failed. Please retry.');
+      if(status)status.textContent='Checking uploaded files and submitting to Artist Level Up…';
+      await streamingInvoke({operation:'submit',request_id:id,audio_files:audioFiles,artwork_key:artIntent.objectKey});
       localStorage.removeItem(streamingCurrentDraftKey);
-      if(status)status.textContent='Release submitted successfully. Your files are stored securely and the request is now in the admin review queue. The fee will be quoted before payment.';
+      if(status)status.textContent='Release submitted successfully. Audio masters and artwork are stored in private Cloudflare R2 for admin review. No payment has been taken yet.';
       await streamingRefreshMine();renderStreamingDraftPreview(d);
-      return submitted;
     }finally{button.disabled=false;button.textContent=old;}
   }
   async function streamingRefreshMine(){
@@ -2294,7 +2279,7 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
       if(!rows.length){box.innerHTML='No cloud requests yet. Save a cloud draft or submit a release above.';return;}
       box.innerHTML=rows.map(r=>{
         const fee=r.quote_amount_minor&&r.quote_currency==='NGN'?'₦'+(Number(r.quote_amount_minor)/100).toLocaleString('en-NG',{maximumFractionDigits:2}):'Awaiting admin quote';
-        const statusLabel=String(r.status||'').replace(/_/g,' '); const transferLabel=r.portal_transfer_status==='sent'?'Portal received release files':r.portal_transfer_status==='pending'?'Portal transfer pending — admin can retry':'Portal transfer not yet checked';
+        const statusLabel=String(r.status||'').replace(/_/g,' '); const transferLabel='Private Cloudflare storage confirmed · awaiting admin processing';
         let action='';
         if(r.status==='quoted')action='<button class="btn primary full" data-streaming-pay="'+streamSafe(r.id)+'">Pay '+streamSafe(fee)+' securely</button>';
         if(r.status==='draft')action='<button class="btn full" data-streaming-resume="'+streamSafe(r.id)+'">Continue this draft</button><p class="tiny muted">Select the audio and artwork files again before submitting.</p>';
@@ -2350,7 +2335,7 @@ window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE
         const files=Object.entries(r.signed_files||{}).map(([path,url])=>'<a href="'+streamSafe(url)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 8px 4px 0">'+(String(path).includes('/artwork/')?'Open artwork':'Open audio file')+'</a>').join('');
         const quoteBox=['submitted','quoted'].includes(r.status)?'<label>Distribution fee (NGN)</label><input type="number" min="100" max="10000000" step="1" id="streamingQuote-'+streamSafe(r.id)+'" value="'+(r.quote_amount_minor?Number(r.quote_amount_minor)/100:'')+'" placeholder="Enter fee in naira"/><label>Admin note</label><textarea id="streamingNote-'+streamSafe(r.id)+'" rows="2" placeholder="Explain the quote or next step">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn primary full" data-streaming-quote="'+streamSafe(r.id)+'">Send / Update Quote</button>':'';
         const statusBox=['paid','in_review'].includes(r.status)?'<label>Review status</label><select id="streamingState-'+streamSafe(r.id)+'"><option value="in_review" '+(r.status==='in_review'?'selected':'')+'>In review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><label>Admin note</label><textarea id="streamingReviewNote-'+streamSafe(r.id)+'" rows="2">'+streamSafe(r.admin_note||'')+'</textarea><button class="btn full" data-streaming-status="'+streamSafe(r.id)+'">Save review status</button>':'';
-        return '<div class="card" style="margin:10px 0;padding:12px;border-color:#3d624f"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(String(r.status).replace(/_/g,' '))+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe(r.genre)+' · '+streamSafe(r.contact_email||r.user_id)+'</p><p><b>Platforms:</b> '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Explicit:</b> '+streamSafe(r.explicit_content)+' · <b>Preferred date:</b> '+streamSafe(r.preferred_release_date||'Not set')+'</p><p><b>Current fee:</b> '+streamSafe(fee)+'</p><p><b>Portal transfer:</b> '+streamSafe(r.portal_transfer_status==='sent'?'Received by the connected review portal':r.portal_transfer_status==='pending'?'Pending; will retry when artist refreshes requests':'Not yet checked')+'</p><p class="tiny">'+streamSafe(r.notes||'No release notes')+'</p><div>'+files+'</div>'+quoteBox+statusBox+'</div>';
+        return '<div class="card" style="margin:10px 0;padding:12px;border-color:#3d624f"><div class="row between"><b>'+streamSafe(r.release_title)+'</b><span class="pill">'+streamSafe(String(r.status).replace(/_/g,' '))+'</span></div><p class="tiny muted">'+streamSafe(r.artist_name)+' · '+streamSafe(r.release_type)+' · '+streamSafe(r.genre)+' · '+streamSafe(r.contact_email||r.user_id)+'</p><p><b>Platforms:</b> '+streamSafe((r.platforms||[]).join(', '))+'</p><p><b>Explicit:</b> '+streamSafe(r.explicit_content)+' · <b>Preferred date:</b> '+streamSafe(r.preferred_release_date||'Not set')+'</p><p><b>Current fee:</b> '+streamSafe(fee)+'</p><p><b>Portal transfer:</b> '+streamSafe('Private R2 storage · manual admin fulfilment')+'</p><p class="tiny">'+streamSafe(r.notes||'No release notes')+'</p><div>'+files+'</div>'+quoteBox+statusBox+'</div>';
       }).join('');
     }catch(e){panel.style.display='block';box.textContent=e.message||'Could not load the admin queue.';}
   }
@@ -4320,57 +4305,7 @@ if(typeof oldGo==='function')window.go=function(id){const r=oldGo.apply(this,arg
 
   setTimeout(renderPicturePosts,80);
 </script>
-<script id="musicCloudStabilityFixV1">
-/* CLOUD STABILITY FIX: never use .single() for song writes; never lose a successfully uploaded song. */
-(function(){
-  const client=window.ALU_SUPABASE_CLIENT;
-  if(!client || !window.ALU_CLOUD) return;
-  async function stableSyncSongs(){
-    const artistId=await window.ALU_CLOUD.ensureArtist();
-    if(!artistId) throw new Error('Cloud artist account is not ready.');
-    for(const s of (state.songs||[])){
-      if(!s.local) continue;
-      /* Avoid repeating the same PATCH for songs already saved to cloud.
-         New songs and failed/pending syncs still pass through this loop. */
-      if(s.remoteSongId && s.cloudSaved && !s.cloudSyncPending) continue;
-      let audioUrl=/^https?:\/\//i.test(String(s.audioRemoteUrl||''))?String(s.audioRemoteUrl):'';
-      if(!audioUrl && s.audioStoragePath){
-        const base=String(window.ALU_SUPABASE_URL||'').replace(/\/$/,'');
-        const bucket=encodeURIComponent(String(window.ALU_SUPABASE_BUCKET||'music'));
-        const path=String(s.audioStoragePath).replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
-        if(base && path) audioUrl=base+'/storage/v1/object/public/'+bucket+'/'+path;
-      }
-      if(!audioUrl) continue;
-      s.audioRemoteUrl=audioUrl;
-      const row={artist_id:artistId,title:s.title,genre:s.genre||'Music',audio_url:audioUrl,cover_url:s.coverArt||null,duration_seconds:null,status:(s.status==='Published'?'published':s.status==='Approved'?'approved':s.status==='Rejected'?'rejected':s.status==='Archived'?'archived':(['Pending Review','Pending'].includes(String(s.status||''))?'pending':'draft'))};
-      let r;
-      if(s.remoteSongId){
-        r=await client.from('songs').update({title:row.title,genre:row.genre,audio_url:row.audio_url,cover_url:row.cover_url,status:row.status}).eq('id',s.remoteSongId).eq('artist_id',artistId).select('id');
-        if(r.error) throw new Error('Cloud song update failed: '+r.error.message);
-        if(!Array.isArray(r.data) || !r.data.length){
-          /* Stale/missing remote ID: create a fresh row instead of requesting one JSON object. */
-          r=await client.from('songs').insert(row).select('id');
-          if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-        }
-      }else{
-        r=await client.from('songs').insert(row).select('id');
-        if(r.error) throw new Error('Cloud song save failed: '+r.error.message);
-      }
-      const id=Array.isArray(r.data)?r.data[0]?.id:null;
-      if(!id) throw new Error('Cloud song record was not returned by Supabase.');
-      s.remoteSongId=id;
-      s.cloudSaved=true;
-      s.cloudSyncPending=false;
-      s.cloudSyncError='';
-    }
-    return true;
-  }
-  window.ALU_CLOUD.syncSongs=stableSyncSongs;
-  window.ALU_RETRY_MUSIC_CLOUD=async function(){
-    try{await stableSyncSongs();save();return true}catch(e){console.warn('Music cloud retry failed:',e);return false}
-  };
-})();
-</script>
+
 <script id="aluCreateUploadCenterV101">
 (function(){
 'use strict';

@@ -562,7 +562,7 @@ async function paystackWebhookRoute(request, env) {
   const reference = String(event?.data?.reference || "").trim();
   if (!reference) return json({ error: "Missing payment reference" }, 400);
   const payment = await env.DB.prepare(
-    "SELECT id, user_id, purpose, status, metadata_json FROM payment_transactions WHERE reference = ? LIMIT 1"
+    "SELECT id, user_id, purpose, status, amount_ngn, currency, metadata_json FROM payment_transactions WHERE reference = ? LIMIT 1"
   ).bind(reference).first();
   if (!payment) return json({ received: true, ignored: true }, 200);
   const expectedAmount = Number(payment.amount_ngn || 0) * 100;
@@ -632,6 +632,28 @@ async function courseCheckoutRoute(request, env, userId) {
 async function courseAccessRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "GET") return null;
+  const requestedReference = new URL(request.url).searchParams.get("reference");
+  if (requestedReference && env.PAYSTACK_SECRET_KEY) {
+    const pending = await env.DB.prepare(
+      "SELECT reference, amount_ngn, currency, status FROM payment_transactions WHERE reference = ? AND user_id = ? AND purpose = 'artist_level_up_course' LIMIT 1"
+    ).bind(requestedReference, userId).first();
+    if (pending && pending.status !== "paid") {
+      const verifyResponse = await fetch("https://api.paystack.co/transaction/verify/" + encodeURIComponent(requestedReference), {
+        headers: { Authorization: "Bearer " + env.PAYSTACK_SECRET_KEY }
+      });
+      const verified = await verifyResponse.json().catch(() => ({}));
+      if (verifyResponse.ok && verified.status === true && verified.data?.status === "success" &&
+          Number(verified.data.amount) === 1500000 && verified.data.currency === "NGN" &&
+          Number(pending.amount_ngn) === 15000 && pending.currency === "NGN") {
+        const paidAt = new Date().toISOString();
+        await env.DB.prepare("UPDATE payment_transactions SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE reference = ?")
+          .bind(paidAt, requestedReference).run();
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO course_enrollments (id, user_id, course_key, payment_reference, amount_ngn, currency, status, enrolled_at) VALUES (?, ?, 'music-growth-2026', ?, 15000, 'NGN', 'active', ?)"
+        ).bind(crypto.randomUUID(), userId, requestedReference, paidAt).run();
+      }
+    }
+  }
   const enrollment = await env.DB.prepare(
     "SELECT course_key, enrolled_at FROM course_enrollments WHERE user_id = ? AND course_key = 'music-growth-2026' AND status = 'active' LIMIT 1"
   ).bind(userId).first();

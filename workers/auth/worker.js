@@ -565,6 +565,24 @@ async function paystackWebhookRoute(request, env) {
     "SELECT id, user_id, purpose, status, metadata_json FROM payment_transactions WHERE reference = ? LIMIT 1"
   ).bind(reference).first();
   if (!payment) return json({ received: true, ignored: true }, 200);
+  const expectedAmount = Number(payment.amount_ngn || 0) * 100;
+  const eventAmount = Number(event?.data?.amount || 0);
+  const eventCurrency = String(event?.data?.currency || "");
+  if (eventAmount !== expectedAmount || eventCurrency !== String(payment.currency || "NGN")) {
+    return json({ error: "Payment amount or currency does not match the transaction" }, 400);
+  }
+  if (payment.purpose === "artist_level_up_course") {
+    if (Number(payment.amount_ngn) !== 15000 || String(payment.currency) !== "NGN") {
+      return json({ error: "Course payment configuration mismatch" }, 409);
+    }
+    const paidAt = new Date().toISOString();
+    await env.DB.prepare("UPDATE payment_transactions SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE reference = ?")
+      .bind(paidAt, reference).run();
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO course_enrollments (id, user_id, course_key, payment_reference, amount_ngn, currency, status, enrolled_at) VALUES (?, ?, 'music-growth-2026', ?, 15000, 'NGN', 'active', ?)"
+    ).bind(crypto.randomUUID(), payment.user_id, reference, paidAt).run();
+    return json({ received: true, enrolled: true }, 200);
+  }
   if (payment.status === "paid") return json({ received: true, duplicate: true }, 200);
   const paidAt = new Date().toISOString();
   await env.DB.prepare("UPDATE payment_transactions SET status = 'paid', paid_at = ? WHERE reference = ?")
@@ -576,6 +594,51 @@ async function paystackWebhookRoute(request, env) {
     ).bind(paidAt, metadata.order_id, reference).run();
   }
   return json({ received: true }, 200);
+}
+
+async function courseCheckoutRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return null;
+  const credentials = await env.DB.prepare(
+    "SELECT email_normalized, email_verified_at FROM app_credentials WHERE user_id = ? LIMIT 1"
+  ).bind(userId).first();
+  if (!credentials?.email_normalized || !credentials.email_verified_at) {
+    return json({ error: "Verify your member email before checkout" }, 403, cors);
+  }
+  const existing = await env.DB.prepare(
+    "SELECT id FROM course_enrollments WHERE user_id = ? AND course_key = 'music-growth-2026' AND status = 'active' LIMIT 1"
+  ).bind(userId).first();
+  if (existing) return json({ ok: true, enrolled: true }, 200, cors);
+  if (!env.PAYSTACK_SECRET_KEY) return json({ error: "Paystack is not configured. Course checkout is disabled." }, 503, cors);
+  const body = await readJson(request);
+  const reference = "ALU-COURSE-" + crypto.randomUUID();
+  const now = new Date().toISOString();
+  const metadata = { purpose: "artist_level_up_course", course_key: "music-growth-2026", user_id: userId };
+  await env.DB.prepare(
+    "INSERT INTO payment_transactions (id, reference, user_id, purpose, amount_ngn, currency, status, metadata_json, created_at) VALUES (?, ?, ?, 'artist_level_up_course', 15000, 'NGN', 'pending', ?, ?)"
+  ).bind(crypto.randomUUID(), reference, userId, JSON.stringify(metadata), now).run();
+  try {
+    const checkout = await initializePaystack(env, {
+      email: credentials.email_normalized, amountNgn: 15000, reference, metadata,
+      returnUrl: body?.return_url
+    });
+    return json({ ok: true, authorization_url: checkout.authorization_url, reference }, 200, cors);
+  } catch (error) {
+    await env.DB.prepare("UPDATE payment_transactions SET status = 'failed' WHERE reference = ?").bind(reference).run();
+    return json({ error: String(error?.message || "Paystack checkout failed") }, 503, cors);
+  }
+}
+
+async function courseAccessRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "GET") return null;
+  const enrollment = await env.DB.prepare(
+    "SELECT course_key, enrolled_at FROM course_enrollments WHERE user_id = ? AND course_key = 'music-growth-2026' AND status = 'active' LIMIT 1"
+  ).bind(userId).first();
+  const latest = await env.DB.prepare(
+    "SELECT reference, status, amount_ngn, currency FROM payment_transactions WHERE user_id = ? AND purpose = 'artist_level_up_course' ORDER BY created_at DESC LIMIT 1"
+  ).bind(userId).first();
+  return json({ ok: true, enrolled: !!enrollment, enrollment: enrollment || null, payment: latest || null }, 200, cors);
 }
 
 async function marketplaceCheckoutRoute(request, env, userId) {
@@ -1232,6 +1295,17 @@ export default {
       if (url.pathname === "/api/public/marketplace/beats" && request.method === "GET") {
         const result = await marketplaceBeatsRoute(request, env, null, url, false);
         if (result) return result;
+      }
+
+      if (url.pathname === "/api/me/course/checkout") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await courseCheckoutRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/me/course/access" && request.method === "GET") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await courseAccessRoute(request, env, session.user_id);
       }
 
       if (url.pathname === "/api/me/marketplace/checkout") {

@@ -1098,7 +1098,7 @@ async function videoUploadIntentRoute(request, env, userId) {
 }
 
 
-// V101 music distribution — Cloudflare D1 + private R2 replacement for Supabase.
+// V101 music distribution — Cloudflare D1 + private R2.
 async function presignR2Object(env, objectKey, method, contentType = "") {
   const account = String(env.CLOUDFLARE_ACCOUNT_ID || "");
   const accessKey = String(env.R2_ACCESS_KEY_ID || "");
@@ -1177,7 +1177,8 @@ async function distributionUploadIntentRoute(request, env, session) {
   }
   const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-  const objectKey = session.user_id + "/" + requestId + "/" + purpose + "/" + crypto.randomUUID() + "-" + safeName + "." + extension;
+  const objectName = /\\.[a-z0-9]{1,8}$/i.test(safeName) ? safeName : safeName + "." + extension;
+  const objectKey = session.user_id + "/" + requestId + "/" + purpose + "/" + crypto.randomUUID() + "-" + objectName;
   try {
     const uploadUrl = await presignR2Object(env, objectKey, "PUT", contentType);
     return json({ uploadUrl, objectKey, contentType, expiresIn: 300 }, 200, cors);

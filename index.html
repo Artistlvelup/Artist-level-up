@@ -2139,6 +2139,8 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){
  try{
   const gate=window.ALU_MEMBER_GATE_V101;
   if(!gate)throw new Error('Cloudflare member access is not ready. Please sign in again.');
+  const feePaid=await window.ALUEnsureUploadFee('music');
+  if(!feePaid){alert('Complete the ₦5,000 music upload payment, return to this page, and tap Publish Song again. Your selected file will remain here.');return}
   await gate.ensureArtist();
   const remoteAudio=await gate.uploadAudio(a);
   let coverUrl='';
@@ -2163,7 +2165,7 @@ const oldPublish=publishUploadedSong; publishUploadedSong=async function(){
 </script><script id="finalMusicStabilityFix">
 /* FINAL MUSIC STABILITY LAYER — upload + Discover playback only. Course/payment code is untouched. */
 (function(){
-window.ALUEnsureUploadFee=async function(type){const c=window.ALU_CLOUD?.client;if(!c)throw new Error('Secure payment connection is not ready.');const popup=window.open('about:blank','_blank');try{const authState=await c.auth.getSession();const session=authState?.data?.session;if(authState?.error||!session?.access_token||!session?.user?.email||session.user.is_anonymous){try{popup?.close()}catch(_){}try{window.ALU_MEMBER_GATE_V101?.open()}catch(_){}throw new Error('Please sign in with your registered email before paying the music upload fee.');}const r=await c.functions.invoke('upload-fee-checkout',{body:{upload_type:type,return_url:location.href}});if(r.error){let detail=r.error.message||'Could not check upload fee.';try{const body=await r.error.context.json();if(body?.error)detail=body.error}catch(_){}throw new Error(detail)}if(!r.data?.ok)throw new Error(r.data?.error||'Could not check upload fee.');window.__ALU_UPLOAD_FEE_LABEL=String(r.data.fee_display||(type==='beat'?'₦5,000':'upload fee'));window.__ALU_UPLOAD_FEE_PAYMENT_ID=r.data.paid?String(r.data.fee_payment_id||''):'';if(r.data.paid){try{popup?.close()}catch(_){}return true;}if(!r.data.authorization_url)throw new Error('Secure checkout link was not returned.');if(!popup){throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open without losing your selected audio file.');}popup.location.href=r.data.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
+window.ALUEnsureUploadFee=async function(type){const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Cloudflare member access is not ready. Please sign in again.');const popup=window.open('about:blank','_blank');try{const current=new URL(location.href);const returnedRef=current.searchParams.get('reference');if(current.searchParams.get('upload_fee')==='return'&&returnedRef){const verified=await gate.request('/api/me/music-upload-fee/verify','POST',{reference:returnedRef});if(verified?.paid){window.__ALU_UPLOAD_FEE_REFERENCE=String(verified.reference||returnedRef);window.__ALU_UPLOAD_FEE_LABEL='₦5,000';current.searchParams.delete('upload_fee');current.searchParams.delete('reference');history.replaceState({},'',current.toString());try{popup?.close()}catch(_){}return true;}}const r=await gate.request('/api/me/music-upload-fee/checkout','POST',{upload_type:type});if(!r?.ok)throw new Error(r?.error||'Could not check music upload payment.');window.__ALU_UPLOAD_FEE_LABEL=String(r.fee_display||'₦5,000');if(r.paid){window.__ALU_UPLOAD_FEE_REFERENCE=String(r.reference||'');try{popup?.close()}catch(_){}return true;}if(!r.authorization_url)throw new Error('Secure Paystack checkout link was not returned.');if(!popup)throw new Error('Please allow pop-ups for Artist Level Up so the secure payment page can open.');popup.location.href=r.authorization_url;return false;}catch(e){try{popup?.close()}catch(_){}throw e;}};
     async function uploadMusicFromCreate(btn){
     const title=document.getElementById('songTitle')?.value.trim();
     const genre=document.getElementById('songGenre')?.value||'Music';
@@ -6602,12 +6604,15 @@ async function uploadMediaToCloudflare(file,purpose){
 async function uploadAudioToCloudflare(file){return uploadMediaToCloudflare(file,'audio')}
 async function createCloudflareSong(row){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');
- var payload={title:String(row.title||'').trim(),genre:String(row.genre||'Music'),audio_url:String(row.audio_url||''),cover_url:row.cover_url||null,duration_seconds:row.duration_seconds||null};
+ var payload={title:String(row.title||'').trim(),genre:String(row.genre||'Music'),audio_url:String(row.audio_url||''),cover_url:row.cover_url||null,duration_seconds:row.duration_seconds||null,payment_reference:String(window.__ALU_UPLOAD_FEE_REFERENCE||'')};
  if(!payload.title||!payload.audio_url)throw new Error('Song title and uploaded audio are required.');
+ if(!payload.payment_reference)throw new Error('A verified ₦5,000 music upload payment is required. Please check the upload fee first.');
  var list=await api('/api/me/songs','GET',null,t);
  var existing=(list.songs||[]).find(function(x){return String(x.audio_url||'')===payload.audio_url});
  if(existing)return {song:existing,existing:true};
- return api('/api/me/songs','POST',payload,t);
+ var created=await api('/api/me/songs','POST',payload,t);
+ if(created?.song?.id)window.__ALU_UPLOAD_FEE_REFERENCE='';
+ return created;
 }
 async function createCloudflarePicture(row){
  var t=token();if(!t)throw new Error('Your Cloudflare session expired. Please sign in again.');

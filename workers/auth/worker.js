@@ -252,43 +252,15 @@ async function publicSongsRoute(request, env, url) {
 }
 
 async function promotionRoute(request, env, userId) {
-  const cors = corsHeaders(request, env);
+  // Fail closed until a real advertising provider is connected, authorized,
+  // and live campaign delivery has been verified. Do not create payable rows.
   if (request.method !== "POST") return null;
-  const artist = await env.DB.prepare(
-    "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
-  ).bind(userId).first();
-  if (!artist) return json({ error: "Active artist account required" }, 403, cors);
-  const body = await readJson(request);
-  const title = cleanText(body.title, 120, true);
-  const description = cleanText(body.description, 2000);
-  const targetType = body.target_type == null ? "music" : cleanText(body.target_type, 20, true);
-  if (!["music", "video"].includes(targetType)) return json({ error: "INVALID_TARGET_TYPE" }, 400, cors);
-  const budget = Number(body.budget);
-  if (!Number.isFinite(budget) || budget < 0 || budget > 100000000) {
-    return json({ error: "INVALID_BUDGET" }, 400, cors);
-  }
-  const startsAt = cleanText(body.starts_at, 40);
-  const endsAt = cleanText(body.ends_at, 40);
-  if (startsAt && Number.isNaN(Date.parse(startsAt))) return json({ error: "INVALID_START_DATE" }, 400, cors);
-  if (endsAt && Number.isNaN(Date.parse(endsAt))) return json({ error: "INVALID_END_DATE" }, 400, cors);
-  if (startsAt && endsAt && Date.parse(endsAt) <= Date.parse(startsAt)) {
-    return json({ error: "INVALID_DATE_RANGE" }, 400, cors);
-  }
-  const videoId = body.video_id == null ? null : cleanText(body.video_id, 36);
-  if (targetType === "video" && !videoId) return json({ error: "VIDEO_REQUIRED" }, 400, cors);
-  if (videoId) {
-    const video = await env.DB.prepare(
-      "SELECT id FROM artist_videos WHERE id = ? AND artist_id = ? LIMIT 1"
-    ).bind(videoId, artist.id).first();
-    if (!video) return json({ error: "Video not found" }, 404, cors);
-  }
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    "INSERT INTO promotions (id, artist_id, title, description, budget, status, starts_at, ends_at, created_at, target_type, video_id) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)"
-  ).bind(id, artist.id, title, description, budget, startsAt, endsAt, new Date().toISOString(), targetType, videoId).run();
-  return json({ promotion: { id, artist_id: artist.id, title, description, budget, status: "pending", starts_at: startsAt, ends_at: endsAt, target_type: targetType, video_id: videoId } }, 201, cors);
+  return json({
+    error: "ADVERTISING_NOT_AVAILABLE",
+    code: "AD_PROVIDER_NOT_CONFIGURED",
+    message: "Paid advertising is temporarily unavailable. No campaign payment has been taken. Please try again after advertising delivery is enabled."
+  }, 503, corsHeaders(request, env));
 }
-
 
 async function withdrawalRoute(request, env, userId) {
   const cors = corsHeaders(request, env);

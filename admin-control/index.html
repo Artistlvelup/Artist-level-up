@@ -12,7 +12,9 @@
 <section id="login" class="panel login"><h2>Owner sign in</h2><p>Sign in using your existing V101 account. This control room uses Cloudflare authentication.</p>
 <label>Email</label><input id="email" type="email" autocomplete="username" placeholder="Owner email">
 <label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password">
-<button id="signin">Sign in securely</button><p id="loginMsg" class="muted"></p></section>
+<button id="signin">Sign in securely</button><p><a href="#" id="forgotLink">Forgot your password?</a></p><p id="loginMsg" class="muted"></p></section>
+<section id="resetRequest" class="panel login hidden"><h2>Reset your password</h2><p>Enter the Gmail address on your V101 account. We’ll email a one-time reset link if the account is eligible.</p><label>Email</label><input id="resetEmail" type="email" autocomplete="email" placeholder="Your account email"><button id="sendReset">Send reset link</button><button id="backToLogin" class="secondary">Back to sign in</button><p id="resetRequestMsg" class="muted"></p></section>
+<section id="resetFinish" class="panel login hidden"><h2>Choose a new password</h2><p>Use at least 12 characters. This reset link can only be used once and expires after 30 minutes.</p><label>New password</label><input id="newPassword" type="password" autocomplete="new-password" minlength="12" placeholder="At least 12 characters"><label>Confirm new password</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" placeholder="Repeat new password"><button id="savePassword">Update password</button><p id="resetFinishMsg" class="muted"></p></section>
 <section id="app" class="hidden">
 <div id="welcome" class="notice">Connected to V101 Cloudflare backend.</div>
 <div class="grid" id="stats"></div>
@@ -49,6 +51,13 @@ try{
  }catch(e){$('message').textContent=e.message;$('records').innerHTML='<div class="notice error">'+esc(e.message)+'</div>';if(/session|admin access|expired/i.test(e.message))signedOut(e.message);}
 }
 $('signin').addEventListener('click',login);$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+const resetToken=new URLSearchParams(location.search).get('auth_reset')||'';
+function showLoginPanel(id){['login','resetRequest','resetFinish'].forEach(x=>$(x).classList.toggle('hidden',x!==id));}
+$('forgotLink').addEventListener('click',e=>{e.preventDefault();$('resetEmail').value=$('email').value.trim();$('resetRequestMsg').textContent='';showLoginPanel('resetRequest');});
+$('backToLogin').addEventListener('click',()=>showLoginPanel('login'));
+$('sendReset').addEventListener('click',async()=>{const b=$('sendReset');b.disabled=true;$('resetRequestMsg').textContent='Sending request…';try{const d=await request('/auth/password-reset/request',{method:'POST',body:{email:$('resetEmail').value.trim()}});$('resetRequestMsg').textContent=d.message||'If the account is verified, a reset link has been sent. Check your inbox and spam folder.';}catch(e){$('resetRequestMsg').textContent=e.message;}finally{b.disabled=false;}});
+$('savePassword').addEventListener('click',async()=>{const p=$('newPassword').value,q=$('confirmPassword').value,b=$('savePassword');if(p.length<12){$('resetFinishMsg').textContent='Your new password must be at least 12 characters.';return;}if(p!==q){$('resetFinishMsg').textContent='The passwords do not match.';return;}b.disabled=true;$('resetFinishMsg').textContent='Updating password…';try{const d=await request('/auth/password-reset',{method:'POST',body:{token:resetToken,password:p}});$('resetFinishMsg').textContent=d.message||'Password updated. You can now sign in.';history.replaceState({},'',location.pathname);$('email').value=$('resetEmail').value.trim()||$('email').value;setTimeout(()=>showLoginPanel('login'),1800);}catch(e){$('resetFinishMsg').textContent=e.message;}finally{b.disabled=false;}});
+if(resetToken){showLoginPanel('resetFinish');}else{showLoginPanel('login');}
 $('logout').addEventListener('click',async()=>{try{await request('/auth/logout',{method:'POST'})}catch{}signedOut('You have signed out.');});
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)loadView(b.dataset.view)});
 $('refresh').addEventListener('click',async()=>{try{await loadStats();await loadView(view)}catch(e){$('message').textContent=e.message}});

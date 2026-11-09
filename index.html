@@ -3,6 +3,14 @@
 
 <html lang="en">
 <head>
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if (params.has('auth_reset')) {
+    window.location.replace('/admin-control/index.html' + window.location.search);
+  }
+})();
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-2LNL5LZCCJ"></script>
 <script>

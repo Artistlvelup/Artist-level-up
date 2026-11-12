@@ -1030,6 +1030,39 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   .nav button span{width:27px!important;height:27px!important;flex-basis:27px!important}
 }
 </style>
+<style id="v101-course-overview-three-cards-fix">
+/* V101: keep the Academy Modules / Lessons / Format cards in one row on phones.
+   Scoped only to the course hero so other grids keep their existing layouts. */
+#course .hero > .grid3{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:8px !important;
+  align-items:stretch !important;
+  min-width:0 !important;
+}
+#course .hero > .grid3 > .stat{
+  min-width:0 !important;
+  min-height:78px !important;
+  padding:10px 6px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+  align-items:center !important;
+  text-align:center !important;
+  overflow:hidden !important;
+}
+#course .hero > .grid3 > .stat .muted{
+  font-size:clamp(9px,2.5vw,12px) !important;
+  line-height:1.15 !important;
+  white-space:nowrap !important;
+}
+#course .hero > .grid3 > .stat b{
+  font-size:clamp(16px,4.8vw,22px) !important;
+  line-height:1.1 !important;
+  margin-top:5px !important;
+  overflow-wrap:anywhere !important;
+}
+</style>
 </head>
 <body>
 <div id="globalDiscoveryFeedV77" aria-hidden="true">

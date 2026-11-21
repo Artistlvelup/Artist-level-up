@@ -3706,7 +3706,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
 <script id="globalDiscoveryV76Script">
 (function(){
   function esc2(v){return typeof window.esc==='function'?window.esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-  function publishedVideos(){const st=typeof getState==='function'?getState():state;return (st?.videos||[]).filter(v=>['Published','published'].includes(String(v.status||''))&&mediaSrc(v)).sort((a,b)=>Number(b.createdAtTs||0)-Number(a.createdAtTs||0));}
+  function publishedVideos(){const st=typeof getState==='function'?getState():state;return (st?.videos||[]).filter(v=>v.cloudSaved===true&&!!v.remoteVideoId&&['Published','published'].includes(String(v.status||''))&&mediaSrc(v)).sort((a,b)=>Number(b.createdAtTs||0)-Number(a.createdAtTs||0));}
   function shareVideo(v){const url=mediaSrc(v),text=`${v.title||'Artist Level Up video'} — Artist Level Up`;if(navigator.share){navigator.share({title:v.title||'Artist Level Up',text,url}).catch(()=>{})}else{navigator.clipboard?.writeText(url).then(()=>toastMsg('Video link copied ✓')).catch(()=>toastMsg('Share is not available on this device'))}}
   function renderGlobalVideoDiscovery(){
     const vids=publishedVideos(),home=document.getElementById('globalVideoDiscovery'),strip=document.getElementById('globalVideoDiscoveryFeed'),full=document.getElementById('globalVideoFullFeed');
@@ -3799,7 +3799,7 @@ function publishedVideos(){
    const status=String(v.status||'').toLowerCase();
    let src=String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim();
    try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}
-   return ['published','approved'].includes(status)&&(src.startsWith('http://')||src.startsWith('https://'));
+   return v.cloudSaved===true&&!!v.remoteVideoId&&['published','approved'].includes(status)&&(src.startsWith('http://')||src.startsWith('https://'));
  }).map(v=>{
   let src=String(v.video_url||v.videoUrl||v.remoteVideoUrl||v.localUrl||'').trim();
   try{if(typeof durableVideoPublicUrl==='function')src=durableVideoPublicUrl(v)||src}catch(_){}

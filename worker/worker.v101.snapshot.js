@@ -967,12 +967,15 @@ async function adminDashboardRoute(request, env, session) {
     return null;
   if (session.role !== "admin")
     return json({ error: "Admin access required" }, 403, cors);
-  const [sales, beats, users, orders, recent] = await Promise.all([
+  const [sales, beats, users, orders, recent, music, videos, pictures] = await Promise.all([
     env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount_ngn ELSE 0 END), 0) AS totalSales, COALESCE(SUM(CASE WHEN status = 'paid' THEN platform_fee_ngn ELSE 0 END), 0) AS platformCommission, COALESCE(SUM(CASE WHEN status = 'paid' THEN producer_payout_ngn ELSE 0 END), 0) AS producerPayouts, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paidOrders, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingOrders, COUNT(*) AS totalOrders FROM marketplace_orders").first(),
     env.DB.prepare("SELECT COUNT(*) AS publishedBeats, COUNT(DISTINCT producer_name) AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalUsers FROM app_users WHERE status = 'active'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalOrders FROM marketplace_orders").first(),
-    env.DB.prepare("SELECT beat_title, producer_name, amount_ngn, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT 10").all()
+    env.DB.prepare("SELECT beat_title, producer_name, amount_ngn, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT 10").all(),
+    env.DB.prepare("SELECT COUNT(*) AS totalMusic, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingMusic FROM songs").first(),
+    env.DB.prepare("SELECT COUNT(*) AS totalVideos, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingVideos FROM artist_videos").first(),
+    env.DB.prepare("SELECT COUNT(*) AS totalPictures, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingPictures FROM picture_posts").first()
   ]);
   return json({
     ok: true,
@@ -985,7 +988,13 @@ async function adminDashboardRoute(request, env, session) {
       totalOrders: Number(sales?.totalOrders || orders?.totalOrders || 0),
       publishedBeats: Number(beats?.publishedBeats || 0),
       connectedProducers: Number(beats?.connectedProducers || 0),
-      totalUsers: Number(users?.totalUsers || 0)
+      totalUsers: Number(users?.totalUsers || 0),
+      totalMusic: Number(music?.totalMusic || 0),
+      pendingMusic: Number(music?.pendingMusic || 0),
+      totalVideos: Number(videos?.totalVideos || 0),
+      pendingVideos: Number(videos?.pendingVideos || 0),
+      totalPictures: Number(pictures?.totalPictures || 0),
+      pendingPictures: Number(pictures?.pendingPictures || 0)
     },
     recentSales: recent.results || []
   }, 200, cors);

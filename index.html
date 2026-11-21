@@ -5636,7 +5636,7 @@ document.addEventListener('click',function(e){if(e.target.closest?.('[data-actio
       const artist=String(s.artist||'').trim().toLowerCase();
       const cloud=!!(s.remoteSongId||String(s.id||'').startsWith('cloud_'));
       const realArtist=!!artist&&!['artist level up','artist','unknown artist'].includes(artist);
-      return published&&playable&&(!isKnownTestTrack(s)||cloud)&&(!cloud||realArtist);
+      return published&&playable&&cloud&&realArtist;
     }).forEach(s=>map.set(String(s.remoteSongId||s.id),s));
     return [...map.values()];
   }

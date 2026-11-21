@@ -1915,19 +1915,48 @@ else if(a==='reset'){if(confirm('Reset all local test data?')){localStorage.remo
 else if(a==='language'||a==='currency'){toast('Setting saved ✓')}else if(a==='notifications'){state.notificationSettings.enabled=!state.notificationSettings.enabled;save();toast(state.notificationSettings.enabled?'Notifications turned on 🔔':'Notifications turned off 🔕');updateNotificationUI();}}
 function fmt(n){return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(1)+'K':String(n)}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 document.addEventListener('click',e=>{const wf=e.target.closest('[data-wallet-filter]');if(wf){window.walletFilter=wf.dataset.walletFilter;renderAll();return}const af=e.target.closest('[data-admin-filter]');if(af){window.adminFilter=af.dataset.adminFilter;renderAll();return}const goEl=e.target.closest('[data-go]');if(goEl){go(goEl.dataset.go);return}const act=e.target.closest('[data-action]');if(act){e.stopPropagation();if(typeof window.action==='function'){window.action(act.dataset.action,act)}else{action(act.dataset.action,act)}return}const p=e.target.closest('[data-play]');if(p){play(p.dataset.play);return}const l=e.target.closest('[data-like]');if(l){toggleLike(l.dataset.like);return}const g=e.target.closest('[data-genre]');if(g){genre(g.dataset.genre);return}const ar=e.target.closest('[data-artist]');if(ar){artist(ar.dataset.artist);return}const lb=e.target.closest('[data-library]');if(lb){showLibrary(lb.dataset.library);return}const op=e.target.closest('[data-openplaylist]');if(op){openPlaylist(Number(op.dataset.openplaylist));return}});
+const aluArtworkValidationCache = new WeakMap();
 async function validateSquareArtwork(file){
   if(!file) return true;
   if(!file.type || !file.type.startsWith('image/')){ alert('Please choose an image file.'); return false; }
-  return await new Promise(resolve=>{
-    const img=new Image();
-    img.onload=()=>{
-      const square=img.naturalWidth===img.naturalHeight;
-      if(!square){ alert('Artwork must be exactly square (1:1). Please resize it to 3000 × 3000 px before uploading.'); }
-      resolve(square);
-    };
-    img.onerror=()=>{ alert('The artwork could not be read. Please choose another image.'); resolve(false); };
-    img.src=URL.createObjectURL(file);
-  });
+  if(aluArtworkValidationCache.has(file)) return aluArtworkValidationCache.get(file);
+  const check = (async()=>{
+    let width=0,height=0;
+    try{
+      if(typeof createImageBitmap==='function'){
+        const bitmap=await createImageBitmap(file);
+        width=bitmap.width;height=bitmap.height;
+        try{bitmap.close()}catch(_){}
+      }else{
+        const url=URL.createObjectURL(file);
+        try{
+          const img=await new Promise((resolve,reject)=>{
+            const node=new Image();
+            node.onload=()=>resolve(node);
+            node.onerror=()=>reject(new Error('Image decode failed'));
+            node.src=url;
+          });
+          width=img.naturalWidth||img.width;height=img.naturalHeight||img.height;
+        }finally{try{URL.revokeObjectURL(url)}catch(_){}}
+      }
+      if(!width||!height) throw new Error('Image dimensions unavailable');
+      const square=width===height;
+      if(!square) alert('Artwork must be exactly square (1:1). Please resize it to 3000 × 3000 px before uploading.');
+      return square;
+    }catch(err){
+      console.warn('Artwork validation decode fallback:',err);
+      // The preview may already have decoded this exact file; avoid rejecting a usable
+      // browser-selected image solely because the second decode attempt failed.
+      try{
+        const data=await imageToDataURL(file,800,.9);
+        if(data&&data.startsWith('data:image/')) return true;
+      }catch(_){}
+      alert('The artwork could not be read. Please choose a JPG or PNG image.');
+      return false;
+    }
+  })();
+  aluArtworkValidationCache.set(file,check);
+  return check;
 }
 document.getElementById('audioCoverFile')?.addEventListener('change',async e=>{const f=e.target.files[0];const p=document.getElementById('audioCoverPreview');if(f&&!await validateSquareArtwork(f)){e.target.value='';if(p)p.innerHTML='🖼️<span class="tiny muted">No picture selected</span>';return;}if(f&&p){p.innerHTML=`<img src="${await imageToDataURL(f,800,.9)}" alt="Selected cover art">`;const box=document.getElementById('coverUploadBox');if(box)box.querySelector('.tiny').textContent='Square picture selected ✓ Tap to change';}});document.getElementById('profileAvatar')?.addEventListener('change',async e=>{const f=e.target.files[0],p=document.getElementById('profileAvatarPreview');if(f&&p){p.src=await imageToDataURL(f,300,.8);p.style.display='block'}});document.getElementById('search')?.addEventListener('input',renderAll);document.getElementById('adminArtistSearch')?.addEventListener('input',renderAll);renderAll();let aluSavedPage='home';try{aluSavedPage=localStorage.getItem('alu_last_page_v101')||'home'}catch(e){}const aluHashPage=(location.hash||'').slice(1);let aluRequestedPage=document.getElementById(aluHashPage)?aluHashPage:aluSavedPage;if(aluRequestedPage==='register')aluRequestedPage='home';const aluInitialPage=document.getElementById(aluRequestedPage)?aluRequestedPage:'home';go(aluInitialPage,false);
 

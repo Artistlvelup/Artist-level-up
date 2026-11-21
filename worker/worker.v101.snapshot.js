@@ -1734,7 +1734,7 @@ async function presignR2Put(env, objectKey, contentType) {
     "X-Amz-Credential": accessKey + "/" + scope,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": "300",
-    "X-Amz-SignedHeaders": "host"
+    "X-Amz-SignedHeaders": "content-type;host"
   });
   const canonicalQuery = awsQuery(params);
   const canonicalRequest = ["PUT", path, canonicalQuery, "content-type:" + contentType + "\nhost:" + host + "\n", "content-type;host", "UNSIGNED-PAYLOAD"].join("\n");

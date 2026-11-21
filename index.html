@@ -3972,7 +3972,7 @@ function shareItem(v){
  if(navigator.share){navigator.share(data).catch(()=>{})}else if(navigator.clipboard){navigator.clipboard.writeText(shareUrl).then(()=>toastMsg('Post link copied ✓')).catch(()=>toastMsg('Share is not available'))}else toastMsg('Share is not available')
 }
 async function render77(){
-  let videos=publishedVideos();
+  let videos=[];
   let cloudPictures=[];
   const videoTask=(async()=>{
     try{

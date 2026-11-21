@@ -3009,9 +3009,14 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const durableUrl=String(remote?.url||'').trim();
     const storagePath=String(remote?.path||'').trim();
     if(!remote?.remote||!/^https?:\/\//i.test(durableUrl)) throw new Error('Audio was not uploaded to cloud storage. Please retry.');
-    let coverArt='';
-    if(coverFile){try{coverArt=await imageToDataURL(coverFile,800,.82)}catch(e){console.warn('Cover image skipped',e)}}
-    const saved=await memberGate.createSong({title,genre:genre||'Music',audio_url:durableUrl});
+    if(!coverFile) throw new Error('Choose your square cover artwork before uploading this song.');
+    if(typeof validateSquareArtwork==='function' && !await validateSquareArtwork(coverFile)) throw new Error('Please choose valid square cover artwork.');
+    if(!/^image\\/(jpeg|png|webp)$/i.test(String(coverFile.type||''))) throw new Error('Cover artwork must be JPG, PNG or WebP.');
+    if(coverFile.size>15*1024*1024) throw new Error('Cover artwork must be 15 MB or smaller.');
+    const uploadedCover=await memberGate.uploadMedia(coverFile,'thumbnail');
+    const coverArt=String(uploadedCover?.url||'').trim();
+    if(!uploadedCover?.remote || !/^https?:\\/\\//i.test(coverArt)) throw new Error('Cover artwork did not reach cloud storage. Please retry.');
+    const saved=await memberGate.createSong({title,genre:genre||'Music',audio_url:durableUrl,cover_url:coverArt});
     const savedSongId=saved?.song?.id||saved?.id;
     if(!savedSongId) throw new Error('Audio uploaded, but Cloudflare could not save the music review record.');
     const song={id,title,genre:genre||'Music',releaseType:releaseType||'Single',releaseTitle:releaseTitle||title,trackNumber:Number(trackNumber)||1,trackCount:Number(trackCount)||1,artist:state.profile?.name||'Artist Level Up',country:state.profile?.country||'Nigeria',streams:0,plays:0,likes:0,liked:false,status:'Pending Review',local:true,audioKey,audioUrl:localUrl,audioRemoteUrl:durableUrl,audioStoragePath:storagePath,coverArt,remoteSongId:savedSongId,cloudSaved:true,cloudStatus:'pending'};

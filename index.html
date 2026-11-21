@@ -1829,7 +1829,7 @@ function go(id,push=true){if(id==='admin'||id==='ownerDashboard'||id==='commissi
 window.addEventListener('popstate',e=>go((e.state&&e.state.page)||((location.hash||'').slice(1))||'home',false));
 function songCard(s){const art=s.coverArt||s.coverUrl||s.coverImage;return `<div class="song"><div class="song-art">${art?`<img src="${art}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`:'🎵'}</div><div class="grow"><b>${esc(s.title)}</b><div class="muted">${esc(s.artist)} · ${esc(s.genre)} · ${esc(s.country||'Global')}</div><div class="tiny">${fmt(s.streams||s.plays||0)} streams</div></div><div class="actions"><button class="iconbtn" data-play="${s.id}" title="Preview song">▶ Preview</button><button class="iconbtn download-btn" data-action="downloadSong" data-song-id="${s.id}" title="Download song">⬇ Download</button><button class="iconbtn" data-like="${s.id}">${s.liked?'❤️':'♡'}</button></div></div>`}
 function renderSongs(list,id){const el=document.getElementById(id);if(el)el.innerHTML=list.length?list.map(songCard).join(''):'<p class="muted">Nothing here yet.</p>'}
-function renderArtists(){const el=document.getElementById('artists');if(!el)return;const names=[...new Set((state.songs||[]).map(s=>s.artist).filter(Boolean))];const fallback=[['Kenny Blaze','Afrobeats','🎤'],['Léa Martin','Pop','🎶'],['Rayo','Latin','🔥'],['Tobi Fresh','Afro-pop','🎧'],['Thabo Keys','Amapiano','🎹'],['Nova MC','Hip-Hop','🎙️']];const data=(names.length?names.map(n=>{const s=(state.songs||[]).find(x=>x.artist===n)||{};return [n,s.genre||'Music',String(n).slice(0,1).toUpperCase()]}):fallback);el.innerHTML=data.slice(0,6).map(([name,genre,avatar])=>`<div class="artist-card"><div class="artist-avatar">${avatar}</div><div class="artist-name">${name}</div><div class="artist-genre">${genre}</div><div class="artist-actions"><button class="btn" data-artist="${name.replace(/"/g,'&quot;')}" data-action="artistPreview">▶ Preview</button><button class="btn primary" data-artist="${name.replace(/"/g,'&quot;')}" data-action="followArtist">${state.artistFollows?.[name]?'✓ Following':'＋ Follow'}</button></div></div>`).join('')}
+function renderArtists(){const el=document.getElementById('artists');if(!el)return;const names=[...new Set((state.songs||[]).map(s=>s.artist).filter(Boolean))];const data=names.map(n=>{const s=(state.songs||[]).find(x=>x.artist===n)||{};return [n,s.genre||'Music',String(n).slice(0,1).toUpperCase()]});el.innerHTML=data.length?data.slice(0,6).map(([name,genre,avatar])=>`<div class="artist-card"><div class="artist-avatar">${avatar}</div><div class="artist-name">${name}</div><div class="artist-genre">${genre}</div><div class="artist-actions"><button class="btn" data-artist="${name.replace(/"/g,'&quot;')}" data-action="artistPreview">▶ Preview</button><button class="btn primary" data-artist="${name.replace(/"/g,'&quot;')}" data-action="followArtist">${state.artistFollows?.[name]?'✓ Following':'＋ Follow'}</button></div></div>`).join(''):'<p class="muted">No artists have published music yet.</p>'}
 function proExpiryDate(plan){const d=new Date();if(plan==='Yearly')d.setFullYear(d.getFullYear()+1);else d.setDate(d.getDate()+30);return d.toISOString();}function formatProDate(value){const d=value?new Date(value):null;if(!d||Number.isNaN(d.getTime()))return 'Not set';return d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});}
 function checkProExpiry(){if(!state.pro)return false;const expires=state.pro.expiresAt?new Date(state.pro.expiresAt).getTime():0;if(state.pro.active&&expires&&Date.now()>=expires){state.pro={...state.pro,active:false,status:'Expired',expiredAt:new Date().toISOString()};localStorage.setItem(KEY,JSON.stringify(state));toast('Artist Pro has expired. You can renew your plan.');return true;}return false;}
 function promotionSongPlayable(s){return !!(s&&(/^(https?:\/\/)/i.test(String(s.audioRemoteUrl||''))||/^(https?:\/\/)/i.test(String(s.audioUrl||''))||s.audioKey||s.audioDataUrl));}
@@ -7573,5 +7573,31 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
       if(typeof window.toast==='function')window.toast(message);
     }
   },true);
+})();
+</script>
+
+
+<script id="aluV101DemoMediaCleanup20261121">
+(function(){
+ 'use strict';
+ const marker='aluV101DemoMediaCleanup20261121';
+ const demo=/\b(demo|sample|test(?:ing)?|prototype|placeholder)\b/i;
+ const fakeArtists=/^(Kenny Blaze|L[ée]a Martin|Rayo|Tobi Fresh|Thabo Keys|Nova MC)$/i;
+ function matches(x,fields){return fields.some(k=>demo.test(String(x?.[k]||'')))||fakeArtists.test(String(x?.artist||x?.artist_name||''));}
+ function cleanLocal(){
+  try{
+   const st=JSON.parse(localStorage.getItem('alu_full_v1')||'null');
+   if(st&&typeof st==='object'){
+    if(Array.isArray(st.songs))st.songs=st.songs.filter(x=>!matches(x,['title','filename','description','artist']));
+    if(Array.isArray(st.videos))st.videos=st.videos.filter(x=>!matches(x,['title','filename','description','artist']));
+    localStorage.setItem('alu_full_v1',JSON.stringify(st));
+   }
+   const pics=JSON.parse(localStorage.getItem('ALU_PICTURE_POSTS')||'[]');
+   if(Array.isArray(pics))localStorage.setItem('ALU_PICTURE_POSTS',JSON.stringify(pics.filter(x=>!matches(x,['caption','title','filename','description','artist','artist_name']))));
+  }catch(e){console.warn('V101 demo picture/music cleanup skipped:',e)}
+ }
+ function cleanVideoQueue(){return new Promise(resolve=>{try{const req=indexedDB.open('ALU_VIDEO_QUEUE_DB');req.onerror=()=>resolve();req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains('videos')){db.close();resolve();return}const tx=db.transaction('videos','readwrite'),store=tx.objectStore('videos'),all=store.getAll();all.onsuccess=()=>{for(const item of all.result||[])if(matches(item,['title','filename','description','artist']))store.delete(item.id)};tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();resolve()}}}catch(e){resolve()}})}
+ function run(){try{if(localStorage.getItem(marker)==='done')return;cleanLocal();cleanVideoQueue().finally(()=>{try{localStorage.setItem(marker,'done')}catch(e){}})}catch(e){console.warn('V101 demo media cleanup skipped:',e)}}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
 })();
 </script>

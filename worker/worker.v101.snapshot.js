@@ -593,12 +593,6 @@ async function songsRoute(request, env, userId, url) {
   }
   if (url.pathname === "/api/me/songs" && request.method === "POST") {
     const body = await readJson(request);
-    const paymentReference = cleanText(body.payment_reference, 120, true);
-    if (!paymentReference) return json({ error: "A verified ₦5,000 music upload payment is required." }, 402, cors);
-    const paidFee = await env.DB.prepare("SELECT reference FROM payment_transactions WHERE reference = ? AND user_id = ? AND purpose = 'song_upload' AND status = 'paid' AND amount_ngn = 5000 AND currency = 'NGN' LIMIT 1").bind(paymentReference, userId).first();
-    if (!paidFee) return json({ error: "Music upload payment is not confirmed for this account." }, 402, cors);
-    const redeemed = await env.DB.prepare("SELECT reference FROM song_upload_fee_redemptions WHERE reference = ? LIMIT 1").bind(paymentReference).first();
-    if (redeemed) return json({ error: "This music upload payment has already been used." }, 409, cors);
     const title = cleanText(body.title, 160, true);
     const genre = cleanText(body.genre, 80);
     const audioUrl = cleanText(body.audio_url, 2048, true);
@@ -615,10 +609,7 @@ async function songsRoute(request, env, userId, url) {
     }
     const id = crypto.randomUUID();
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    await env.DB.batch([
-      env.DB.prepare("INSERT INTO song_upload_fee_redemptions (reference, user_id, song_id, redeemed_at) VALUES (?, ?, ?, ?)").bind(paymentReference, userId, id, now),
-      env.DB.prepare("INSERT INTO songs (id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)").bind(id, artist.id, title, genre, audioUrl, coverUrl, duration, now, now)
-    ]);
+    await env.DB.prepare("INSERT INTO songs (id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)").bind(id, artist.id, title, genre, audioUrl, coverUrl, duration, now, now).run();
     const row = await env.DB.prepare(
       "SELECT id, artist_id, title, genre, audio_url, cover_url, duration_seconds, status, created_at, updated_at FROM songs WHERE id = ? AND artist_id = ? LIMIT 1"
     ).bind(id, artist.id).first();
@@ -1734,7 +1725,7 @@ async function presignR2Put(env, objectKey, contentType) {
     "X-Amz-Credential": accessKey + "/" + scope,
     "X-Amz-Date": amzDate,
     "X-Amz-Expires": "300",
-    "X-Amz-SignedHeaders": "host"
+    "X-Amz-SignedHeaders": "content-type;host"
   });
   const canonicalQuery = awsQuery(params);
   const canonicalRequest = ["PUT", path, canonicalQuery, "content-type:" + contentType + "\nhost:" + host + "\n", "content-type;host", "UNSIGNED-PAYLOAD"].join("\n");
@@ -2362,13 +2353,6 @@ var worker_default = {
         if (url.pathname.endsWith("/verify")) return await artistProVerifyRoute(request, env, session.user_id);
         return await artistProStatusRoute(request, env, session.user_id);
       }
-      if (url.pathname === "/api/me/music-upload-fee/checkout" || url.pathname === "/api/me/music-upload-fee/verify") {
-        const session = await validateSession(request, env);
-        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
-        if (url.pathname.endsWith("/checkout")) return await musicUploadFeeCheckoutRoute(request, env, session.user_id);
-        return await musicUploadFeeVerifyRoute(request, env, session.user_id);
-      }
-
       if (url.pathname === "/api/me/course/access" && request.method === "GET") {
         const session = await validateSession(request, env);
         if (!session)

@@ -1870,18 +1870,14 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   const key = artist.id + "/" + (purpose === "audio" ? "audio" : "thumbnails") + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
-    const signed = await presignR2Put(env, key, contentType);
-    const stored = await fetch(signed.uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": contentType },
-      body: bytes
-    });
-    if (!stored.ok) {
-      const detail = (await stored.text().catch(() => "")).slice(0, 300);
-      console.error("R2_MEDIA_UPLOAD_FAILED", { purpose, status: stored.status, detail });
-      return json({ error: "Cloudflare storage rejected the file (" + stored.status + ")." }, 502, cors);
-    }
-    return json({ remote: true, path: key, url: signed.publicUrl, contentType }, 200, cors);
+    if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
+      throw new Error("R2_BINDING_NOT_CONFIGURED");
+    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+    if (!publicBase || !/^https:\/\//i.test(publicBase))
+      throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
+    await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType } });
+    const publicUrl = publicBase + "/" + key.split("/").map(awsEncode).join("/");
+    return json({ remote: true, path: key, url: publicUrl, contentType }, 200, cors);
   } catch (error) {
     console.error("R2_MEDIA_UPLOAD_ERROR", error);
     return json({ error: "Cloudflare could not store this file securely." }, 502, cors);

@@ -1844,6 +1844,50 @@ function parseDistributionRow(row) {
   };
 }
 __name(parseDistributionRow, "parseDistributionRow");
+async function mediaUploadProxyRoute(request, env, userId, url) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST")
+    return json({ error: "Method not allowed" }, 405, cors);
+  const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
+  const filename = cleanText(url.searchParams.get("filename"), 180, true);
+  const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
+  if (!["audio", "thumbnail"].includes(purpose))
+    return json({ error: "INVALID_PURPOSE" }, 400, cors);
+  const artist = await env.DB.prepare(
+    "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
+  ).bind(userId).first();
+  if (!artist)
+    return json({ error: "Active artist account required" }, 403, cors);
+  const allowed = purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
+  if (!allowed.has(contentType))
+    return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
+  const bytes = await request.arrayBuffer();
+  const size = bytes.byteLength;
+  const maxBytes = purpose === "audio" ? MAX_AUDIO_BYTES : 10 * 1024 * 1024;
+  if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes)
+    return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
+  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+  const key = artist.id + "/" + (purpose === "audio" ? "audio" : "thumbnails") + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
+  try {
+    const signed = await presignR2Put(env, key, contentType);
+    const stored = await fetch(signed.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: bytes
+    });
+    if (!stored.ok) {
+      const detail = (await stored.text().catch(() => "")).slice(0, 300);
+      console.error("R2_MEDIA_UPLOAD_FAILED", { purpose, status: stored.status, detail });
+      return json({ error: "Cloudflare storage rejected the file (" + stored.status + ")." }, 502, cors);
+    }
+    return json({ remote: true, path: key, url: signed.publicUrl, contentType }, 200, cors);
+  } catch (error) {
+    console.error("R2_MEDIA_UPLOAD_ERROR", error);
+    return json({ error: "Cloudflare could not store this file securely." }, 502, cors);
+  }
+}
+__name(mediaUploadProxyRoute, "mediaUploadProxyRoute");
 async function distributionUploadIntentRoute(request, env, session) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST")
@@ -2396,6 +2440,12 @@ var worker_default = {
         if (result)
           return result;
         return json({ error: "Method not allowed" }, 405, cors);
+      }
+      if (url.pathname === "/api/me/media/upload") {
+        const session = await validateSession(request, env);
+        if (!session)
+          return json({ error: "Invalid or expired session" }, 401, cors);
+        return await mediaUploadProxyRoute(request, env, session.user_id, url);
       }
       if (url.pathname === "/api/me/videos/upload-intent") {
         const session = await validateSession(request, env);

@@ -6438,6 +6438,13 @@ async function uploadMediaToCloudflare(file,purpose){
  var byExt={mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',opus:'audio/opus',mp4:'video/mp4',mov:'video/quicktime',webm:purpose==='video'?'video/webm':'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
  var fallback=purpose==='video'?'video/mp4':purpose==='thumbnail'?'image/jpeg':'audio/mpeg';
  var contentType=raw&&raw!=='application/octet-stream'?raw:(byExt[ext]||fallback);
+ if(purpose==='audio'||purpose==='thumbnail'){
+  var response=await fetch(API+'/api/me/media/upload?purpose='+encodeURIComponent(purpose)+'&filename='+encodeURIComponent(safe),{method:'POST',headers:{'Content-Type':contentType,Authorization:'Bearer '+t},body:file,cache:'no-store',credentials:'omit'});
+  var result=await response.json().catch(function(){return {error:'Invalid Cloudflare upload response'}});
+  if(!response.ok)throw new Error(result.error||('Cloudflare upload failed ('+response.status+')'));
+  if(!result.url||!result.path)throw new Error('Cloudflare did not confirm the stored file.');
+  return {remote:true,path:result.path,url:result.url,contentType:contentType};
+ }
  var intent=await api('/api/me/videos/upload-intent','POST',{purpose:purpose,filename:safe,contentType:contentType,size:file.size},t);
  if(!intent.uploadUrl||!intent.publicUrl||!intent.objectKey)throw new Error('Cloudflare did not return a valid upload link.');
  var uploaded=await fetch(intent.uploadUrl,{method:'PUT',headers:{'Content-Type':contentType},body:file});

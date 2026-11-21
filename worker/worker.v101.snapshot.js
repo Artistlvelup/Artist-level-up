@@ -1790,7 +1790,7 @@ async function presignR2Object(env, objectKey, method, contentType = "") {
   const host = account + ".r2.cloudflarestorage.com";
   const path = "/" + awsEncode(bucket) + "/" + awsPath(objectKey);
   const now = /* @__PURE__ */ new Date();
-  const amzDate = now.toISOString().replace(/[:-]|\\.\\d{3}/g, "");
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
   const dateStamp = amzDate.slice(0, 8);
   const scope = dateStamp + "/auto/s3/aws4_request";
   const params = new URLSearchParams({
@@ -1800,12 +1800,12 @@ async function presignR2Object(env, objectKey, method, contentType = "") {
     "X-Amz-Expires": "300",
     "X-Amz-SignedHeaders": method === "PUT" ? "content-type;host" : "host"
   });
-  const headers = method === "PUT" ? "content-type:" + contentType + "\\nhost:" + host + "\\n" : "host:" + host + "\\n";
+  const headers = method === "PUT" ? "content-type:" + contentType + "\nhost:" + host + "\n" : "host:" + host + "\n";
   const signedHeaders = method === "PUT" ? "content-type;host" : "host";
-  const canonicalRequest = [method, path, awsQuery(params), headers, signedHeaders, "UNSIGNED-PAYLOAD"].join("\\n");
+  const canonicalRequest = [method, path, awsQuery(params), headers, signedHeaders, "UNSIGNED-PAYLOAD"].join("\n");
   const encoder = new TextEncoder();
   const requestHash = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(canonicalRequest))));
-  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, requestHash].join("\\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, requestHash].join("\n");
   const kDate = await hmacSha256(encoder.encode("AWS4" + secret), dateStamp);
   const kRegion = await hmacSha256(kDate, "auto");
   const kService = await hmacSha256(kRegion, "s3");

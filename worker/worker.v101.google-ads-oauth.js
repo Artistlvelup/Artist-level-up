@@ -2251,6 +2251,36 @@ async function googleAdsOauthEncrypt(value, env) {
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
   return base64url(iv) + "." + base64url(new Uint8Array(encrypted));
 }
+async function googleAdsOauthDecrypt(value, env) {
+  const parts = String(value || "").split(".");
+  if (parts.length !== 2) throw new Error("GOOGLE_TOKEN_CIPHERTEXT_INVALID");
+  const pepper = requirePepper(env);
+  const rawKey = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ALU-GOOGLE-ADS-OAUTH-V1:" + pepper));
+  const key = await crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["decrypt"]);
+  const iv = decode(parts[0]);
+  const ciphertext = decode(parts[1]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return new TextDecoder().decode(plain);
+}
+async function googleAdsListAccessibleCustomers(env) {
+  const connection = await env.DB.prepare("SELECT refresh_token_ciphertext, google_email, status FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
+  if (!connection || connection.status !== "connected" || !connection.refresh_token_ciphertext) return { status: 409, body: { error: "GOOGLE_ADS_NOT_CONNECTED" } };
+  const refreshToken = await googleAdsOauthDecrypt(connection.refresh_token_ciphertext, env);
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: String(env.GOOGLE_CLIENT_ID), client_secret: String(env.GOOGLE_CLIENT_SECRET), refresh_token: refreshToken, grant_type: "refresh_token" }) });
+  const tokenData = await tokenResponse.json().catch(() => ({}));
+  if (!tokenResponse.ok || !tokenData.access_token) {
+    console.error("Google Ads access-token refresh failed", tokenData.error || tokenResponse.status);
+    return { status: 502, body: { error: "GOOGLE_ACCESS_TOKEN_REFRESH_FAILED" } };
+  }
+  const apiResponse = await fetch("https://googleads.googleapis.com/v26/customers:listAccessibleCustomers", { method: "GET", headers: { Authorization: "Bearer " + tokenData.access_token } });
+  const apiData = await apiResponse.json().catch(() => ({}));
+  if (!apiResponse.ok) {
+    console.error("Google Ads account discovery failed", apiResponse.status, apiData.error?.status || "");
+    return { status: apiResponse.status, body: { error: "GOOGLE_ADS_ACCOUNT_DISCOVERY_FAILED", google_status: apiData.error?.status || "UNKNOWN" } };
+  }
+  const customerIds = Array.isArray(apiData.resourceNames) ? apiData.resourceNames.map(name => String(name).match(/^customers\/(\d+)$/)?.[1]).filter(Boolean) : [];
+  return { status: 200, body: { ok: true, google_email: connection.google_email || "", customer_ids: customerIds, count: customerIds.length, checked_at: new Date().toISOString(), read_only: true } };
+}
 async function googleAdsOauthRoute(request, env, url, cors, session) {
   const path = url.pathname;
   const redirectUri = "https://artistlevelup.com.ng/api/admin/google-ads/oauth/callback";
@@ -2268,6 +2298,11 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
     if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
     const row = await env.DB.prepare("SELECT google_email, scope, status, created_at, updated_at FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
     return json({ connected: !!row && row.status === "connected", connection: row || null, redirect_uri: redirectUri }, 200, cors);
+  }
+  if (path === "/api/admin/google-ads/accounts" && request.method === "GET") {
+    if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+    const result = await googleAdsListAccessibleCustomers(env);
+    return json(result.body, result.status, cors);
   }
   if (path === "/api/admin/google-ads/oauth/callback" && request.method === "GET") {
     const code = url.searchParams.get("code") || "";

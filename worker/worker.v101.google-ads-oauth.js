@@ -2356,7 +2356,7 @@ async function verifyGoogleLoginIdToken(idToken, env) {
  const audOk=Array.isArray(aud)?aud.includes(String(env.GOOGLE_CLIENT_ID)):aud===String(env.GOOGLE_CLIENT_ID);
  if(header.alg!=="RS256"||!header.kid||!audOk||(Array.isArray(aud)&&claims.azp!==String(env.GOOGLE_CLIENT_ID))||
  !["accounts.google.com","https://accounts.google.com"].includes(claims.iss)||!Number.isFinite(Number(claims.exp))||
- Number(claims.exp)<=now||Number(claims.iat||0)>now+60||typeof claims.nonce!=="string"||
+ Number(claims.exp)<=now||Number(claims.iat||0)>now+60||Number(claims.iat||0)<now-3600||typeof claims.nonce!=="string"||
  !(claims.email_verified===true||claims.email_verified==="true")||!validEmail(String(claims.email||""))||!String(claims.sub||""))return null;
  const response=await fetch("https://www.googleapis.com/oauth2/v3/certs");if(!response.ok)return null;
  const certs=await response.json(),jwk=(certs.keys||[]).find(x=>x.kid===header.kid&&x.kty==="RSA"&&x.use==="sig");if(!jwk)return null;
@@ -2369,6 +2369,7 @@ async function googleLoginRoute(request,env,url,cors){
  if(url.pathname==="/auth/google/start"&&request.method==="GET"){
   const state=await newToken(),nonce=await newToken(),now=Math.floor(Date.now()/1000),pepper=requirePepper(env);
   const stateHash=await hashToken2(state,pepper),nonceHash=await hashToken2(nonce,pepper);
+  await env.DB.prepare("DELETE FROM google_login_oauth_states WHERE expires_at < ? OR (consumed_at IS NOT NULL AND created_at < ?)").bind(now-600,now-86400).run();
   await env.DB.prepare("INSERT INTO google_login_oauth_states (state_hash,nonce_hash,created_at,expires_at,consumed_at) VALUES (?,?,?,?,NULL)").bind(stateHash,nonceHash,now,now+600).run();
   const params=new URLSearchParams({client_id:String(env.GOOGLE_CLIENT_ID),redirect_uri:redirectUri,response_type:"code",scope:"openid email profile",state,nonce,prompt:"select_account"});
   return json({authorization_url:"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString(),redirect_uri:redirectUri},200,cors);
@@ -2386,10 +2387,11 @@ async function googleLoginRoute(request,env,url,cors){
  if(!claims||await hashToken2(claims.nonce,pepper)!==pending.nonce_hash)return fail("google_identity_not_verified");
  const consumed=await env.DB.prepare("UPDATE google_login_oauth_states SET consumed_at=? WHERE state_hash=? AND consumed_at IS NULL AND expires_at>?").bind(now,stateHash,now).run();
  if(!consumed?.meta?.changes)return fail("state_already_used");
- const email=String(claims.email).trim().toLowerCase(),sub=String(claims.sub);
- const identity=await env.DB.prepare("SELECT user_id FROM google_login_identities WHERE google_sub=? LIMIT 1").bind(sub).first();
+ let email=String(claims.email).trim().toLowerCase();const sub=String(claims.sub);
+ const identity=await env.DB.prepare("SELECT user_id,email_normalized FROM google_login_identities WHERE google_sub=? LIMIT 1").bind(sub).first();
  let userId=identity?.user_id||"";
  if(userId){
+  email=String(identity.email_normalized||email).toLowerCase();
   const active=await env.DB.prepare("SELECT user_id FROM app_users WHERE user_id=? AND status='active' AND is_anonymous=0 LIMIT 1").bind(userId).first();
   if(!active)return fail("account_unavailable");
  }else{

@@ -694,6 +694,70 @@ async function publicSongsRoute(request, env, url) {
   return json({ songs: rows.results || [] }, 200, corsHeaders(request, env));
 }
 __name(publicSongsRoute, "publicSongsRoute");
+
+async function campaignPricing(env) {
+  const row = await env.DB.prepare("SELECT setting_value FROM platform_settings WHERE setting_key = 'campaign_package_pricing' LIMIT 1").first();
+  if (!row?.setting_value) return null;
+  try { return JSON.parse(row.setting_value); } catch { return null; }
+}
+async function campaignCheckoutRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({error:"Method not allowed"},405,cors);
+  const body = await readJson(request);
+  const promotionId = cleanText(body?.promotion_id,80,true);
+  const packageKey = String(body?.package_key || "");
+  const allowed = new Set(["starter_google_youtube","growth_google","growth_youtube","growth_tiktok","growth_all_three"]);
+  if (!promotionId || !allowed.has(packageKey)) return json({error:"Choose a valid campaign and package."},400,cors);
+  const pricing = await campaignPricing(env);
+  const price = pricing?.[packageKey];
+  if (!price || !Number.isSafeInteger(Number(price.total_amount_ngn)) || Number(price.total_amount_ngn) <= 0)
+    return json({error:"Campaign pricing has not been configured yet. No payment was taken."},503,cors);
+  const promotion = await env.DB.prepare("SELECT p.id,a.user_id FROM promotions p JOIN artists a ON a.id=p.artist_id WHERE p.id=? AND a.user_id=? LIMIT 1").bind(promotionId,userId).first();
+  if (!promotion) return json({error:"Campaign not found for this artist."},404,cors);
+  const credentials = await env.DB.prepare("SELECT email_normalized,email_verified_at FROM app_credentials WHERE user_id=? LIMIT 1").bind(userId).first();
+  if (!credentials?.email_normalized || !credentials.email_verified_at) return json({error:"Verify your member email before checkout."},403,cors);
+  if (!env.PAYSTACK_SECRET_KEY) return json({error:"Paystack is not configured."},503,cors);
+  const platforms = Array.isArray(price.platforms) ? price.platforms : [];
+  const platformMap = {google_ads:"google_ads",youtube_ads:"youtube_ads",tiktok_ads:"tiktok_ads"};
+  if (!platforms.length || platforms.some(p=>!platformMap[p])) return json({error:"Campaign platform pricing is incomplete."},503,cors);
+  const amounts = ["total_amount_ngn","ad_spend_ngn","platform_fee_ngn","tax_ngn","maintenance_ngn"].map(k=>Number(price[k]||0));
+  if (amounts.some(n=>!Number.isFinite(n)||n<0) || amounts[0] <= 0 || Math.round(amounts.slice(1).reduce((a,b)=>a+b,0)) > amounts[0])
+    return json({error:"Campaign pricing breakdown is invalid."},503,cors);
+  const [total,adSpend,fee,tax,maintenance]=amounts;
+  const orderId=crypto.randomUUID(), reference="ALU-CAM-"+crypto.randomUUID(), now=new Date().toISOString();
+  const metadata={purpose:"campaign",promotion_id:promotionId,package_key:packageKey,user_id:userId};
+  await env.DB.prepare("INSERT INTO promotion_orders (id,promotion_id,user_id,package_key,platforms_json,currency,total_amount_ngn,ad_spend_ngn,platform_fee_ngn,tax_ngn,maintenance_ngn,status,payment_reference,metadata_json,created_at) VALUES (?,?,?,?,?,'NGN',?,?,?,?,?,'pending',?,?,?)")
+    .bind(orderId,promotionId,userId,packageKey,JSON.stringify(platforms),total,adSpend,fee,tax,maintenance,reference,JSON.stringify(metadata),now).run();
+  for (const platform of platforms) await env.DB.prepare("INSERT INTO promotion_deliveries (id,order_id,platform,status,created_at,updated_at) VALUES (?,?,?,'awaiting_payment',?,?)").bind(crypto.randomUUID(),orderId,platform,now,now).run();
+  try {
+    const callback=String(env.APP_PUBLIC_URL||"https://artistlevelup.com.ng")+"?campaign_payment=return";
+    const checkout=await initializePaystack(env,{email:credentials.email_normalized,amountNgn:total,reference,metadata,returnUrl:callback});
+    return json({ok:true,order_id:orderId,reference,authorization_url:checkout.authorization_url,total_amount_ngn:total,currency:"NGN"},200,cors);
+  } catch(e) {
+    await env.DB.prepare("UPDATE promotion_orders SET status='failed' WHERE id=? AND status='pending'").bind(orderId).run();
+    return json({error:String(e?.message||"Campaign checkout could not start.")},503,cors);
+  }
+}
+async function campaignVerifyRoute(request,env,userId) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="POST") return json({error:"Method not allowed"},405,cors);
+  const body=await readJson(request), reference=cleanText(body?.reference,160,true);
+  if(!reference) return json({error:"Payment reference is required."},400,cors);
+  const order=await env.DB.prepare("SELECT id,user_id,total_amount_ngn,currency,status FROM promotion_orders WHERE payment_reference=? AND user_id=? LIMIT 1").bind(reference,userId).first();
+  if(!order) return json({error:"Campaign order not found."},404,cors);
+  if(order.status==="paid") return json({ok:true,paid:true,order_id:order.id},200,cors);
+  const response=await fetch("https://api.paystack.co/transaction/verify/"+encodeURIComponent(reference),{headers:{Authorization:"Bearer "+env.PAYSTACK_SECRET_KEY}});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.status!==true||result.data?.status!=="success"||Number(result.data?.amount)!==Math.round(Number(order.total_amount_ngn)*100)||String(result.data?.currency)!=="NGN")
+    return json({error:"Paystack has not confirmed this campaign payment yet."},409,cors);
+  const paidAt=new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE promotion_orders SET status='paid',paid_at=COALESCE(paid_at,?) WHERE id=? AND status='pending'").bind(paidAt,order.id),
+    env.DB.prepare("UPDATE promotion_deliveries SET status='queued',updated_at=? WHERE order_id=? AND status='awaiting_payment'").bind(paidAt,order.id)
+  ]);
+  return json({ok:true,paid:true,order_id:order.id,delivery_status:"queued"},200,cors);
+}
+
 async function promotionRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST")
@@ -2865,6 +2929,11 @@ var worker_default = {
         if (session.role !== "admin")
           return json({ error: "Admin access required" }, 403, cors);
         return await musicDistributionRoute(request, env, session, url, true);
+      }
+      if (url.pathname === "/api/me/campaigns/checkout" || url.pathname === "/api/me/campaigns/verify") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return url.pathname.endsWith("/checkout") ? await campaignCheckoutRoute(request, env, session.user_id) : await campaignVerifyRoute(request, env, session.user_id);
       }
       if (url.pathname === "/api/me/promotions") {
         const session = await validateSession(request, env);

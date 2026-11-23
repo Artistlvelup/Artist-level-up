@@ -2406,9 +2406,17 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
       });
       const adsData = await adsResponse.json().catch(() => ({}));
       if (!adsResponse.ok) {
-        const apiError = adsData?.error?.status || adsData?.error?.message || "Google Ads customer profile request failed.";
-        console.error("Google Ads customer profile request failed", adsResponse.status, apiError);
-        return json({ error: "Google Ads profile check failed: " + String(apiError).slice(0, 220), api_status: adsResponse.status }, 502, cors);
+        const googleAdsFailure = Array.isArray(adsData?.error?.details) ? adsData.error.details.find((detail) => Array.isArray(detail?.errors) && detail.errors.length) : null;
+        const googleAdsIssue = googleAdsFailure?.errors?.[0] || null;
+        const googleAdsCode = googleAdsIssue?.errorCode ? Object.values(googleAdsIssue.errorCode).find(Boolean) : "";
+        const googleAdsMessage = googleAdsIssue?.message || adsData?.error?.message || "Google Ads customer profile request failed.";
+        console.error("Google Ads customer profile request failed", adsResponse.status, googleAdsCode || adsData?.error?.status, googleAdsMessage, googleAdsFailure?.requestId || "");
+        return json({
+          error: "Google Ads profile check failed: " + String(googleAdsCode || adsData?.error?.status || "API_ERROR") + " - " + String(googleAdsMessage).slice(0, 260),
+          api_status: adsResponse.status,
+          google_ads_error_code: googleAdsCode || null,
+          google_ads_request_id: googleAdsFailure?.requestId || null
+        }, 502, cors);
       }
       const customer = adsData?.results?.[0]?.customer;
       if (!customer) return json({ error: "Google Ads returned no customer profile for this account." }, 404, cors);

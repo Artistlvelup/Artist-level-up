@@ -6521,8 +6521,8 @@ document.addEventListener('click',function(e){var b=e.target.closest('[data-acti
 var memberRestoreDone=false;
 async function handleCloudflareCallback(){
  var url=new URL(location.href),verify=url.searchParams.get('auth_verify'),login=url.searchParams.get('auth_login'),reset=url.searchParams.get('auth_reset'),googleError=url.searchParams.get('google_error');
- var googleSession=new URLSearchParams(String(location.hash||'').replace(/^#/,'')).get('google_session');
- if(googleSession){saveToken(googleSession);history.replaceState({},'',url.pathname+url.search+'#home')}
+ var googleHash=new URLSearchParams(String(location.hash||'').replace(/^#/,'')),googleSession=googleHash.get('google_session');
+ if(googleSession){saveToken(googleSession);setPending({email:String(googleHash.get('google_email')||'').toLowerCase(),name:String(googleHash.get('google_name')||''),createdAt:new Date().toISOString()});history.replaceState({},'',url.pathname+url.search+'#home')}
  if(googleError){url.searchParams.delete('google_error');history.replaceState({},'',url.toString());open('login');var ge=document.getElementById('aluMemberLoginError');if(ge)ge.textContent='Google sign-in could not be completed. Please try again.'}
 
  if(reset){open('login');var rf=document.getElementById('aluMemberResetForm');if(rf)rf.style.display='block';var rs=document.getElementById('aluMemberResetRequestStatus');if(rs)rs.textContent='Choose a new password to finish resetting your account.'}

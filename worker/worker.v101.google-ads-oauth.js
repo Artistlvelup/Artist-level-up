@@ -695,13 +695,63 @@ async function publicSongsRoute(request, env, url) {
 }
 __name(publicSongsRoute, "publicSongsRoute");
 async function promotionRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
   if (request.method !== "POST")
     return null;
-  return json({
-    error: "ADVERTISING_NOT_AVAILABLE",
-    code: "AD_PROVIDER_NOT_CONFIGURED",
-    message: "Paid advertising is temporarily unavailable. No campaign payment has been taken. Please try again after advertising delivery is enabled."
-  }, 503, corsHeaders(request, env));
+  let body;
+  try {
+    body = await readJson(request);
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      return json({ error: "A valid campaign request is required." }, 400, cors);
+    const title = cleanText(body.title, 160, true);
+    const description = cleanText(body.description, 1e3);
+    const targetType = String(body.target_type || "music").trim().toLowerCase();
+    const budget = Number(body.budget ?? 0);
+    const videoId = targetType === "video" ? cleanText(body.video_id, 80, true) : null;
+    if (!["music", "video"].includes(targetType))
+      return json({ error: "Choose music or video promotion." }, 400, cors);
+    if (!Number.isFinite(budget) || budget < 0 || budget > 1e8)
+      return json({ error: "Enter a valid campaign budget." }, 400, cors);
+    const artist = await env.DB.prepare(
+      "SELECT id, status, suspended FROM artists WHERE user_id = ? LIMIT 1"
+    ).bind(userId).first();
+    if (!artist || artist.suspended || artist.status === "rejected")
+      return json({ error: "An active Artist Account is required to submit a campaign." }, 403, cors);
+    if (targetType === "video") {
+      const video = await env.DB.prepare(
+        "SELECT id FROM artist_videos WHERE id = ? AND artist_id = ? AND status IN ('approved','published') LIMIT 1"
+      ).bind(videoId, artist.id).first();
+      if (!video)
+        return json({ error: "Choose one of your approved or published videos." }, 400, cors);
+    }
+    const id = crypto.randomUUID();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    await env.DB.prepare(
+      "INSERT INTO promotions (id, artist_id, title, description, budget, status, starts_at, ends_at, created_at, target_type, video_id) VALUES (?, ?, ?, ?, ?, 'pending', NULL, NULL, ?, ?, ?)"
+    ).bind(id, artist.id, title, description, budget, now, targetType, videoId).run();
+    return json({
+      ok: true,
+      promotion: {
+        id,
+        artist_id: artist.id,
+        title,
+        description,
+        budget,
+        status: "pending",
+        target_type: targetType,
+        video_id: videoId,
+        created_at: now,
+        payment_required: false,
+        delivery_status: "not_started"
+      },
+      message: "Campaign request saved for review. No payment was taken and no advertisement has been launched."
+    }, 201, cors);
+  } catch (error) {
+    if (String(error?.message || "").includes("INVALID_FIELD"))
+      return json({ error: "Check the campaign title, description and selected video." }, 400, cors);
+    console.error("Campaign request could not be saved:", error);
+    return json({ error: "Campaign request could not be saved. Please try again." }, 500, cors);
+  }
 }
 __name(promotionRoute, "promotionRoute");
 async function withdrawalRoute(request, env, userId) {

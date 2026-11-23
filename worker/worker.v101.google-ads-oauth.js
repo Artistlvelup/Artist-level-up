@@ -2333,7 +2333,12 @@ async function youtubeOauthRoute(request, env, url, cors, session) {
     if (!tokenResponse.ok || !tokenData.refresh_token) return new Response("Google did not return a YouTube refresh token. Reconnect and approve access when prompted.", { status: 502 });
     const channelResponse = await fetch("https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true", { headers: { Authorization: "Bearer " + tokenData.access_token } });
     const channelData = await channelResponse.json().catch(() => ({})), channel = channelData.items && channelData.items[0];
-    if (!channelResponse.ok || !channel) return new Response("Google authorization succeeded, but a YouTube channel could not be verified. Enable YouTube Data API v3 and ensure this Google account owns a channel, then reconnect.", { status: 502 });
+    if (!channelResponse.ok) {
+      const apiError = channelData.error || {}, apiDetail = Array.isArray(apiError.errors) ? apiError.errors[0] : null;
+      const diagnostic = String(apiDetail?.reason || apiError.status || "YOUTUBE_API_ERROR") + ": " + String(apiError.message || "YouTube Data API request failed");
+      return new Response("YouTube verification failed (HTTP " + channelResponse.status + "): " + diagnostic, { status: 502, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+    }
+    if (!channel) return new Response("YouTube API responded successfully but returned no channel for this Google account (items: " + (Array.isArray(channelData.items) ? channelData.items.length : 0) + "). Check that the channel is created under this account, then reconnect.", { status: 502, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
     const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: "Bearer " + tokenData.access_token } });
     const profile = profileResponse.ok ? await profileResponse.json().catch(() => ({})) : {};
     const encrypted = await youtubeOauthEncrypt(tokenData.refresh_token, env), timestamp = new Date().toISOString();

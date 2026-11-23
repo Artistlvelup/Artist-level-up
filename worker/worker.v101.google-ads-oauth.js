@@ -2375,6 +2375,61 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
       return json({ error: "Google Ads account verification could not be completed." }, 500, cors);
     }
   }
+  if (path === "/api/admin/google-ads/customer-profile" && request.method === "GET") {
+    if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+    const customerId = String(url.searchParams.get("customer_id") || "").replace(/-/g, "");
+    if (!/^\\d{10}$/.test(customerId)) return json({ error: "A valid 10-digit customer_id is required." }, 400, cors);
+    try {
+      const row = await env.DB.prepare("SELECT refresh_token_ciphertext, google_email, status FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
+      if (!row || row.status !== "connected" || !row.refresh_token_ciphertext)
+        return json({ connected: false, error: "Google Ads account is not connected." }, 409, cors);
+      const refreshToken = await googleAdsOauthDecrypt(row.refresh_token_ciphertext, env);
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: String(env.GOOGLE_CLIENT_ID),
+          client_secret: String(env.GOOGLE_CLIENT_SECRET),
+          refresh_token: refreshToken,
+          grant_type: "refresh_token"
+        })
+      });
+      const tokenData = await tokenResponse.json().catch(() => ({}));
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        console.error("Google Ads profile token refresh failed", tokenData.error || tokenResponse.status);
+        return json({ error: "Google Ads authorization could not be refreshed." }, 502, cors);
+      }
+      const adsResponse = await fetch("https://googleads.googleapis.com/v26/customers/" + customerId + "/googleAds:search", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tokenData.access_token, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.test_account FROM customer" })
+      });
+      const adsData = await adsResponse.json().catch(() => ({}));
+      if (!adsResponse.ok) {
+        const apiError = adsData?.error?.status || adsData?.error?.message || "Google Ads customer profile request failed.";
+        console.error("Google Ads customer profile request failed", adsResponse.status, apiError);
+        return json({ error: "Google Ads profile check failed: " + String(apiError).slice(0, 220), api_status: adsResponse.status }, 502, cors);
+      }
+      const customer = adsData?.results?.[0]?.customer;
+      if (!customer) return json({ error: "Google Ads returned no customer profile for this account." }, 404, cors);
+      return json({
+        connected: true,
+        google_email: row.google_email,
+        customer: {
+          customer_id: String(customer.id || customerId),
+          descriptive_name: customer.descriptiveName || "",
+          currency_code: customer.currencyCode || "",
+          time_zone: customer.timeZone || "",
+          manager: !!customer.manager,
+          test_account: !!customer.testAccount
+        },
+        read_only: true
+      }, 200, cors);
+    } catch (error) {
+      console.error("Google Ads customer profile check failed", error);
+      return json({ error: "Google Ads customer profile could not be retrieved." }, 500, cors);
+    }
+  }
   if (path === "/api/admin/google-ads/oauth/callback" && request.method === "GET") {
     const code = url.searchParams.get("code") || "";
     const state = url.searchParams.get("state") || "";

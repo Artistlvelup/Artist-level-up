@@ -2409,7 +2409,7 @@ async function googleLoginRoute(request,env,url,cors){
   await env.DB.prepare("INSERT INTO google_login_identities (google_sub,user_id,email_normalized,created_at) VALUES (?,?,?,?)").bind(sub,userId,email,now).run();
  }
  const session=await createUserSession(env,userId);
- return new Response(null,{status:302,headers:{Location:"https://artistlevelup.com.ng/#google_session="+encodeURIComponent(session.token),"Cache-Control":"no-store"}});
+ return new Response(null,{status:302,headers:{Location:"https://artistlevelup.com.ng/#google_session="+encodeURIComponent(session.token)+"&google_email="+encodeURIComponent(email)+"&google_name="+encodeURIComponent(String(claims.name||"")),"Cache-Control":"no-store"}});
 }
 
 var worker_default = {

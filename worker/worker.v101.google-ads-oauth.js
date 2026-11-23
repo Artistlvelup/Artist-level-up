@@ -2301,6 +2301,21 @@ async function googleAdsOauthEncrypt(value, env) {
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
   return base64url(iv) + "." + base64url(new Uint8Array(encrypted));
 }
+async function googleAdsOauthDecrypt(value, env) {
+  const parts = String(value || "").split(".");
+  if (parts.length !== 2) throw new Error("GOOGLE_ADS_TOKEN_INVALID");
+  const decode = (part) => {
+    const normalized = part.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(normalized + "=".repeat((4 - normalized.length % 4) % 4));
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  };
+  const pepper = requirePepper(env);
+  const rawKey = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ALU-GOOGLE-ADS-OAUTH-V1:" + pepper));
+  const key = await crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: decode(parts[0]) }, key, decode(parts[1]));
+  return new TextDecoder().decode(plain);
+}
+
 async function googleAdsOauthRoute(request, env, url, cors, session) {
   const path = url.pathname;
   const redirectUri = "https://artistlevelup.com.ng/api/admin/google-ads/oauth/callback";
@@ -2318,6 +2333,47 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
     if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
     const row = await env.DB.prepare("SELECT google_email, scope, status, created_at, updated_at FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
     return json({ connected: !!row && row.status === "connected", connection: row || null, redirect_uri: redirectUri }, 200, cors);
+  }
+  if (path === "/api/admin/google-ads/accounts" && request.method === "GET") {
+    if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+    try {
+      const row = await env.DB.prepare("SELECT refresh_token_ciphertext, google_email, status FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
+      if (!row || row.status !== "connected" || !row.refresh_token_ciphertext)
+        return json({ connected: false, accounts: [], error: "Connect the Google Ads account first." }, 409, cors);
+      const refreshToken = await googleAdsOauthDecrypt(row.refresh_token_ciphertext, env);
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: String(env.GOOGLE_CLIENT_ID),
+          client_secret: String(env.GOOGLE_CLIENT_SECRET),
+          refresh_token: refreshToken,
+          grant_type: "refresh_token"
+        })
+      });
+      const tokenData = await tokenResponse.json().catch(() => ({}));
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        console.error("Google Ads access token refresh failed", tokenData.error || tokenResponse.status);
+        return json({ connected: true, accounts: [], error: "Google Ads authorization needs to be reconnected." }, 502, cors);
+      }
+      const adsResponse = await fetch("https://googleads.googleapis.com/v26/customers:listAccessibleCustomers", {
+        method: "GET",
+        headers: { Authorization: "Bearer " + tokenData.access_token }
+      });
+      const adsData = await adsResponse.json().catch(() => ({}));
+      if (!adsResponse.ok) {
+        const apiError = adsData?.error?.status || adsData?.error?.message || "Google Ads API request failed.";
+        console.error("Google Ads account discovery failed", adsResponse.status, apiError);
+        return json({ connected: true, accounts: [], error: "Google Ads account check failed: " + String(apiError).slice(0, 180) }, 502, cors);
+      }
+      const accounts = Array.isArray(adsData.resourceNames) ? adsData.resourceNames.map((name) => ({
+        customer_id: String(name).replace(/^customers\//, "")
+      })) : [];
+      return json({ connected: true, google_email: row.google_email, accounts, account_count: accounts.length, api_version: "v26" }, 200, cors);
+    } catch (error) {
+      console.error("Google Ads account verification failed", error);
+      return json({ error: "Google Ads account verification could not be completed." }, 500, cors);
+    }
   }
   if (path === "/api/admin/google-ads/oauth/callback" && request.method === "GET") {
     const code = url.searchParams.get("code") || "";

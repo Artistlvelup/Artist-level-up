@@ -2378,7 +2378,7 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
   if (path === "/api/admin/google-ads/customer-profile" && request.method === "GET") {
     if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
     const customerId = String(url.searchParams.get("customer_id") || "").replace(/-/g, "");
-    if (!/^\\d{10}$/.test(customerId)) return json({ error: "A valid 10-digit customer_id is required." }, 400, cors);
+    if (!/^\d{10}$/.test(customerId)) return json({ error: "A valid 10-digit customer_id is required." }, 400, cors);
     try {
       const row = await env.DB.prepare("SELECT refresh_token_ciphertext, google_email, status FROM google_ads_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
       if (!row || row.status !== "connected" || !row.refresh_token_ciphertext)

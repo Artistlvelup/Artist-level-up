@@ -2348,6 +2348,72 @@ async function youtubeOauthRoute(request, env, url, cors, session) {
   return null;
 }
 
+
+async function verifyGoogleLoginIdToken(idToken, env) {
+ const parts=String(idToken||"").split("."); if(parts.length!==3)return null;
+ let header,claims; try{header=JSON.parse(new TextDecoder().decode(decode(parts[0])));claims=JSON.parse(new TextDecoder().decode(decode(parts[1])))}catch{return null}
+ const now=Math.floor(Date.now()/1000),aud=claims.aud;
+ const audOk=Array.isArray(aud)?aud.includes(String(env.GOOGLE_CLIENT_ID)):aud===String(env.GOOGLE_CLIENT_ID);
+ if(header.alg!=="RS256"||!header.kid||!audOk||(Array.isArray(aud)&&claims.azp!==String(env.GOOGLE_CLIENT_ID))||
+ !["accounts.google.com","https://accounts.google.com"].includes(claims.iss)||!Number.isFinite(Number(claims.exp))||
+ Number(claims.exp)<=now||Number(claims.iat||0)>now+60||Number(claims.iat||0)<now-3600||typeof claims.nonce!=="string"||
+ !(claims.email_verified===true||claims.email_verified==="true")||!validEmail(String(claims.email||""))||!String(claims.sub||""))return null;
+ const response=await fetch("https://www.googleapis.com/oauth2/v3/certs");if(!response.ok)return null;
+ const certs=await response.json(),jwk=(certs.keys||[]).find(x=>x.kid===header.kid&&x.kty==="RSA"&&x.use==="sig");if(!jwk)return null;
+ try{const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);
+ const ok=await crypto.subtle.verify({name:"RSASSA-PKCS1-v1_5"},key,decode(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1]));return ok?claims:null}catch{return null}
+}
+async function googleLoginRoute(request,env,url,cors){
+ const callback="/api/auth/google/callback",redirectUri="https://artistlevelup.com.ng"+callback;
+ if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET)return json({error:"GOOGLE_OAUTH_NOT_CONFIGURED"},503,cors);
+ if(url.pathname==="/auth/google/start"&&request.method==="GET"){
+  const state=await newToken(),nonce=await newToken(),now=Math.floor(Date.now()/1000),pepper=requirePepper(env);
+  const stateHash=await hashToken2(state,pepper),nonceHash=await hashToken2(nonce,pepper);
+  await env.DB.prepare("DELETE FROM google_login_oauth_states WHERE expires_at < ? OR (consumed_at IS NOT NULL AND created_at < ?)").bind(now-600,now-86400).run();
+  await env.DB.prepare("INSERT INTO google_login_oauth_states (state_hash,nonce_hash,created_at,expires_at,consumed_at) VALUES (?,?,?,?,NULL)").bind(stateHash,nonceHash,now,now+600).run();
+  const params=new URLSearchParams({client_id:String(env.GOOGLE_CLIENT_ID),redirect_uri:redirectUri,response_type:"code",scope:"openid email profile",state,nonce,prompt:"select_account"});
+  return json({authorization_url:"https://accounts.google.com/o/oauth2/v2/auth?"+params.toString(),redirect_uri:redirectUri},200,cors);
+ }
+ if(url.pathname!==callback||request.method!=="GET")return null;
+ const fail=code=>new Response(null,{status:302,headers:{Location:"https://artistlevelup.com.ng/?google_error="+encodeURIComponent(code),"Cache-Control":"no-store"}});
+ if(url.searchParams.get("error"))return fail("access_denied");
+ const code=url.searchParams.get("code")||"",state=url.searchParams.get("state")||"";if(!code||!state)return fail("missing_code_or_state");
+ const now=Math.floor(Date.now()/1000),pepper=requirePepper(env),stateHash=await hashToken2(state,pepper);
+ const pending=await env.DB.prepare("SELECT state_hash,nonce_hash FROM google_login_oauth_states WHERE state_hash=? AND expires_at>? AND consumed_at IS NULL LIMIT 1").bind(stateHash,now).first();
+ if(!pending)return fail("invalid_or_expired_state");
+ const tokenResponse=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:String(env.GOOGLE_CLIENT_ID),client_secret:String(env.GOOGLE_CLIENT_SECRET),redirect_uri:redirectUri,grant_type:"authorization_code"})});
+ if(!tokenResponse.ok)return fail("token_exchange_failed");
+ const tokenData=await tokenResponse.json(),claims=await verifyGoogleLoginIdToken(tokenData.id_token,env);
+ if(!claims||await hashToken2(claims.nonce,pepper)!==pending.nonce_hash)return fail("google_identity_not_verified");
+ const consumed=await env.DB.prepare("UPDATE google_login_oauth_states SET consumed_at=? WHERE state_hash=? AND consumed_at IS NULL AND expires_at>?").bind(now,stateHash,now).run();
+ if(!consumed?.meta?.changes)return fail("state_already_used");
+ let email=String(claims.email).trim().toLowerCase();const sub=String(claims.sub);
+ const identity=await env.DB.prepare("SELECT user_id,email_normalized FROM google_login_identities WHERE google_sub=? LIMIT 1").bind(sub).first();
+ let userId=identity?.user_id||"";
+ if(userId){
+  email=String(identity.email_normalized||email).toLowerCase();
+  const active=await env.DB.prepare("SELECT user_id FROM app_users WHERE user_id=? AND status='active' AND is_anonymous=0 LIMIT 1").bind(userId).first();
+  if(!active)return fail("account_unavailable");
+ }else{
+  const existing=await env.DB.prepare("SELECT c.user_id,u.status,u.is_anonymous FROM app_credentials c JOIN app_users u ON u.user_id=c.user_id WHERE c.email_normalized=? LIMIT 1").bind(email).first();
+  if(existing){
+   if(existing.status!=="active"||existing.is_anonymous!==0)return fail("account_unavailable");
+   userId=existing.user_id;
+   await env.DB.prepare("UPDATE app_credentials SET email_verified_at=COALESCE(email_verified_at,?) WHERE user_id=?").bind(now,userId).run();
+  }else{
+   userId=crypto.randomUUID();const salt=crypto.getRandomValues(new Uint8Array(16)),randomPassword=encode(crypto.getRandomValues(new Uint8Array(48)));
+   const passwordHash=await derivePassword(randomPassword,salt);
+   await env.DB.batch([
+    env.DB.prepare("INSERT INTO app_users (user_id,is_anonymous,status,created_at,updated_at) VALUES (?,0,'active',?,?)").bind(userId,now,now),
+    env.DB.prepare("INSERT INTO app_credentials (user_id,email_normalized,password_hash,password_salt,password_iterations,email_verified_at,password_changed_at) VALUES (?,?,?,?,?,?,?)").bind(userId,email,passwordHash,encode(salt),PASSWORD_ITERATIONS,now,now)
+   ]);
+  }
+  await env.DB.prepare("INSERT INTO google_login_identities (google_sub,user_id,email_normalized,created_at) VALUES (?,?,?,?)").bind(sub,userId,email,now).run();
+ }
+ const session=await createUserSession(env,userId);
+ return new Response(null,{status:302,headers:{Location:"https://artistlevelup.com.ng/#google_session="+encodeURIComponent(session.token)+"&google_email="+encodeURIComponent(email)+"&google_name="+encodeURIComponent(String(claims.name||"")),"Cache-Control":"no-store"}});
+}
+
 var worker_default = {
   async fetch(request, env) {
     const cors = corsHeaders(request, env);
@@ -2377,6 +2443,10 @@ var worker_default = {
       return json({ error: "Authentication service is not configured" }, 503, cors);
     }
     try {
+      if (url.pathname === "/auth/google/start" || url.pathname === "/api/auth/google/callback") {
+        const result = await googleLoginRoute(request, env, url, cors);
+        if (result) return result;
+      }
       if (url.pathname === "/api/admin/youtube/oauth/callback" && request.method === "GET") {
         const result = await youtubeOauthRoute(request, env, url, cors, null);
         if (result) return result;

@@ -1318,6 +1318,19 @@ async function paystackWebhookRoute(request, env) {
     }
     return json({ received: true, distribution_paid: true }, 200);
   }
+  const campaignOrder = await env.DB.prepare("SELECT id,total_amount_ngn,currency,status FROM promotion_orders WHERE payment_reference=? LIMIT 1").bind(reference).first();
+  if (campaignOrder) {
+    if (Number(event?.data?.amount || 0) !== Math.round(Number(campaignOrder.total_amount_ngn) * 100) || String(event?.data?.currency || "") !== String(campaignOrder.currency || "NGN"))
+      return json({ error: "Campaign payment amount or currency does not match" }, 400);
+    if (campaignOrder.status !== "paid") {
+      const paidAtCampaign = new Date().toISOString();
+      await env.DB.batch([
+        env.DB.prepare("UPDATE promotion_orders SET status='paid',paid_at=COALESCE(paid_at,?) WHERE id=? AND status='pending'").bind(paidAtCampaign,campaignOrder.id),
+        env.DB.prepare("UPDATE promotion_deliveries SET status='queued',updated_at=? WHERE order_id=? AND status='awaiting_payment'").bind(paidAtCampaign,campaignOrder.id)
+      ]);
+    }
+    return json({ received:true,campaign_paid:true,delivery_status:"queued" },200);
+  }
   const payment = await env.DB.prepare(
     "SELECT id, user_id, purpose, status, amount_ngn, currency, metadata_json FROM payment_transactions WHERE reference = ? LIMIT 1"
   ).bind(reference).first();

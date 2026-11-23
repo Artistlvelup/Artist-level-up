@@ -2578,7 +2578,7 @@ var worker_default = {
         const result = await youtubeOauthRoute(request, env, url, cors, session);
         if (result) return result;
       }
-      if (url.pathname === "/api/admin/google-ads/oauth/start" || url.pathname === "/api/admin/google-ads/oauth/status") {
+      if (url.pathname === "/api/admin/google-ads/oauth/start" || url.pathname === "/api/admin/google-ads/oauth/status" || url.pathname === "/api/admin/google-ads/accounts") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         const result = await googleAdsOauthRoute(request, env, url, cors, session);

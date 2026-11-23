@@ -2295,6 +2295,54 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
   }
   return null;
 }
+
+async function youtubeOauthEncrypt(value, env) {
+  const pepper = requirePepper(env);
+  const rawKey = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("ALU-YOUTUBE-OAUTH-V1:" + pepper));
+  const key = await crypto.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
+  return base64url(iv) + "." + base64url(new Uint8Array(encrypted));
+}
+async function youtubeOauthRoute(request, env, url, cors, session) {
+  const path = url.pathname, redirectUri = "https://artistlevelup.com.ng/api/admin/youtube/oauth/callback";
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: "GOOGLE_OAUTH_NOT_CONFIGURED" }, 503, cors);
+  if (path === "/api/admin/youtube/oauth/start" && request.method === "GET") {
+    if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+    const state = await newToken(), stateHash = await hashToken2(state, requirePepper(env)), now = Math.floor(Date.now() / 1000);
+    await env.DB.prepare("INSERT INTO youtube_oauth_states (state_hash, user_id, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, NULL)").bind(stateHash, session.user_id, now, now + 600).run();
+    const params = new URLSearchParams({ client_id: String(env.GOOGLE_CLIENT_ID), redirect_uri: redirectUri, response_type: "code", scope: "openid email https://www.googleapis.com/auth/youtube.readonly", access_type: "offline", prompt: "consent", include_granted_scopes: "true", state });
+    return json({ authorization_url: "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString(), redirect_uri: redirectUri }, 200, cors);
+  }
+  if (path === "/api/admin/youtube/oauth/status" && request.method === "GET") {
+    if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+    const row = await env.DB.prepare("SELECT google_email, channel_id, channel_title, scope, status, created_at, updated_at FROM youtube_oauth_connections WHERE connection_id = 'primary' LIMIT 1").first();
+    return json({ connected: !!row && row.status === "connected", connection: row || null, redirect_uri: redirectUri }, 200, cors);
+  }
+  if (path === "/api/admin/youtube/oauth/callback" && request.method === "GET") {
+    const code = url.searchParams.get("code") || "", state = url.searchParams.get("state") || "";
+    if (url.searchParams.get("error")) return new Response("YouTube channel connection was not authorized. Return to the Admin Control Room.", { status: 400 });
+    if (!code || !state) return new Response("Missing YouTube authorization code or state.", { status: 400 });
+    const stateHash = await hashToken2(state, requirePepper(env)), now = Math.floor(Date.now() / 1000);
+    const pending = await env.DB.prepare("SELECT state_hash, user_id FROM youtube_oauth_states WHERE state_hash = ? AND expires_at > ? AND consumed_at IS NULL LIMIT 1").bind(stateHash, now).first();
+    if (!pending) return new Response("YouTube connection link expired. Return to the Admin Control Room and try again.", { status: 400 });
+    const consumed = await env.DB.prepare("UPDATE youtube_oauth_states SET consumed_at = ? WHERE state_hash = ? AND consumed_at IS NULL").bind(now, stateHash).run();
+    if (!consumed.meta || consumed.meta.changes !== 1) return new Response("YouTube connection link already used.", { status: 409 });
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: String(env.GOOGLE_CLIENT_ID), client_secret: String(env.GOOGLE_CLIENT_SECRET), redirect_uri: redirectUri, grant_type: "authorization_code" }) });
+    const tokenData = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenData.refresh_token) return new Response("Google did not return a YouTube refresh token. Reconnect and approve access when prompted.", { status: 502 });
+    const channelResponse = await fetch("https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true", { headers: { Authorization: "Bearer " + tokenData.access_token } });
+    const channelData = await channelResponse.json().catch(() => ({})), channel = channelData.items && channelData.items[0];
+    if (!channelResponse.ok || !channel) return new Response("Google authorization succeeded, but a YouTube channel could not be verified. Enable YouTube Data API v3 and ensure this Google account owns a channel, then reconnect.", { status: 502 });
+    const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: "Bearer " + tokenData.access_token } });
+    const profile = profileResponse.ok ? await profileResponse.json().catch(() => ({})) : {};
+    const encrypted = await youtubeOauthEncrypt(tokenData.refresh_token, env), timestamp = new Date().toISOString();
+    await env.DB.prepare("INSERT INTO youtube_oauth_connections (connection_id, connected_by_user_id, google_email, channel_id, channel_title, refresh_token_ciphertext, scope, status, created_at, updated_at) VALUES ('primary', ?, ?, ?, ?, ?, ?, 'connected', ?, ?) ON CONFLICT(connection_id) DO UPDATE SET connected_by_user_id = excluded.connected_by_user_id, google_email = excluded.google_email, channel_id = excluded.channel_id, channel_title = excluded.channel_title, refresh_token_ciphertext = excluded.refresh_token_ciphertext, scope = excluded.scope, status = 'connected', updated_at = excluded.updated_at").bind(pending.user_id, String(profile.email || ""), String(channel.id), String(channel.snippet?.title || ""), encrypted, String(tokenData.scope || ""), timestamp, timestamp).run();
+    return new Response("YouTube channel connected and verified successfully. Return to the Artist Level Up Admin Control Room.", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+  }
+  return null;
+}
+
 var worker_default = {
   async fetch(request, env) {
     const cors = corsHeaders(request, env);
@@ -2324,8 +2372,18 @@ var worker_default = {
       return json({ error: "Authentication service is not configured" }, 503, cors);
     }
     try {
+      if (url.pathname === "/api/admin/youtube/oauth/callback" && request.method === "GET") {
+        const result = await youtubeOauthRoute(request, env, url, cors, null);
+        if (result) return result;
+      }
       if (url.pathname === "/api/admin/google-ads/oauth/callback" && request.method === "GET") {
         const result = await googleAdsOauthRoute(request, env, url, cors, null);
+        if (result) return result;
+      }
+      if (url.pathname === "/api/admin/youtube/oauth/start" || url.pathname === "/api/admin/youtube/oauth/status") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await youtubeOauthRoute(request, env, url, cors, session);
         if (result) return result;
       }
       if (url.pathname === "/api/admin/google-ads/oauth/start" || url.pathname === "/api/admin/google-ads/oauth/status") {

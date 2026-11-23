@@ -2305,7 +2305,7 @@ async function youtubeOauthEncrypt(value, env) {
   return base64url(iv) + "." + base64url(new Uint8Array(encrypted));
 }
 async function youtubeOauthRoute(request, env, url, cors, session) {
-  const path = url.pathname, redirectUri = "https://artistlevelup.com.ng/api/admin/youtube/oauth/callback";
+  const path = url.pathname, redirectUri = "https://artistlevelup.com.ng/api/admin/google-ads/oauth/callback";
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: "GOOGLE_OAUTH_NOT_CONFIGURED" }, 503, cors);
   if (path === "/api/admin/youtube/oauth/start" && request.method === "GET") {
     if (!session || session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
@@ -2377,6 +2377,17 @@ var worker_default = {
         if (result) return result;
       }
       if (url.pathname === "/api/admin/google-ads/oauth/callback" && request.method === "GET") {
+        const callbackState = url.searchParams.get("state") || "";
+        if (callbackState) {
+          const callbackHash = await hashToken2(callbackState, requirePepper(env));
+          const youtubePending = await env.DB.prepare("SELECT state_hash FROM youtube_oauth_states WHERE state_hash = ? AND expires_at > ? AND consumed_at IS NULL LIMIT 1").bind(callbackHash, Math.floor(Date.now() / 1000)).first();
+          if (youtubePending) {
+            const youtubeCallbackUrl = new URL(url.toString());
+            youtubeCallbackUrl.pathname = "/api/admin/youtube/oauth/callback";
+            const youtubeResult = await youtubeOauthRoute(request, env, youtubeCallbackUrl, cors, null);
+            if (youtubeResult) return youtubeResult;
+          }
+        }
         const result = await googleAdsOauthRoute(request, env, url, cors, null);
         if (result) return result;
       }

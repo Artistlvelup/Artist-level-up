@@ -3493,14 +3493,14 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     document.getElementById('aluVideoFormat')?.addEventListener('change',()=>input.dispatchEvent(new Event('change')));
   }
   setupVideoFormatPreview();
-  const ALU_VIDEO_DB_NAME='ALU_VIDEO_QUEUE_DB', ALU_VIDEO_DB_VERSION=1, ALU_VIDEO_STORE='videos', ALU_FREE_VIDEO_LIMIT=50*1024*1024;
+  const ALU_VIDEO_DB_NAME='ALU_VIDEO_QUEUE_DB', ALU_VIDEO_DB_VERSION=1, ALU_VIDEO_STORE='videos', ALU_FREE_VIDEO_LIMIT=5*1024*1024*1024;
   function aluVideoDb(){return new Promise((resolve,reject)=>{const r=indexedDB.open(ALU_VIDEO_DB_NAME,ALU_VIDEO_DB_VERSION);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(ALU_VIDEO_STORE))db.createObjectStore(ALU_VIDEO_STORE,{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Device storage is unavailable.'));});}
   async function aluVideoQueuePut(item){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).put(item);tx.oncomplete=()=>{db.close();resolve(item)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not save video on this device.'))}})}
   async function aluVideoQueueGet(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
   async function aluVideoQueueAll(){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).getAll();r.onsuccess=()=>{db.close();resolve(r.result||[])};r.onerror=()=>{db.close();reject(r.error)}})}
   async function aluVideoQueueDelete(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).delete(id);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error)}})}
   function aluVideoQueueIsRetryable(item){return item && item.status!=='cloud_synced' && item.status!=='blocked_size';}
-  function aluVideoQueueMessage(item){if(item?.status==='blocked_size')return 'Saved on this device · Cloud needs a video under 50 MB.';if(item?.status==='uploading'||item?.status==='retrying')return 'Saved on this device · Cloud upload is retrying…';return 'Saved on this device · Cloud will retry.';}
+  function aluVideoQueueMessage(item){if(item?.status==='blocked_size')return 'Saved on this device · Cloud accepts videos up to 5 GB.';if(item?.status==='uploading'||item?.status==='retrying')return 'Saved on this device · Cloud upload is retrying…';return 'Saved on this device · Cloud will retry.';}
   function aluVideoLocalRecord(item){return {id:item.id,title:item.title,description:item.description||'',localUrl:item.localUrl||'',videoUrl:item.videoUrl||'',storagePath:item.storagePath||'',thumbnailUrl:item.thumbnailUrl||item.thumbnailData||'',status:'Pending',views:0,likes:0,tiktok:item.tiktok||'',instagram:item.instagram||'',facebook:item.facebook||'',youtube:item.youtube||'',createdAt:item.createdAt,format:item.format||'9:16',remoteVideoId:item.remoteVideoId||'',cloudSaved:item.status==='cloud_synced',localOnly:true,cloudStatus:item.status||'pending'};}
   async function aluVideoQueueRenderLocals(){
     try{const items=await aluVideoQueueAll();const st=getState()||{};const vs=stateVideos(st);let changed=false;
@@ -3517,7 +3517,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     const gate=window.ALU_MEMBER_GATE_V101;
     const file=item.blob;
     if(!file)throw new Error('The saved video copy is missing from device storage.');
-    if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='This video exceeds the current 50 MB upload limit.';await aluVideoQueuePut(item);return {blocked:true};}
+    if(file.size>ALU_FREE_VIDEO_LIMIT){item.status='blocked_size';item.lastError='This video exceeds the 5 GB upload limit.';await aluVideoQueuePut(item);return {blocked:true};}
     if(!gate?.uploadMedia||!gate?.createVideo)throw new Error('Cloudflare video upload is not ready. Sign in and try again.');
     item.status='uploading';item.attempts=Number(item.attempts||0)+1;item.lastAttemptAt=new Date().toISOString();await aluVideoQueuePut(item);
     try{
@@ -3566,7 +3566,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function retryVideoCloud(id){
     const item=await aluVideoQueueGet(id);
     if(!item){toastMsg('Saved video copy was not found on this device.');return}
-    if(item.status==='blocked_size'){toastMsg('This video exceeds the current 50 MB cloud upload limit.');return}
+    if(item.status==='blocked_size'){toastMsg('This video exceeds the 5 GB cloud upload limit.');return}
     try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to Cloudflare ✓')}
     catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual Cloudflare video retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120))}
     await aluVideoQueueRenderLocals();
@@ -3598,11 +3598,11 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     try{await aluVideoQueuePut(item);}catch(e){try{URL.revokeObjectURL(localUrl)}catch(_){}toastMsg('Could not save this video on the device. Please allow browser storage and try again.');return}
     const st=getState()||{},vs=stateVideos(st);vs.unshift(aluVideoLocalRecord(item));saveState(st);renderVideos();
     ['aluVideoArtistName','aluVideoTitle','aluVideoDescription','aluVideoHashtags','aluVideoFile'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''});const songPicker=document.getElementById('aluVideoSong');if(songPicker)songPicker.value='';if(document.getElementById('aluVideoFormatPreview'))document.getElementById('aluVideoFormatPreview').style.display='none';
-    if(item.status==='blocked_size'){toastMsg('Saved on this device · Cloud needs a video under 50 MB. Your video is '+(file.size/1048576).toFixed(1)+' MB.');return}
+    if(item.status==='blocked_size'){toastMsg('Saved on this device · Cloud accepts videos up to 5 GB. Your video is '+(file.size/1048576).toFixed(1)+' MB.');return}
     if(!navigator.onLine){toastMsg('Saved on this device · You are offline. Cloud will retry when you reconnect.');return}
     try{
       const result=await aluVideoUploadQueueItem(item);
-      if(result?.blocked){toastMsg('Saved on this device · Cloud needs a video under 50 MB.');return}
+      if(result?.blocked){toastMsg('Saved on this device · Cloud accepts videos up to 5 GB.');return}
       toastMsg('🎬 Video saved to cloud ✓ — waiting for Admin review');
     }catch(e){
       const msg=String(e?.message||e||'Cloud upload failed');
@@ -4428,6 +4428,7 @@ async function createPictureUpload(btn){
  if(!files.length){if(window.toastMsg)toastMsg('Choose at least one picture first.');return}
  if(files.length>5){if(window.toastMsg)toastMsg('Choose up to 5 pictures at a time.');return}
  if(files.some(f=>!f.type.startsWith('image/'))){if(window.toastMsg)toastMsg('Please choose image files only.');return}
+ if(files.some(f=>f.size>10*1024*1024)){if(status)status.textContent='Each picture must be 10 MB or smaller.';if(window.toastMsg)toastMsg('Each picture must be 10 MB or smaller.');return}
  if(btn){btn.disabled=true;btn.textContent='Uploading 0/'+files.length+'…'}
  try{
   const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Cloudflare member access is not ready.');

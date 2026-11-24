@@ -2541,7 +2541,7 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
       const adsResponse = await fetch("https://googleads.googleapis.com/v26/customers/" + customerId + "/googleAds:search", {
         method: "POST",
         headers: { Authorization: "Bearer " + tokenData.access_token, "Content-Type": "application/json" },
-        body: JSON.stringify({ query: "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.test_account FROM customer" })
+        body: JSON.stringify({ query: "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.test_account, customer.status FROM customer" })
       });
       const adsData = await adsResponse.json().catch(() => ({}));
       if (!adsResponse.ok) {
@@ -2568,7 +2568,8 @@ async function googleAdsOauthRoute(request, env, url, cors, session) {
           currency_code: customer.currencyCode || "",
           time_zone: customer.timeZone || "",
           manager: !!customer.manager,
-          test_account: !!customer.testAccount
+          test_account: !!customer.testAccount,
+          status: customer.status || "UNKNOWN"
         },
         read_only: true
       }, 200, cors);

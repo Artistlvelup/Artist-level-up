@@ -2049,7 +2049,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
   const filename = cleanText(url.searchParams.get("filename"), 180, true);
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
-  if (!["audio", "thumbnail"].includes(purpose))
+  if (!["audio", "thumbnail", "picture"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const artist = await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
@@ -2066,7 +2066,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
   const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-  const key = artist.id + "/" + (purpose === "audio" ? "audio" : "thumbnails") + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
+  const key = artist.id + "/" + (purpose === "audio" ? "audio" : purpose === "thumbnail" ? "thumbnails" : "pictures") + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
     if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
       throw new Error("R2_BINDING_NOT_CONFIGURED");

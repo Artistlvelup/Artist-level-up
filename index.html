@@ -1196,30 +1196,14 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 <span class="pill">YOUTUBE ARTIST PROMOTION</span>
 <h1 id="promoteTitle">YouTube Promotion</h1>
 <div class="card" style="border:1px solid #8b6a20;background:linear-gradient(135deg,#211b05,#15161c)">
-  <h2>Let's grow your music on YouTube</h2>
-  <p class="muted">Artist Level Up is focusing on YouTube promotion first. Choose the YouTube video or music link you want people to discover and prepare your campaign details.</p>
-  <p class="muted"><b>Simple, artist-friendly service.</b> We will show the full price and exactly what is included before any payment is requested.</p>
+  <h2>YouTube comes first</h2>
+  <p class="muted">Artist Level Up is focusing on helping artists promote their music on YouTube. Google Ads is temporarily hidden from artist campaign choices, but its connection is preserved for future use. TikTok is left untouched for later.</p>
   <span class="pill">YOUTUBE FIRST</span>
 </div>
 <div class="card">
-  <h2>YouTube promotion</h2>
-  <p class="muted">Submit your official YouTube video or music link and tell us about your audience. We will review the request and confirm the available promotion method, delivery details and price before checkout.</p>
-  <label for="youtubePromoLink">Your YouTube video link</label>
-  <input id="youtubePromoLink" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url"/>
-  <label for="youtubePromoGoal">What do you want to promote?</label>
-  <select id="youtubePromoGoal">
-    <option value="music_video">Official music video</option>
-    <option value="audio">Song / audio video</option>
-    <option value="channel">YouTube channel</option>
-  </select>
-  <label for="youtubePromoAudience">Target audience (optional)</label>
-  <input id="youtubePromoAudience" type="text" maxlength="120" placeholder="e.g. Afrobeats fans in Nigeria"/>
-  <p class="tiny muted">Submitting interest does not charge you or start an advertisement. We will confirm the service and affordable price first.</p>
-  <button class="btn primary full" type="button" id="youtubePromoRequest" onclick="alert('YouTube promotion requests are being prepared. No payment has been taken. Please check back shortly.');">Prepare YouTube promotion</button>
-</div>
-<div class="card">
-  <h2>Other platforms are temporarily on hold</h2>
-  <p class="muted">Google Ads is safely retained for future use but hidden from the active campaign choices while its account issue is being resolved. TikTok is unchanged and will be reviewed later.</p>
+  <h2>YouTube promotion is being prepared</h2>
+  <p class="muted">We are setting up a simple, affordable YouTube promotion service. Before artists pay, the page will clearly show the price, what the artist receives, how long promotion runs and how results are reported.</p>
+  <p class="muted"><b>No payment is being requested yet.</b> We will not take an artist's money until the YouTube delivery process is ready and verified.</p>
 </div>
 </section>
 <section class="page" id="wallet"><span class="pill">WALLET &amp; PAYMENTS</span><h1>Artist Wallet 💰</h1><div class="grid3"><div class="hero"><div class="muted">Available balance</div><div id="balance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Withdrawable artist earnings</div></div><div class="hero"><div class="muted">Pending balance</div><div id="pendingBalance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Earnings being cleared</div></div><div class="hero"><div class="muted">Artist Pro</div><div id="walletProStatus" style="font-size:24px;font-weight:900">FREE</div><div class="tiny muted">Subscription payments are tracked separately</div></div></div><div class="card"><h2>💳 Payments Center</h2><p class="muted">Secure Paystack checkout. Artist Pro activates only after the server verifies your payment. Monthly: ₦2,500 · Yearly: ₦25,000.</p><div class="listrow"><div class="grow"><b>Artist Pro — Monthly</b><div class="tiny muted">₦2,500 / month</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Monthly" data-price="2500">Pay ₦2,500</button></div><div class="listrow"><div class="grow"><b>Artist Pro — Yearly</b><div class="tiny muted">₦25,000 / year</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Yearly" data-price="25000">Pay ₦25,000</button></div><div class="listrow"><div class="grow"><b>Promotion Campaign</b><div class="tiny muted">Pay from your campaign checkout</div></div><button class="btn" data-action="goPromote">Open Promote</button></div><div class="tiny muted" id="paymentStatus" style="margin-top:10px"></div></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><h2>💳 Withdraw Your Earnings</h2><p class="muted">This is the account Artist Level Up will use for your payout request. Save your bank details first, then request a withdrawal.</p><div class="card" style="margin:10px 0;background:rgba(255,255,255,.035)"><span class="pill">🏦 YOUR PAYOUT ACCOUNT</span><div class="tiny muted" id="withdrawAccountStatus" style="margin-top:8px">No payout account saved yet.</div></div><label>Amount (₦)</label><input id="withdrawAmount" inputmode="numeric" min="1000" placeholder="Minimum ₦1,000" type="number"/><label>Payout method</label><select id="withdrawMethod"><option>Bank Transfer</option></select><button class="btn primary full" data-action="withdraw" type="button">💸 Request Withdrawal</button></div><div class="card"><h2>🏦 Payout Bank Account</h2><p class="muted tiny">Enter the bank account where you want your approved artist earnings sent. This prototype records the payout request; automatic bank transfer will be connected before public launch.</p><label>Account holder name</label><input id="payeeName" autocomplete="name" placeholder="Name on bank account"/><label>Bank name</label><input id="payeeBank" autocomplete="organization" placeholder="e.g. Access Bank"/><label>Account number</label><input id="payeeAccount" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="10-digit account number"/><button class="btn full" data-action="savePaymentMethod" type="button">💾 Save Payout Account</button><div class="tiny muted" id="paymentMethodStatus" style="margin-top:8px"></div></div><div class="card"><h2>📊 Earnings</h2><div class="listrow"><div class="grow"><b>Available artist earnings</b></div><b id="earningsAvailable">₦0</b></div><div class="listrow"><div class="grow"><b>Pending artist earnings</b></div><b id="earningsPending">₦0</b></div><div class="listrow"><div class="grow"><b>Platform campaign revenue</b><div class="tiny muted">Not artist money</div></div><b id="platformRevenue">₦0</b></div></div><div class="card"><h2>📜 Transaction History</h2><div class="grid3"><button class="btn" data-wallet-filter="all">All</button><button class="btn" data-wallet-filter="income">Income</button><button class="btn" data-wallet-filter="outgoing">Outgoing</button></div><div id="transactions" style="margin-top:10px"></div></div></section>

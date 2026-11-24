@@ -2589,7 +2589,10 @@ async function artistYoutubeOauthRoute(request, env, url, cors, session) {
     const profile = profileResponse.ok ? await profileResponse.json().catch(() => ({})) : {};
     const encrypted = await youtubeOauthEncrypt(tokenData.refresh_token, env), timestamp = new Date().toISOString();
     await env.DB.prepare("INSERT INTO artist_youtube_oauth_connections (user_id, google_email, channel_id, channel_title, refresh_token_ciphertext, scope, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'connected', ?, ?) ON CONFLICT(user_id) DO UPDATE SET google_email = excluded.google_email, channel_id = excluded.channel_id, channel_title = excluded.channel_title, refresh_token_ciphertext = excluded.refresh_token_ciphertext, scope = excluded.scope, status = 'connected', updated_at = excluded.updated_at").bind(pending.user_id, String(profile.email || ""), String(channel.id), String(channel.snippet?.title || ""), encrypted, String(tokenData.scope || ""), timestamp, timestamp).run();
-    return new Response("Your YouTube channel is connected to your Artist Level Up account. You can return to the app.", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+    return new Response(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube connected - Artist Level Up</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101116;color:#fff;font:16px Arial,sans-serif;padding:20px;box-sizing:border-box}.panel{width:min(100%,440px);box-sizing:border-box;background:#1b1c23;border:1px solid #5e4c16;border-radius:18px;padding:28px;text-align:center}.mark{font-size:42px}.muted{color:#b8b8c2;line-height:1.6}.btn{display:block;margin-top:22px;padding:15px 18px;border-radius:12px;background:#ffd21c;color:#111;text-decoration:none;font-weight:800}</style></head>
+<body><main class="panel"><div class="mark">✓</div><h1>YouTube channel connected!</h1><p class="muted">Your YouTube channel is connected to your Artist Level Up account.</p><a class="btn" href="https://artistlevelup.com.ng/#promote">← Return to Artist Level Up Promotion</a></main></body></html>`, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
   }
   return null;
 }

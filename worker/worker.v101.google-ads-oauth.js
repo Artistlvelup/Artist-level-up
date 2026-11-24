@@ -2550,6 +2550,50 @@ async function youtubeOauthEncrypt(value, env) {
   const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
   return base64url(iv) + "." + base64url(new Uint8Array(encrypted));
 }
+async function artistYoutubeOauthRoute(request, env, url, cors, session) {
+  const path = url.pathname, redirectUri = "https://artistlevelup.com.ng/api/admin/google-ads/oauth/callback";
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: "GOOGLE_OAUTH_NOT_CONFIGURED" }, 503, cors);
+  if (path === "/api/me/youtube/oauth/start" && request.method === "GET") {
+    if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+    const state = await newToken(), stateHash = await hashToken2(state, requirePepper(env)), now = Math.floor(Date.now() / 1000);
+    await env.DB.prepare("INSERT INTO artist_youtube_oauth_states (state_hash, user_id, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, NULL)").bind(stateHash, session.user_id, now, now + 600).run();
+    const params = new URLSearchParams({ client_id: String(env.GOOGLE_CLIENT_ID), redirect_uri: redirectUri, response_type: "code", scope: "openid email https://www.googleapis.com/auth/youtube.readonly", access_type: "offline", prompt: "consent", include_granted_scopes: "true", state });
+    return json({ authorization_url: "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString(), redirect_uri: redirectUri }, 200, cors);
+  }
+  if (path === "/api/me/youtube/oauth/status" && request.method === "GET") {
+    if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+    const row = await env.DB.prepare("SELECT google_email, channel_id, channel_title, status, created_at, updated_at FROM artist_youtube_oauth_connections WHERE user_id = ? LIMIT 1").bind(session.user_id).first();
+    return json({ connected: !!row && row.status === "connected", connection: row || null }, 200, cors);
+  }
+  if (path === "/api/me/youtube/oauth/disconnect" && request.method === "POST") {
+    if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+    await env.DB.prepare("UPDATE artist_youtube_oauth_connections SET status = 'revoked', refresh_token_ciphertext = '', updated_at = ? WHERE user_id = ?").bind(new Date().toISOString(), session.user_id).run();
+    return json({ ok: true }, 200, cors);
+  }
+  if (path === "/api/me/youtube/oauth/callback" && request.method === "GET") {
+    const code = url.searchParams.get("code") || "", state = url.searchParams.get("state") || "";
+    if (url.searchParams.get("error")) return new Response("YouTube channel connection was not authorized. Return to Artist Level Up and try again.", { status: 400 });
+    if (!code || !state) return new Response("Missing YouTube authorization code or state.", { status: 400 });
+    const stateHash = await hashToken2(state, requirePepper(env)), now = Math.floor(Date.now() / 1000);
+    const pending = await env.DB.prepare("SELECT state_hash, user_id FROM artist_youtube_oauth_states WHERE state_hash = ? AND expires_at > ? AND consumed_at IS NULL LIMIT 1").bind(stateHash, now).first();
+    if (!pending) return new Response("Artist YouTube connection link expired. Return to Artist Level Up and try again.", { status: 400 });
+    const consumed = await env.DB.prepare("UPDATE artist_youtube_oauth_states SET consumed_at = ? WHERE state_hash = ? AND consumed_at IS NULL").bind(now, stateHash).run();
+    if (!consumed.meta || consumed.meta.changes !== 1) return new Response("Artist YouTube connection link already used.", { status: 409 });
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ code, client_id: String(env.GOOGLE_CLIENT_ID), client_secret: String(env.GOOGLE_CLIENT_SECRET), redirect_uri: redirectUri, grant_type: "authorization_code" }) });
+    const tokenData = await tokenResponse.json().catch(() => ({}));
+    if (!tokenResponse.ok || !tokenData.refresh_token) return new Response("Google did not return a YouTube refresh token. Return to Artist Level Up and reconnect.", { status: 502 });
+    const channelResponse = await fetch("https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true", { headers: { Authorization: "Bearer " + tokenData.access_token } });
+    const channelData = await channelResponse.json().catch(() => ({})), channel = channelData.items && channelData.items[0];
+    if (!channelResponse.ok || !channel) return new Response("We could not verify a YouTube channel for this Google account. Make sure the channel exists, then reconnect.", { status: 502 });
+    const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: "Bearer " + tokenData.access_token } });
+    const profile = profileResponse.ok ? await profileResponse.json().catch(() => ({})) : {};
+    const encrypted = await youtubeOauthEncrypt(tokenData.refresh_token, env), timestamp = new Date().toISOString();
+    await env.DB.prepare("INSERT INTO artist_youtube_oauth_connections (user_id, google_email, channel_id, channel_title, refresh_token_ciphertext, scope, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'connected', ?, ?) ON CONFLICT(user_id) DO UPDATE SET google_email = excluded.google_email, channel_id = excluded.channel_id, channel_title = excluded.channel_title, refresh_token_ciphertext = excluded.refresh_token_ciphertext, scope = excluded.scope, status = 'connected', updated_at = excluded.updated_at").bind(pending.user_id, String(profile.email || ""), String(channel.id), String(channel.snippet?.title || ""), encrypted, String(tokenData.scope || ""), timestamp, timestamp).run();
+    return new Response("Your YouTube channel is connected to your Artist Level Up account. You can return to the app.", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+  }
+  return null;
+}
+
 async function youtubeOauthRoute(request, env, url, cors, session) {
   const path = url.pathname, redirectUri = "https://artistlevelup.com.ng/api/admin/google-ads/oauth/callback";
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return json({ error: "GOOGLE_OAUTH_NOT_CONFIGURED" }, 503, cors);
@@ -2693,6 +2737,10 @@ var worker_default = {
         const result = await googleLoginRoute(request, env, url, cors);
         if (result) return result;
       }
+      if (url.pathname === "/api/me/youtube/oauth/callback" && request.method === "GET") {
+        const result = await artistYoutubeOauthRoute(request, env, url, cors, null);
+        if (result) return result;
+      }
       if (url.pathname === "/api/admin/youtube/oauth/callback" && request.method === "GET") {
         const result = await youtubeOauthRoute(request, env, url, cors, null);
         if (result) return result;
@@ -2701,6 +2749,13 @@ var worker_default = {
         const callbackState = url.searchParams.get("state") || "";
         if (callbackState) {
           const callbackHash = await hashToken2(callbackState, requirePepper(env));
+          const artistYoutubePending = await env.DB.prepare("SELECT state_hash FROM artist_youtube_oauth_states WHERE state_hash = ? AND expires_at > ? AND consumed_at IS NULL LIMIT 1").bind(callbackHash, Math.floor(Date.now() / 1000)).first();
+          if (artistYoutubePending) {
+            const artistYoutubeCallbackUrl = new URL(url.toString());
+            artistYoutubeCallbackUrl.pathname = "/api/me/youtube/oauth/callback";
+            const artistYoutubeResult = await artistYoutubeOauthRoute(request, env, artistYoutubeCallbackUrl, cors, null);
+            if (artistYoutubeResult) return artistYoutubeResult;
+          }
           const youtubePending = await env.DB.prepare("SELECT state_hash FROM youtube_oauth_states WHERE state_hash = ? AND expires_at > ? AND consumed_at IS NULL LIMIT 1").bind(callbackHash, Math.floor(Date.now() / 1000)).first();
           if (youtubePending) {
             const youtubeCallbackUrl = new URL(url.toString());
@@ -2710,6 +2765,12 @@ var worker_default = {
           }
         }
         const result = await googleAdsOauthRoute(request, env, url, cors, null);
+        if (result) return result;
+      }
+      if (url.pathname === "/api/me/youtube/oauth/start" || url.pathname === "/api/me/youtube/oauth/status" || url.pathname === "/api/me/youtube/oauth/disconnect") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        const result = await artistYoutubeOauthRoute(request, env, url, cors, session);
         if (result) return result;
       }
       if (url.pathname === "/api/admin/youtube/oauth/start" || url.pathname === "/api/admin/youtube/oauth/status") {

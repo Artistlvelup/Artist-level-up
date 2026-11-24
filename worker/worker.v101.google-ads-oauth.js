@@ -720,12 +720,21 @@ async function campaignCheckoutRoute(request, env, userId) {
   const platforms = Array.isArray(price.platforms) ? price.platforms : [];
   const platformMap = {google_ads:"google_ads",youtube_ads:"youtube_ads",tiktok_ads:"tiktok_ads"};
   if (!platforms.length || platforms.some(p=>!platformMap[p])) return json({error:"Campaign platform pricing is incomplete."},503,cors);
+  let linkedYoutubeChannel = null;
+  if (platforms.includes("youtube_ads")) {
+    linkedYoutubeChannel = await env.DB.prepare("SELECT channel_id,channel_title FROM artist_youtube_oauth_connections WHERE user_id=? AND status='connected' LIMIT 1").bind(userId).first();
+    if (!linkedYoutubeChannel) return json({error:"Connect your own YouTube channel in Artist Profile before ordering YouTube promotion."},403,cors);
+  }
   const amounts = ["total_amount_ngn","ad_spend_ngn","platform_fee_ngn","tax_ngn","maintenance_ngn"].map(k=>Number(price[k]||0));
   if (amounts.some(n=>!Number.isFinite(n)||n<0) || amounts[0] <= 0 || Math.round(amounts.slice(1).reduce((a,b)=>a+b,0)) > amounts[0])
     return json({error:"Campaign pricing breakdown is invalid."},503,cors);
   const [total,adSpend,fee,tax,maintenance]=amounts;
   const orderId=crypto.randomUUID(), reference="ALU-CAM-"+crypto.randomUUID(), now=new Date().toISOString();
   const metadata={purpose:"campaign",promotion_id:promotionId,package_key:packageKey,user_id:userId};
+  if (linkedYoutubeChannel) {
+    metadata.youtube_channel_id = linkedYoutubeChannel.channel_id;
+    metadata.youtube_channel_title = linkedYoutubeChannel.channel_title;
+  }
   await env.DB.prepare("INSERT INTO promotion_orders (id,promotion_id,user_id,package_key,platforms_json,currency,total_amount_ngn,ad_spend_ngn,platform_fee_ngn,tax_ngn,maintenance_ngn,status,payment_reference,metadata_json,created_at) VALUES (?,?,?,?,?,'NGN',?,?,?,?,?,'pending',?,?,?)")
     .bind(orderId,promotionId,userId,packageKey,JSON.stringify(platforms),total,adSpend,fee,tax,maintenance,reference,JSON.stringify(metadata),now).run();
   for (const platform of platforms) await env.DB.prepare("INSERT INTO promotion_deliveries (id,order_id,platform,status,created_at,updated_at) VALUES (?,?,?,'awaiting_payment',?,?)").bind(crypto.randomUUID(),orderId,platform,now,now).run();
@@ -781,6 +790,11 @@ async function promotionRoute(request, env, userId) {
     ).bind(userId).first();
     if (!artist || artist.suspended || artist.status === "rejected")
       return json({ error: "An active Artist Account is required to submit a campaign." }, 403, cors);
+    const youtubeConnection = await env.DB.prepare(
+      "SELECT channel_id, channel_title FROM artist_youtube_oauth_connections WHERE user_id = ? AND status = 'connected' LIMIT 1"
+    ).bind(userId).first();
+    if (!youtubeConnection)
+      return json({ error: "Connect your own YouTube channel in Artist Profile before submitting a YouTube promotion request." }, 403, cors);
     if (targetType === "video") {
       const video = await env.DB.prepare(
         "SELECT id FROM artist_videos WHERE id = ? AND artist_id = ? AND status IN ('approved','published') LIMIT 1"

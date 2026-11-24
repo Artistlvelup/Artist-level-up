@@ -1200,6 +1200,14 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <p class="muted">Artist Level Up is focusing on helping artists promote their music on YouTube. Google Ads is temporarily hidden from artist campaign choices, but its connection is preserved for future use. TikTok is left untouched for later.</p>
   <span class="pill">YOUTUBE FIRST</span>
 </div>
+<div class="card" id="promotionYoutubeAccountCard" style="border:1px solid #8b6a20;background:linear-gradient(135deg,#211b05,#15161c)">
+  <span class="pill">YOUR YOUTUBE CHANNEL</span>
+  <h2 style="margin:8px 0">Connect your channel to continue</h2>
+  <p class="muted">Use your own YouTube channel for your promotion request. Connect it once, then return here to submit your music video when promotion ordering is available.</p>
+  <div id="promotionYoutubeConnectionStatus" class="tiny muted" aria-live="polite">Checking your YouTube connection…</div>
+  <button class="btn primary full" type="button" id="promotionYoutubeConnectBtn">▶ Connect my YouTube channel</button>
+  <button class="btn full" type="button" id="promotionYoutubeRefreshBtn">Refresh connection</button>
+</div>
 <div class="card">
   <h2>YouTube promotion is being prepared</h2>
   <p class="muted">We are setting up a simple, affordable YouTube promotion service. Before artists pay, the page will clearly show the price, what the artist receives, how long promotion runs and how results are reported.</p>
@@ -4687,7 +4695,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal('aluLegalModa
 var API=window.ALU_CLOUDFLARE_API_BASE||'https://artist-level-up-v101.otunbacashmonnie1.workers.dev';
 var TOKEN_KEY='alu_v101_cloudflare_session';
 function token(){try{return localStorage.getItem(TOKEN_KEY)||sessionStorage.getItem(TOKEN_KEY)||''}catch(e){return ''}}
-function statusEl(){return document.getElementById('artistYoutubeConnectionStatus')}
+function statusEls(){return ['artistYoutubeConnectionStatus','promotionYoutubeConnectionStatus'].map(function(id){return document.getElementById(id)}).filter(Boolean)}
+function setStatus(message){statusEls().forEach(function(el){el.textContent=message})}
 async function request(path,method){
  var t=token();if(!t)throw new Error('Please sign in to your Artist Level Up account first.');
  var res=await fetch(API+path,{method:method||'GET',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},cache:'no-store',credentials:'omit'});
@@ -4696,25 +4705,21 @@ async function request(path,method){
  return data;
 }
 async function refresh(){
- var el=statusEl();if(!el)return;
  try{
   var data=await request('/api/me/youtube/oauth/status');
-  if(data.connected&&data.connection){
-   el.textContent='Connected: '+(data.connection.channel_title||'Your YouTube channel')+' ✓';
-   var b=document.getElementById('artistYoutubeConnectBtn');if(b)b.textContent='Reconnect YouTube channel';
-  }else{
-   el.textContent='No YouTube channel connected yet.';
-   var b=document.getElementById('artistYoutubeConnectBtn');if(b)b.textContent='▶ Connect my YouTube';
-  }
- }catch(e){el.textContent=e.message}
+  var connected=!!(data.connected&&data.connection);
+  var message=connected?'Connected: '+(data.connection.channel_title||'Your YouTube channel')+' ✓':'No YouTube channel connected yet.';
+  setStatus(message);
+  ['artistYoutubeConnectBtn','promotionYoutubeConnectBtn'].forEach(function(id){var b=document.getElementById(id);if(b)b.textContent=connected?'Reconnect YouTube channel':'▶ Connect my YouTube channel';});
+ }catch(e){setStatus(e.message)}
 }
 document.addEventListener('click',async function(e){
- var b=e.target.closest&&e.target.closest('#artistYoutubeConnectBtn');if(!b)return;
- e.preventDefault();var el=statusEl();b.disabled=true;if(el)el.textContent='Opening secure Google connection…';
+ var b=e.target.closest&&e.target.closest('#artistYoutubeConnectBtn, #promotionYoutubeConnectBtn');if(!b)return;
+ e.preventDefault();b.disabled=true;setStatus('Opening secure Google connection…');
  try{var data=await request('/api/me/youtube/oauth/start');if(!data.authorization_url)throw new Error('Google did not return a connection link.');window.location.href=data.authorization_url;}
- catch(err){if(el)el.textContent=err.message;b.disabled=false;}
+ catch(err){setStatus(err.message);b.disabled=false;}
 });
-document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#artistYoutubeRefreshBtn'))refresh()});
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('#artistYoutubeRefreshBtn, #promotionYoutubeRefreshBtn'))refresh()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refresh,{once:true});else refresh();
 window.addEventListener('pageshow',refresh);
 })();

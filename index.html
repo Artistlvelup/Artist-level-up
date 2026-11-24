@@ -2834,12 +2834,28 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
     }catch(e){window.ALU_CLOUD.artistId=null;return null;}
   }
   async function syncProfile(){
-    if(!await ensureSession())return null;
+    if(!await ensureSession())throw new Error('Your secure Cloudflare session is not ready. Please sign in again.');
     const p=state.profile||{},ua=state.userAccount||{};
     const displayName=String(p.name||ua.name||'').trim();
     const avatarUrl=String(p.avatar||ua.avatar||'').trim();
-    const result=await gate.request('/api/me/profile','PUT',{display_name:displayName||null,avatar_url:/^https?:\/\//i.test(avatarUrl)?avatarUrl:null});
-    return result?.profile||null;
+    const artistResult=await gate.request('/api/me/artist','GET');
+    const artist=artistResult?.artist||null;
+    if(artist?.id){
+      await gate.request('/api/me/artist','PUT',{
+        artist_name:displayName||artist.artist_name,
+        bio:artist.bio||'',
+        genre:artist.genre||'',
+        country:String(p.country||artist.country||'Nigeria')
+      });
+    }
+    const currentProfile=await gate.request('/api/me/profile','GET');
+    const savedAvatar=/^https?:\\/\\//i.test(avatarUrl)?avatarUrl:(currentProfile?.profile?.avatar_url||null);
+    const result=await gate.request('/api/me/profile','PUT',{
+      display_name:displayName||null,
+      avatar_url:savedAvatar
+    });
+    if(!result?.profile)throw new Error('Cloudflare did not confirm the profile backup.');
+    return result.profile;
   }
   async function syncSongs(){
     if(!await ensureArtist())throw new Error('Create your Artist Account first.');
@@ -4261,7 +4277,11 @@ setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(
     try{
       window.__ALU_PROFILE_EDIT_REQUESTED=false;state.profile={...(state.profile||{}),name,email,country,saved:true,editing:false};
       const av=document.getElementById('profileAvatar')?.files?.[0];
-      if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
+      if(av){
+        const uploaded=await window.ALU_MEMBER_GATE_V101.uploadMedia(av,'picture');
+        if(!uploaded?.url)throw new Error('Cloudflare did not confirm your profile picture upload.');
+        state.profile.avatar=uploaded.url;
+      }
       state.profile.pin='';
       if(state.userAccount)delete state.userAccount.pin;
       state.artistRegistered=true;
@@ -4269,9 +4289,17 @@ setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(
       localSaved=true;
     }catch(e){console.error('Local profile save failed',e);toast('Profile could not be saved on this device. Please try again.');}
     if(localSaved){
-      try{await window.ALU_CLOUD?.syncProfile?.();save();}catch(e){console.warn('Artist cloud profile sync will retry:',e)}
-      try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
-      toast('👤 Artist profile saved ✓');
+      try{
+        if(typeof window.ALU_CLOUD?.syncProfile!=='function')throw new Error('Cloudflare profile backup is not available.');
+        await window.ALU_CLOUD.syncProfile();
+        save();
+        try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
+        toast('👤 Artist profile saved securely ✓');
+      }catch(e){
+        console.error('Artist profile Cloudflare backup failed:',e);
+        try{save()}catch(_){}
+        toast('Saved on this device, but Cloudflare backup failed. Please retry when connected.');
+      }
     }
     if(btn){btn.disabled=false;btn.textContent='Save Profile'}
   }
@@ -6452,14 +6480,18 @@ async function resumeCloudMember(){
  var restoreStep='checking session';
  try{
   var session=await api('/auth/session','GET',null,t);
+  restoreStep='restoring saved member profile';
+  var profileResult=await api('/api/me/profile','GET',null,t);
+  var cloudProfile=profileResult?.profile||null;
   restoreStep='loading artist account';
   var artistResult=await api('/api/me/artist','GET',null,t);
   var artist=artistResult.artist||null;
   var p=pending();
-  var displayName=String(artist?.artist_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
+  var memberName=String(cloudProfile?.display_name||p.name||s.userAccount?.name||s.profile?.name||'Artist Level Up Member').trim();
+  var artistName=String(artist?.artist_name||s.profile?.name||memberName).trim();
   s.userRegistered=true;s.memberAccessV101=true;s.userAccountCounted=true;
-  s.userAccount={...(s.userAccount||{}),name:displayName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
-  s.profile={...(s.profile||{}),name:artist?.artist_name||displayName,email:s.userAccount.email,saved:!!artist,country:artist?.country||s.profile?.country||'Nigeria',artistId:artist?.id||s.profile?.artistId||''};
+  s.userAccount={...(s.userAccount||{}),name:memberName,email:String(p.email||s.userAccount?.email||s.profile?.email||'').toLowerCase(),registeredAt:s.userAccount?.registeredAt||new Date().toISOString()};
+  s.profile={...(s.profile||{}),name:artistName,email:s.userAccount.email,avatar:cloudProfile?.avatar_url||s.profile?.avatar||'',saved:!!artist,country:artist?.country||s.profile?.country||'Nigeria',artistId:artist?.id||''};
   s.artistRegistered=!!artist;
   persist();
   if(!session.userId)throw new Error('The session response did not include a member ID.');

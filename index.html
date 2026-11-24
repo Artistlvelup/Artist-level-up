@@ -3499,7 +3499,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function aluVideoQueueGet(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).get(id);r.onsuccess=()=>{db.close();resolve(r.result||null)};r.onerror=()=>{db.close();reject(r.error)}})}
   async function aluVideoQueueAll(){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readonly');const r=tx.objectStore(ALU_VIDEO_STORE).getAll();r.onsuccess=()=>{db.close();resolve(r.result||[])};r.onerror=()=>{db.close();reject(r.error)}})}
   async function aluVideoQueueDelete(id){const db=await aluVideoDb();return new Promise((resolve,reject)=>{const tx=db.transaction(ALU_VIDEO_STORE,'readwrite');tx.objectStore(ALU_VIDEO_STORE).delete(id);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error)}})}
-  function aluVideoQueueIsRetryable(item){return item && item.status!=='cloud_synced' && item.status!=='blocked_size';}
+  function aluVideoQueueIsRetryable(item){return item && item.status!=='cloud_synced' && !(item.status==='blocked_size'&&Number(item.size||item.blob?.size||0)>ALU_FREE_VIDEO_LIMIT);}
   function aluVideoQueueMessage(item){if(item?.status==='blocked_size')return 'Saved on this device · Cloud accepts videos up to 5 GB.';if(item?.status==='uploading'||item?.status==='retrying')return 'Saved on this device · Cloud upload is retrying…';return 'Saved on this device · Cloud will retry.';}
   function aluVideoLocalRecord(item){return {id:item.id,title:item.title,description:item.description||'',localUrl:item.localUrl||'',videoUrl:item.videoUrl||'',storagePath:item.storagePath||'',thumbnailUrl:item.thumbnailUrl||item.thumbnailData||'',status:'Pending',views:0,likes:0,tiktok:item.tiktok||'',instagram:item.instagram||'',facebook:item.facebook||'',youtube:item.youtube||'',createdAt:item.createdAt,format:item.format||'9:16',remoteVideoId:item.remoteVideoId||'',cloudSaved:item.status==='cloud_synced',localOnly:true,cloudStatus:item.status||'pending'};}
   async function aluVideoQueueRenderLocals(){
@@ -3566,7 +3566,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function retryVideoCloud(id){
     const item=await aluVideoQueueGet(id);
     if(!item){toastMsg('Saved video copy was not found on this device.');return}
-    if(item.status==='blocked_size'){toastMsg('This video exceeds the 5 GB cloud upload limit.');return}
+    if(item.status==='blocked_size'&&Number(item.size||item.blob?.size||0)>ALU_FREE_VIDEO_LIMIT){toastMsg('This video exceeds the 5 GB cloud upload limit.');return}
     try{await aluVideoUploadQueueItem(item);toastMsg('🎬 Video synced to Cloudflare ✓')}
     catch(e){const msg=String(e?.message||e||'Cloud upload failed');console.warn('Manual Cloudflare video retry failed:',e);toastMsg('Cloud retry failed: '+msg.slice(0,120))}
     await aluVideoQueueRenderLocals();

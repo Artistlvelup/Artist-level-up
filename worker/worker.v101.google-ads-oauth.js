@@ -3061,7 +3061,7 @@ var worker_default = {
           return json({ error: "Invalid or expired session" }, 401, cors);
         return await musicDistributionRoute(request, env, session, url, false);
       }
-      if (url.pathname === "/api/admin/campaign-deliveries" || /^\\/api\\/admin\\/campaign-deliveries\\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+      if (url.pathname === "/api/admin/campaign-deliveries" || url.pathname.startsWith("/api/admin/campaign-deliveries/")) {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return await adminCampaignDeliveriesRoute(request, env, session, url);

@@ -2836,13 +2836,14 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
   async function syncProfile(){
     if(!await ensureSession())throw new Error('Your secure Cloudflare session is not ready. Please sign in again.');
     const p=state.profile||{},ua=state.userAccount||{};
-    const displayName=String(p.name||ua.name||'').trim();
+    const displayName=String(ua.name||p.name||'').trim();
+    const artistName=String(p.name||'').trim();
     const avatarUrl=String(p.avatar||ua.avatar||'').trim();
     const artistResult=await gate.request('/api/me/artist','GET');
     const artist=artistResult?.artist||null;
     if(artist?.id){
       await gate.request('/api/me/artist','PUT',{
-        artist_name:displayName||artist.artist_name,
+        artist_name:artistName||artist.artist_name,
         bio:artist.bio||'',
         genre:artist.genre||'',
         country:String(p.country||artist.country||'Nigeria')
@@ -4249,9 +4250,15 @@ setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(
       window.__ALU_PROFILE_EDIT_REQUESTED=false;
       state.profile={...(state.profile||{}),name:name,email:memberEmail,country:country,pin:'',saved:true,editing:false,agreementAcceptedAt:new Date().toISOString(),agreementVersion:'V101',artistId:artist.id};
       const av=document.getElementById('regAvatar')?.files?.[0];
-      if(av)state.profile.avatar=await imageToDataURL(av,500,0.82);
+      if(av){
+        try{
+          const uploaded=await window.ALU_MEMBER_GATE_V101.uploadMedia(av,'picture');
+          if(uploaded?.url)state.profile.avatar=uploaded.url;
+        }catch(uploadError){console.warn('Artist avatar cloud upload deferred:',uploadError)}
+      }
       state.artistRegistered=true;
       persistStateOnly();
+      try{await window.ALU_CLOUD?.syncProfile?.()}catch(syncError){console.warn('New artist profile cloud backup deferred:',syncError)}
       try{go('profile')}catch(e){console.warn('Profile page refresh skipped:',e)}
       toast('🎤 Artist account created ✓');
     }catch(e){console.error('Cloudflare artist registration failed:',e);toast(e?.message||'Artist account could not be created. Please try again.');}

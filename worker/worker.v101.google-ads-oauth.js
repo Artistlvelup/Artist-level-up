@@ -2059,22 +2059,48 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const allowed = purpose === "audio" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
   if (!allowed.has(contentType))
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
-  const size = Number(request.headers.get("Content-Length") || 0);
+  const declaredSizeHeader = request.headers.get("Content-Length");
+  const declaredSize = declaredSizeHeader === null ? null : Number(declaredSizeHeader);
   const maxBytes = purpose === "audio" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
-  if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes)
+  if (declaredSize !== null && (!Number.isSafeInteger(declaredSize) || declaredSize < 1 || declaredSize > maxBytes))
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg")).toLowerCase();
+  const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg")).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   const folder = purpose === "audio" ? "audio" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
   const key = artist.id + "/" + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
     if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
       throw new Error("R2_BINDING_NOT_CONFIGURED");
-    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
-    if (!publicBase || !/^https:\/\//i.test(publicBase))
+    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\\/$/, "");
+    if (!publicBase || !/^https:\\/\\//i.test(publicBase))
       throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
     if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
-    await env.MEDIA_BUCKET.put(key, request.body, { httpMetadata: { contentType } });
+    const reader = request.body.getReader();
+    let receivedBytes = 0;
+    const boundedBody = new ReadableStream({
+      async pull(controller) {
+        try {
+          const part = await reader.read();
+          if (part.done) {
+            if (receivedBytes < 1) controller.error(new Error("UPLOAD_BODY_EMPTY"));
+            else if (declaredSize !== null && receivedBytes !== declaredSize) controller.error(new Error("UPLOAD_SIZE_MISMATCH"));
+            else controller.close();
+            return;
+          }
+          receivedBytes += part.value.byteLength;
+          if (receivedBytes > maxBytes) {
+            await reader.cancel("UPLOAD_TOO_LARGE");
+            controller.error(new Error("UPLOAD_TOO_LARGE"));
+            return;
+          }
+          controller.enqueue(part.value);
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+      async cancel(reason) { await reader.cancel(reason); }
+    });
+    await env.MEDIA_BUCKET.put(key, boundedBody, { httpMetadata: { contentType } });
     const publicUrl = publicBase + "/" + key.split("/").map(awsEncode).join("/");
     return json({ remote: true, path: key, url: publicUrl, contentType }, 200, cors);
   } catch (error) {

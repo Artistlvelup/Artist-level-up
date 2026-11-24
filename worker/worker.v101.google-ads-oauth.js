@@ -1936,9 +1936,9 @@ async function presignR2Put(env, objectKey, contentType) {
   const kSigning = await hmacSha256(kService, "aws4_request");
   const signature = hex(await hmacSha256(kSigning, stringToSign));
   const uploadUrl = "https://" + host + path + "?" + canonicalQuery + "&X-Amz-Signature=" + signature;
-    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
-    if (!publicBase || !/^https:\/\//i.test(publicBase))
-    throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
+    const configuredPublicBase = String(env.R2_PUBLIC_BASE_URL || "");
+    const publicBase = configuredPublicBase.endsWith("/") ? configuredPublicBase.slice(0, -1) : configuredPublicBase;
+    if (!publicBase.startsWith("https://"))
   return { uploadUrl, publicUrl: publicBase + "/" + objectKey.split("/").map(awsEncode).join("/"), objectKey, contentType, expiresIn: 300 };
 }
 __name(presignR2Put, "presignR2Put");
@@ -1964,7 +1964,8 @@ async function videoUploadIntentRoute(request, env, userId) {
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes)
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "video" ? "mp4" : purpose === "audio" || purpose === "beat" ? "mp3" : "jpg")).toLowerCase();
+  const defaultExtension = purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg";
+  const extension = (filename.includes(".") ? filename.split(".").pop() : defaultExtension).toLowerCase();
   const key = artist.id + "/" + (purpose === "video" ? "videos" : purpose === "audio" ? "audio" : purpose === "beat" ? "beats" : purpose === "picture" ? "pictures" : "thumbnails") + "/" + crypto.randomUUID() + "." + extension;
   try {
     const signed = await presignR2Put(env, key, contentType);

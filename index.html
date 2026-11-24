@@ -1121,8 +1121,10 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
 </section>
 <section class="page listener-page" id="discover">
   <div class="listener-discover-top"><button type="button" data-go="home" class="listener-back">‹</button><h1>Discover Music</h1><button type="button" class="listener-filter">☷</button></div>
-  <div class="listener-tabs"><button class="active">All</button><button>Artists</button><button>Songs</button><button>Albums</button><button>Playlists</button></div>
+  <div class="listener-tabs" id="listenerDiscoverTabs" role="tablist" aria-label="Discover categories"><button type="button" class="active" data-discover-tab="all" aria-selected="true">All</button><button type="button" data-discover-tab="artists" aria-selected="false">Artists</button><button type="button" data-discover-tab="songs" aria-selected="false">Songs</button><button type="button" data-discover-tab="genres" aria-selected="false">Genres</button></div>
   <input class="search listener-search" id="search" placeholder="Search artists, songs, genres..." autocomplete="off"/>
+  <div id="listenerDiscoverFilterPanel" class="listener-discover-filter-panel" hidden><b>Sort results</b><div class="listener-filter-options"><button type="button" data-discover-sort="popular" class="active">Popular</button><button type="button" data-discover-sort="newest">Newest</button><button type="button" data-discover-sort="az">A–Z</button></div></div>
+  <div id="listenerDiscoverResults" class="listener-discover-results" aria-live="polite"></div>
   <div class="listener-subhead"><h2>🔥 Popular Searches</h2></div><div class="listener-chip-wrap" id="listenerPopularSearches"></div>
   <div class="listener-section-head"><h2>📊 Top Charts</h2><button type="button">See All</button></div><div class="listener-chart-list" id="listenerCharts"></div>
   <div class="listener-section-head"><h2>✨ Recommended for You</h2><button type="button">See All</button></div><div class="listener-horizontal" id="listenerRecommended"></div>
@@ -7838,3 +7840,53 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 #globalDiscoveryFeedV77 .g77-video-item .g77-video-controls{right:70px!important;bottom:60px!important}
 }
 </style>
+
+<style id="listenerDiscoverSearchFilterV101">
+#discover .listener-tabs{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:2;min-height:38px;margin:0 0 12px!important;padding:2px 0 5px!important}
+#discover .listener-tabs button{display:inline-flex!important;visibility:visible!important;align-items:center;justify-content:center;min-height:34px}
+#discover .listener-discover-top .listener-filter{display:inline-flex!important;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid #3a3d46;border-radius:12px;background:#171a22}
+#discover .listener-discover-filter-panel{margin:9px 0 12px;padding:12px;border:1px solid #393d49;border-radius:14px;background:#151821}
+#discover .listener-filter-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+#discover .listener-filter-options button{border:1px solid #3a3d46;border-radius:20px;padding:8px 12px;background:#20232d;color:#eee;font-weight:700}
+#discover .listener-filter-options button.active{background:#ffd21c;color:#111;border-color:#ffd21c}
+#discover .listener-discover-results{display:grid;gap:9px;margin:12px 0}
+#discover .listener-discover-results:empty{display:none}
+#discover .discover-result-card{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid #303440;border-radius:14px;background:#171a22;min-width:0}
+#discover .discover-result-main{flex:1;min-width:0}
+#discover .discover-result-main b{display:block;overflow-wrap:anywhere}
+#discover .discover-result-main small{display:block;color:#aeb3bf;margin-top:3px}
+#discover .discover-result-type{font-size:9px;font-weight:900;letter-spacing:.5px;color:#ffd21c}
+#discover .discover-result-card button{border:1px solid #424653;border-radius:10px;padding:7px 10px;background:#242833;color:#fff}
+#discover .discover-result-empty{padding:14px;border:1px dashed #424653;border-radius:12px;color:#b8bdc8}
+</style>
+<script id="listenerDiscoverSearchFilterEngineV101">
+(function(){
+'use strict';
+function boot(){
+ const root=document.getElementById('discover'),input=document.getElementById('search'),tabs=document.getElementById('listenerDiscoverTabs'),results=document.getElementById('listenerDiscoverResults'),filterBtn=root?.querySelector('.listener-filter'),panel=document.getElementById('listenerDiscoverFilterPanel');
+ if(!root||!input||!tabs||!results||root.dataset.discoverEngineReady==='1')return;
+ root.dataset.discoverEngineReady='1';let active='all',sort='popular';
+ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+ const songs=()=>{try{return (state.songs||[]).filter(s=>String(s.status||'').toLowerCase()==='published'&&s.artist&&s.title)}catch(e){return []}};
+ const artistRows=list=>{const m=new Map();list.forEach(s=>{const n=String(s.artist||'').trim(),k=n.toLowerCase();if(!n)return;if(!m.has(k))m.set(k,{name:n,genre:s.genre||'Music',count:0,streams:0});const a=m.get(k);a.count++;a.streams+=Number(s.streams||s.plays||0)});return [...m.values()]};
+ const genreRows=list=>{const m=new Map();list.forEach(s=>{const n=String(s.genre||'Music').trim(),k=n.toLowerCase();if(!m.has(k))m.set(k,{name:n,count:0,streams:0});const g=m.get(k);g.count++;g.streams+=Number(s.streams||s.plays||0)});return [...m.values()]};
+ const sortRows=rows=>rows.sort((a,b)=>sort==='az'?String(a.title||a.name).localeCompare(String(b.title||b.name)):sort==='newest'?Number(b.createdAtTs||0)-Number(a.createdAtTs||0):Number(b.streams||0)-Number(a.streams||0));
+ function render(){
+  const q=input.value.trim().toLowerCase(),all=songs(),matched=all.filter(s=>!q||[s.title,s.artist,s.genre].some(v=>String(v||'').toLowerCase().includes(q)));let out=[];
+  if(active==='all'||active==='songs')sortRows(matched.map(s=>({...s}))).forEach(s=>out.push('<div class="discover-result-card"><div class="discover-result-main"><span class="discover-result-type">SONG</span><b>'+esc(s.title)+'</b><small>'+esc(s.artist)+' · '+esc(s.genre||'Music')+'</small></div><button type="button" data-play="'+esc(s.id)+'">▶ Play</button></div>'));
+  if(active==='all'||active==='artists')sortRows(artistRows(matched)).forEach(a=>out.push('<div class="discover-result-card"><div class="discover-result-main"><span class="discover-result-type">ARTIST</span><b>'+esc(a.name)+'</b><small>'+esc(a.genre)+' · '+a.count+' published song'+(a.count===1?'':'s')+'</small></div><button type="button" data-artist="'+esc(a.name)+'" data-action="artistPreview">View</button></div>'));
+  if(active==='all'||active==='genres')sortRows(genreRows(matched)).forEach(g=>out.push('<div class="discover-result-card"><div class="discover-result-main"><span class="discover-result-type">GENRE</span><b>'+esc(g.name)+'</b><small>'+g.count+' published song'+(g.count===1?'':'s')+'</small></div><button type="button" data-discover-genre="'+esc(g.name)+'">Explore</button></div>'));
+  const show=!!q||active!=='all';results.innerHTML=show?(out.length?out.join(''):'<div class="discover-result-empty">No matching '+(active==='all'?'artists, songs or genres':active)+' found. Try another search.</div>'):'';
+  tabs.querySelectorAll('[data-discover-tab]').forEach(b=>{const on=b.dataset.discoverTab===active;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on))});
+  panel?.querySelectorAll('[data-discover-sort]').forEach(b=>b.classList.toggle('active',b.dataset.discoverSort===sort));
+ }
+ tabs.addEventListener('click',e=>{const b=e.target.closest('[data-discover-tab]');if(!b)return;active=b.dataset.discoverTab;render()});
+ input.addEventListener('input',render);
+ filterBtn?.addEventListener('click',()=>{if(panel){panel.hidden=!panel.hidden;filterBtn.setAttribute('aria-expanded',String(!panel.hidden))}});
+ panel?.addEventListener('click',e=>{const b=e.target.closest('[data-discover-sort]');if(!b)return;sort=b.dataset.discoverSort;render()});
+ results.addEventListener('click',e=>{const b=e.target.closest('[data-discover-genre]');if(!b)return;active='songs';input.value=b.dataset.discoverGenre||'';render()});
+ render();document.addEventListener('click',e=>{if(e.target.closest('[data-go="discover"]'))setTimeout(render,180)});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>

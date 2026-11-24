@@ -1936,8 +1936,8 @@ async function presignR2Put(env, objectKey, contentType) {
   const kSigning = await hmacSha256(kService, "aws4_request");
   const signature = hex(await hmacSha256(kSigning, stringToSign));
   const uploadUrl = "https://" + host + path + "?" + canonicalQuery + "&X-Amz-Signature=" + signature;
-    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\\/$/, "");
-    if (!publicBase || !/^https:\\/\\//i.test(publicBase))
+    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+    if (!publicBase || !/^https:\/\//i.test(publicBase))
     throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
   return { uploadUrl, publicUrl: publicBase + "/" + objectKey.split("/").map(awsEncode).join("/"), objectKey, contentType, expiresIn: 300 };
 }

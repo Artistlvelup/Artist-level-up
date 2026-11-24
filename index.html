@@ -4413,6 +4413,8 @@ setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(
     purchaseResult('<h3>Checking your purchase…</h3><p class="muted">We are confirming payment and locating your order.</p>');
     try{
       const gate=window.ALU_MEMBER_GATE_V101;if(!gate)throw new Error('Sign in with the same member account used for checkout.');
+      const verification=await gate.request('/api/me/marketplace/verify','POST',{reference:ref});
+      if(!verification?.paid)throw new Error('Paystack has not confirmed this purchase yet.');
       const orders=await gate.request('/api/me/marketplace/orders','GET');
       const order=(orders?.orders||[]).find(x=>String(x.paystack_reference||'')===ref);
       if(!order)throw new Error('The order is not linked to this signed-in account yet. Sign in with the purchasing account and retry.');
@@ -4432,9 +4434,8 @@ setTimeout(()=>{if(window.ALU_MEMBER_GATE_V101)syncLocalApprovedPictures().then(
   }
   function handlePaymentReturn(){
     const params=new URLSearchParams(location.search);
-    if(params.get('payment')!=='success')return;
-    const ref=String(params.get('reference')||'').trim();
-    if(!ref||ref===handledPaymentReference)return;
+    const ref=String(params.get('reference')||params.get('trxref')||'').trim();
+    if(!/^ALU-[A-Za-z0-9-]{8,100}$/.test(ref)||ref===handledPaymentReference)return;
     handledPaymentReference=ref;
     if(typeof window.go==='function')window.go('marketplace');
     else{document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('marketplace')?.classList.add('active');}

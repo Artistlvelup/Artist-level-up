@@ -703,6 +703,9 @@ async function campaignPricing(env) {
 async function campaignCheckoutRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST") return json({error:"Method not allowed"},405,cors);
+  if (String(env.PROMOTION_DELIVERY_READY || "").toLowerCase() !== "true") {
+    return json({error:"Campaign checkout is temporarily unavailable while promotion delivery is being completed. No payment was taken."},503,cors);
+  }
   const body = await readJson(request);
   const promotionId = cleanText(body?.promotion_id,80,true);
   const packageKey = String(body?.package_key || "");

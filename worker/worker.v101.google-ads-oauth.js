@@ -2078,32 +2078,19 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
     if (!publicBase.startsWith("https://"))
       throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
     if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
-    const reader = request.body.getReader();
-    let receivedBytes = 0;
-    const boundedBody = new ReadableStream({
-      async pull(controller) {
-        try {
-          const part = await reader.read();
-          if (part.done) {
-            if (receivedBytes < 1) controller.error(new Error("UPLOAD_BODY_EMPTY"));
-            else if (declaredSize !== null && receivedBytes !== declaredSize) controller.error(new Error("UPLOAD_SIZE_MISMATCH"));
-            else controller.close();
-            return;
-          }
-          receivedBytes += part.value.byteLength;
-          if (receivedBytes > maxBytes) {
-            await reader.cancel("UPLOAD_TOO_LARGE");
-            controller.error(new Error("UPLOAD_TOO_LARGE"));
-            return;
-          }
-          controller.enqueue(part.value);
-        } catch (error) {
-          controller.error(error);
-        }
-      },
-      async cancel(reason) { await reader.cancel(reason); }
-    });
-    await env.MEDIA_BUCKET.put(key, boundedBody, { httpMetadata: { contentType } });
+    let uploadBody;
+    if (declaredSize === null) {
+      // Mobile browsers may omit Content-Length for File uploads. Buffer these bounded
+      // unknown-length uploads so R2 receives a concrete byte array and we can verify size.
+      const bytes = await request.arrayBuffer();
+      if (bytes.byteLength < 1) throw new Error("UPLOAD_BODY_EMPTY");
+      if (bytes.byteLength > maxBytes) throw new Error("UPLOAD_TOO_LARGE");
+      uploadBody = bytes;
+    } else {
+      if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
+      uploadBody = request.body;
+    }
+    await env.MEDIA_BUCKET.put(key, uploadBody, { httpMetadata: { contentType } });
     const publicUrl = publicBase + "/" + key.split("/").map(awsEncode).join("/");
     return json({ remote: true, path: key, url: publicUrl, contentType }, 200, cors);
   } catch (error) {

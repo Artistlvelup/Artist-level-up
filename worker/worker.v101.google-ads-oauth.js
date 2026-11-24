@@ -770,6 +770,51 @@ async function campaignVerifyRoute(request,env,userId) {
   return json({ok:true,paid:true,order_id:order.id,delivery_status:"queued"},200,cors);
 }
 
+
+async function adminCampaignDeliveriesRoute(request, env, session, url) {
+  const cors = corsHeaders(request, env);
+  if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (request.method === "GET") {
+    const rawLimit = Number(url.searchParams.get("limit") || 100);
+    if (!Number.isInteger(rawLimit) || rawLimit < 1) return json({ error: "Invalid limit" }, 400, cors);
+    const limit = Math.min(100, rawLimit);
+    const rows = await env.DB.prepare(
+      "SELECT d.id, d.order_id, d.platform, d.provider_customer_id, d.provider_campaign_id, d.status, d.response_json, d.created_at, d.updated_at, o.status AS order_status, o.package_key, o.total_amount_ngn, o.currency, o.paid_at, p.title AS promotion_title, a.artist_name, pr.display_name FROM promotion_deliveries d JOIN promotion_orders o ON o.id=d.order_id LEFT JOIN promotions p ON p.id=o.promotion_id LEFT JOIN artists a ON a.id=p.artist_id LEFT JOIN profiles pr ON pr.id=o.user_id ORDER BY d.created_at DESC LIMIT ?"
+    ).bind(limit).all();
+    return json({ deliveries: rows.results || [] }, 200, cors);
+  }
+  if (request.method === "PATCH") {
+    const deliveryId = url.pathname.slice("/api/admin/campaign-deliveries/".length);
+    if (!/^[0-9a-f-]{36}$/i.test(deliveryId)) return json({ error: "Invalid delivery ID" }, 400, cors);
+    let body;
+    try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+    const status = String(body?.status || "");
+    const allowed = new Set(["queued", "paused", "active", "failed", "completed", "cancelled"]);
+    if (!allowed.has(status)) return json({ error: "Choose a valid delivery status." }, 400, cors);
+    const note = cleanText(body?.note, 500, status === "active" || status === "completed" || status === "failed");
+    if ((status === "active" || status === "completed" || status === "failed") && !note)
+      return json({ error: "Add a delivery note or evidence before setting this status." }, 400, cors);
+    const existing = await env.DB.prepare(
+      "SELECT d.id, d.order_id, d.response_json, o.status AS order_status FROM promotion_deliveries d JOIN promotion_orders o ON o.id=d.order_id WHERE d.id=? LIMIT 1"
+    ).bind(deliveryId).first();
+    if (!existing) return json({ error: "Campaign delivery not found." }, 404, cors);
+    if (existing.order_status !== "paid") return json({ error: "Only paid campaign orders can be moved through delivery. No payment status was changed." }, 409, cors);
+    let prior = {};
+    try { prior = JSON.parse(existing.response_json || "{}"); } catch {}
+    const history = Array.isArray(prior.admin_updates) ? prior.admin_updates : [];
+    history.push({ status, note: note || null, updated_at: new Date().toISOString(), updated_by: session.user_id });
+    const responseJson = JSON.stringify({ ...prior, admin_updates: history.slice(-20) });
+    const providerCampaignId = body?.provider_campaign_id == null ? null : cleanText(body.provider_campaign_id, 160, false);
+    const result = await env.DB.prepare(
+      "UPDATE promotion_deliveries SET status=?, provider_campaign_id=COALESCE(?,provider_campaign_id), response_json=?, updated_at=? WHERE id=?"
+    ).bind(status, providerCampaignId, responseJson, new Date().toISOString(), deliveryId).run();
+    if (!result.meta?.changes) return json({ error: "Campaign delivery was not updated." }, 409, cors);
+    return json({ success: true, id: deliveryId, status }, 200, cors);
+  }
+  return json({ error: "Method not allowed" }, 405, cors);
+}
+__name(adminCampaignDeliveriesRoute, "adminCampaignDeliveriesRoute");
+
 async function promotionRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST")
@@ -3015,6 +3060,11 @@ var worker_default = {
         if (!session)
           return json({ error: "Invalid or expired session" }, 401, cors);
         return await musicDistributionRoute(request, env, session, url, false);
+      }
+      if (url.pathname === "/api/admin/campaign-deliveries" || /^\\/api\\/admin\\/campaign-deliveries\\/[0-9a-f-]{36}$/i.test(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await adminCampaignDeliveriesRoute(request, env, session, url);
       }
       if (url.pathname === "/api/admin/distribution") {
         const session = await validateSession(request, env);

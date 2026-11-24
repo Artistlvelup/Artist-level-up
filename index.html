@@ -2849,7 +2849,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       });
     }
     const currentProfile=await gate.request('/api/me/profile','GET');
-    const savedAvatar=/^https?:\\/\\//i.test(avatarUrl)?avatarUrl:(currentProfile?.profile?.avatar_url||null);
+    const savedAvatar=/^https?:\/\//i.test(avatarUrl)?avatarUrl:(currentProfile?.profile?.avatar_url||null);
     const result=await gate.request('/api/me/profile','PUT',{
       display_name:displayName||null,
       avatar_url:savedAvatar

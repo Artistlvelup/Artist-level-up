@@ -1208,31 +1208,27 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <button class="btn full" type="button" data-go="profile">Open Artist Profile to manage YouTube connection</button>
 </div>
 <div class="card" id="youtubePromotionOptions">
-  <span class="pill">FIXED PROMOTION</span>
-  <h2>7-Day YouTube Promotion</h2>
-  <div class="row between" style="align-items:center;gap:10px">
-    <div><b style="font-size:25px;color:var(--gold)">₦19,650</b><div class="tiny muted">One campaign · 7 days</div></div>
-    <span class="pill">YOUTUBE</span>
-  </div>
-  <p class="muted">Choose the fixed 7-day package if you want the standard promotion option.</p>
-  <div class="divider"></div>
-  <span class="pill">CUSTOM PROMOTION</span>
-  <h2 style="margin-top:9px">Choose your own budget</h2>
-  <p class="muted">You do not have to buy the full package. Enter the amount you can afford and choose how long you want your promotion to run.</p>
-  <label for="youtubeCustomBudget">Your total budget (₦)</label>
-  <input id="youtubeCustomBudget" type="number" inputmode="numeric" min="1" step="1" placeholder="For example: 3000"/>
-  <label for="youtubeCustomDuration">How long should it run?</label>
-  <select id="youtubeCustomDuration"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>
-  <label for="youtubeCustomPacing">Budget delivery schedule</label>
-  <select id="youtubeCustomPacing"><option value="daily">Spread the budget daily</option><option value="weekly">Manage the budget weekly</option></select>
+  <span class="pill">CHOOSE YOUR PROMOTION PERIOD</span>
+  <h2>YouTube Promotion Pricing</h2>
+  <p class="muted">Choose the period you can afford. You can start with one day or select the full seven-day package.</p>
+  <label class="listrow" for="youtubeDailyPlan" style="display:flex;align-items:center;gap:12px;cursor:pointer">
+    <input id="youtubeDailyPlan" type="radio" name="youtubePromotionPlan" value="daily" checked style="width:auto"/>
+    <span class="grow"><b>Daily Promotion</b><span class="tiny muted" style="display:block">1 day of promotion</span></span>
+    <b style="font-size:20px;color:var(--gold)">₦2,807.14</b>
+  </label>
+  <label class="listrow" for="youtubeWeeklyPlan" style="display:flex;align-items:center;gap:12px;cursor:pointer">
+    <input id="youtubeWeeklyPlan" type="radio" name="youtubePromotionPlan" value="weekly" style="width:auto"/>
+    <span class="grow"><b>Weekly Promotion</b><span class="tiny muted" style="display:block">7 days of promotion</span></span>
+    <b style="font-size:20px;color:var(--gold)">₦19,650</b>
+  </label>
   <div class="hero" style="margin:10px 0">
-    <div class="muted">Your custom promotion plan</div>
-    <b id="youtubeCustomSummary" style="font-size:16px">Enter your budget to preview your plan</b>
-    <div class="tiny muted" id="youtubeCustomBreakdown" style="margin-top:5px">No payment will be requested from this preview.</div>
+    <div class="muted">Your selected plan</div>
+    <b id="youtubePlanSummary" style="font-size:17px">Daily Promotion · ₦2,807.14 · 1 day</b>
+    <div class="tiny muted" style="margin-top:5px">Daily price is calculated by dividing ₦19,650 by 7 days.</div>
   </div>
-  <p class="tiny muted">Your budget and schedule will determine the campaign plan. Views, reach and results depend on the final approved delivery setup; we will not promise guaranteed numbers before verification.</p>
+  <p class="tiny muted">Promotion reach and results depend on the final approved delivery setup. No guaranteed views are promised.</p>
   <button class="btn primary full" type="button" disabled>Promotion checkout is not open yet</button>
-  <p class="muted"><b>No payment is being requested yet.</b> We will only open checkout after the YouTube delivery process is ready, tested and verified.</p>
+  <p class="muted"><b>No payment is being requested yet.</b> We will open checkout only after the YouTube delivery process is ready, tested and verified.</p>
 </div>
 </section>
 <section class="page" id="wallet"><span class="pill">WALLET &amp; PAYMENTS</span><h1>Artist Wallet 💰</h1><div class="grid3"><div class="hero"><div class="muted">Available balance</div><div id="balance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Withdrawable artist earnings</div></div><div class="hero"><div class="muted">Pending balance</div><div id="pendingBalance" style="font-size:30px;font-weight:900">₦0</div><div class="tiny muted">Earnings being cleared</div></div><div class="hero"><div class="muted">Artist Pro</div><div id="walletProStatus" style="font-size:24px;font-weight:900">FREE</div><div class="tiny muted">Subscription payments are tracked separately</div></div></div><div class="card"><h2>💳 Payments Center</h2><p class="muted">Secure Paystack checkout. Artist Pro activates only after the server verifies your payment. Monthly: ₦2,500 · Yearly: ₦25,000.</p><div class="listrow"><div class="grow"><b>Artist Pro — Monthly</b><div class="tiny muted">₦2,500 / month</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Monthly" data-price="2500">Pay ₦2,500</button></div><div class="listrow"><div class="grow"><b>Artist Pro — Yearly</b><div class="tiny muted">₦25,000 / year</div></div><button class="btn primary" data-action="payNow" data-paytype="Artist Pro · Yearly" data-price="25000">Pay ₦25,000</button></div><div class="listrow"><div class="grow"><b>Promotion Campaign</b><div class="tiny muted">Pay from your campaign checkout</div></div><button class="btn" data-action="goPromote">Open Promote</button></div><div class="tiny muted" id="paymentStatus" style="margin-top:10px"></div></div><div class="card" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c)"><h2>💳 Withdraw Your Earnings</h2><p class="muted">This is the account Artist Level Up will use for your payout request. Save your bank details first, then request a withdrawal.</p><div class="card" style="margin:10px 0;background:rgba(255,255,255,.035)"><span class="pill">🏦 YOUR PAYOUT ACCOUNT</span><div class="tiny muted" id="withdrawAccountStatus" style="margin-top:8px">No payout account saved yet.</div></div><label>Amount (₦)</label><input id="withdrawAmount" inputmode="numeric" min="1000" placeholder="Minimum ₦1,000" type="number"/><label>Payout method</label><select id="withdrawMethod"><option>Bank Transfer</option></select><button class="btn primary full" data-action="withdraw" type="button">💸 Request Withdrawal</button></div><div class="card"><h2>🏦 Payout Bank Account</h2><p class="muted tiny">Enter the bank account where you want your approved artist earnings sent. This prototype records the payout request; automatic bank transfer will be connected before public launch.</p><label>Account holder name</label><input id="payeeName" autocomplete="name" placeholder="Name on bank account"/><label>Bank name</label><input id="payeeBank" autocomplete="organization" placeholder="e.g. Access Bank"/><label>Account number</label><input id="payeeAccount" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="10-digit account number"/><button class="btn full" data-action="savePaymentMethod" type="button">💾 Save Payout Account</button><div class="tiny muted" id="paymentMethodStatus" style="margin-top:8px"></div></div><div class="card"><h2>📊 Earnings</h2><div class="listrow"><div class="grow"><b>Available artist earnings</b></div><b id="earningsAvailable">₦0</b></div><div class="listrow"><div class="grow"><b>Pending artist earnings</b></div><b id="earningsPending">₦0</b></div><div class="listrow"><div class="grow"><b>Platform campaign revenue</b><div class="tiny muted">Not artist money</div></div><b id="platformRevenue">₦0</b></div></div><div class="card"><h2>📜 Transaction History</h2><div class="grid3"><button class="btn" data-wallet-filter="all">All</button><button class="btn" data-wallet-filter="income">Income</button><button class="btn" data-wallet-filter="outgoing">Outgoing</button></div><div id="transactions" style="margin-top:10px"></div></div></section>
@@ -7710,23 +7706,16 @@ body.alu-server-admin-verified #aluOwnerControlsCard{display:block!important}
 <script>
 (function(){
   function bind(){
-    var budget=document.getElementById('youtubeCustomBudget');
-    var duration=document.getElementById('youtubeCustomDuration');
-    var pacing=document.getElementById('youtubeCustomPacing');
-    var summary=document.getElementById('youtubeCustomSummary');
-    var breakdown=document.getElementById('youtubeCustomBreakdown');
-    if(!budget||!duration||!pacing||!summary||!breakdown||budget.dataset.bound)return;
-    budget.dataset.bound='1';
+    var daily=document.getElementById('youtubeDailyPlan');
+    var weekly=document.getElementById('youtubeWeeklyPlan');
+    var summary=document.getElementById('youtubePlanSummary');
+    if(!daily||!weekly||!summary||daily.dataset.bound)return;
+    daily.dataset.bound='1';
     function update(){
-      var amount=Number(budget.value),days=Number(duration.value);
-      if(!Number.isFinite(amount)||amount<=0){summary.textContent='Enter your budget to preview your plan';breakdown.textContent='No payment will be requested from this preview.';return;}
-      var fmt=function(n){return new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:0}).format(n);};
-      var unit=pacing.value==='weekly'?'week':'day';
-      var divisor=pacing.value==='weekly'?Math.max(1,Math.ceil(days/7)):days;
-      summary.textContent=fmt(amount)+' total · '+days+' day'+(days===1?'':'s');
-      breakdown.textContent='Budget pacing: about '+fmt(amount/divisor)+' per '+unit+'. This is a planning estimate only.';
+      summary.textContent=weekly.checked?'Weekly Promotion · ₦19,650 · 7 days':'Daily Promotion · ₦2,807.14 · 1 day';
     }
-    [budget,duration,pacing].forEach(function(el){el.addEventListener('input',update);el.addEventListener('change',update);});
+    daily.addEventListener('change',update);
+    weekly.addEventListener('change',update);
     update();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();

@@ -1145,7 +1145,7 @@ async function adminDashboardRoute(request, env, session) {
     return json({ error: "Admin access required" }, 403, cors);
   const [sales, beats, users, orders, recent, music, videos, pictures] = await Promise.all([
     env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount_ngn ELSE 0 END), 0) AS totalSales, COALESCE(SUM(CASE WHEN status = 'paid' THEN platform_fee_ngn ELSE 0 END), 0) AS platformCommission, COALESCE(SUM(CASE WHEN status = 'paid' THEN producer_payout_ngn ELSE 0 END), 0) AS producerPayouts, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paidOrders, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingOrders, COUNT(*) AS totalOrders FROM marketplace_orders").first(),
-    env.DB.prepare("SELECT COUNT(*) AS publishedBeats, COUNT(DISTINCT producer_name) AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS publishedBeats, (SELECT COUNT(*) FROM marketplace_producer_payouts WHERE status = 'active') AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalUsers FROM app_users WHERE status = 'active'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalOrders FROM marketplace_orders").first(),
     env.DB.prepare("SELECT beat_title, producer_name, amount_ngn, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT 10").all(),

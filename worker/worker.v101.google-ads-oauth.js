@@ -2049,31 +2049,32 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
   const filename = cleanText(url.searchParams.get("filename"), 180, true);
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
-  if (!["audio", "thumbnail", "picture"].includes(purpose))
+  if (!["audio", "thumbnail", "picture", "video"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const artist = await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
   ).bind(userId).first();
   if (!artist)
     return json({ error: "Active artist account required" }, 403, cors);
-  const allowed = purpose === "audio" ? AUDIO_TYPES : IMAGE_TYPES;
+  const allowed = purpose === "audio" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
   if (!allowed.has(contentType))
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
-  const bytes = await request.arrayBuffer();
-  const size = bytes.byteLength;
-  const maxBytes = purpose === "audio" ? MAX_AUDIO_BYTES : 10 * 1024 * 1024;
+  const size = Number(request.headers.get("Content-Length") || 0);
+  const maxBytes = purpose === "audio" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
   if (!Number.isSafeInteger(size) || size < 1 || size > maxBytes)
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : "jpg")).toLowerCase();
+  const extension = (filename.match(/\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg")).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-  const key = artist.id + "/" + (purpose === "audio" ? "audio" : purpose === "thumbnail" ? "thumbnails" : "pictures") + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
+  const folder = purpose === "audio" ? "audio" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
+  const key = artist.id + "/" + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
     if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
       throw new Error("R2_BINDING_NOT_CONFIGURED");
     const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
     if (!publicBase || !/^https:\/\//i.test(publicBase))
       throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
-    await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType } });
+    if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
+    await env.MEDIA_BUCKET.put(key, request.body, { httpMetadata: { contentType } });
     const publicUrl = publicBase + "/" + key.split("/").map(awsEncode).join("/");
     return json({ remote: true, path: key, url: publicUrl, contentType }, 200, cors);
   } catch (error) {

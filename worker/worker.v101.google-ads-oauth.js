@@ -2065,15 +2065,17 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const maxBytes = purpose === "audio" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
   if (declaredSize !== null && (!Number.isSafeInteger(declaredSize) || declaredSize < 1 || declaredSize > maxBytes))
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const extension = (filename.match(/\\.([a-z0-9]{1,8})$/i)?.[1] || (purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg")).toLowerCase();
+  const defaultExtension = purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg";
+  const extension = (filename.includes(".") ? filename.split(".").pop() : defaultExtension).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   const folder = purpose === "audio" ? "audio" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
   const key = artist.id + "/" + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
     if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
       throw new Error("R2_BINDING_NOT_CONFIGURED");
-    const publicBase = String(env.R2_PUBLIC_BASE_URL || "").replace(/\\/$/, "");
-    if (!publicBase || !/^https:\\/\\//i.test(publicBase))
+    const configuredPublicBase = String(env.R2_PUBLIC_BASE_URL || "");
+    const publicBase = configuredPublicBase.endsWith("/") ? configuredPublicBase.slice(0, -1) : configuredPublicBase;
+    if (!publicBase.startsWith("https://"))
       throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
     if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
     const reader = request.body.getReader();

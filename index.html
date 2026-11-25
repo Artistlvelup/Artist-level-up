@@ -2219,7 +2219,7 @@ window.ALU_STREAM_TRACKER_V101=window.ALU_STREAM_TRACKER_V101||(()=>{
     const songId=String(song?.remoteSongId||'');
     if(!songId)return;
     if(active?.songId===songId)return;
-    active={songId,eventPromise:null,eventId:null,qualified:false,lastAttemptAt:0};
+    active={songId,eventPromise:null,eventId:null,qualified:false,lastAttemptAt:0,lastHeartbeatAt:0,serverPlayedSeconds:0,heartbeatPromise:null};
     const currentEvent=active;
     currentEvent.eventPromise=(async()=>{
       const base=apiBase();if(!base)return null;
@@ -2228,24 +2228,35 @@ window.ALU_STREAM_TRACKER_V101=window.ALU_STREAM_TRACKER_V101||(()=>{
       if(!response.ok)throw new Error(data.error||'Stream start failed');
       if(data.already_qualified)currentEvent.qualified=true;
       currentEvent.eventId=data.event_id||null;
+      currentEvent.lastHeartbeatAt=Date.now();
       return data;
     })().catch(error=>{console.warn('ALU stream start deferred:',error);return null;});
     await currentEvent.eventPromise;
   }
   async function progress(song,audio){
-    if(!song||!audio||!active||active.songId!==String(song.remoteSongId||'')||active.qualified)return;
-    const duration=Number(audio.duration||0);
-    const threshold=duration>0?Math.max(1,Math.min(30,Math.ceil(duration*.5))):30;
-    if(Number(audio.currentTime||0)<threshold||Date.now()-active.lastAttemptAt<10000)return;
-    active.lastAttemptAt=Date.now();
+    if(!song||!audio||audio.paused||audio.ended||!active||active.songId!==String(song.remoteSongId||'')||active.qualified)return;
     const currentEvent=active;
     try{
       await currentEvent.eventPromise;
-      if(!currentEvent.eventId)return;
+      if(!currentEvent.eventId||currentEvent.qualified)return;
       const base=apiBase();if(!base)return;
-      const response=await fetch(base+'/api/public/streams/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:currentEvent.eventId,listener_token:listenerToken(),listened_seconds:Math.floor(audio.currentTime||0)}),cache:'no-store'});
+      if(Date.now()-currentEvent.lastHeartbeatAt>=8000&&!currentEvent.heartbeatPromise){
+        currentEvent.lastHeartbeatAt=Date.now();
+        currentEvent.heartbeatPromise=(async()=>{
+          const response=await fetch(base+'/api/public/streams/heartbeat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:currentEvent.eventId,listener_token:listenerToken()}),cache:'no-store'});
+          const data=await response.json().catch(()=>({}));
+          if(response.ok)currentEvent.serverPlayedSeconds=Number(data.played_seconds||currentEvent.serverPlayedSeconds||0);
+        })().catch(error=>console.warn('ALU playback heartbeat deferred:',error)).finally(()=>{currentEvent.heartbeatPromise=null;});
+      }
+      if(currentEvent.heartbeatPromise)await currentEvent.heartbeatPromise;
+      const duration=Number(audio.duration||0);
+      const threshold=duration>0?Math.max(1,Math.min(30,Math.ceil(duration*.5))):30;
+      if(currentEvent.serverPlayedSeconds<threshold||Date.now()-currentEvent.lastAttemptAt<8000)return;
+      currentEvent.lastAttemptAt=Date.now();
+      const response=await fetch(base+'/api/public/streams/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:currentEvent.eventId,listener_token:listenerToken()}),cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(response.ok&&data.qualified)currentEvent.qualified=true;
+      if(data.verified_played_seconds!=null)currentEvent.serverPlayedSeconds=Number(data.verified_played_seconds);
     }catch(error){console.warn('ALU stream qualification deferred:',error);}
   }
   return {begin,progress};

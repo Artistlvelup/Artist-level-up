@@ -592,6 +592,7 @@ async function songsRoute(request, env, userId, url) {
     return json({ songs: rows.results || [] }, 200, cors);
   }
   if (url.pathname === "/api/me/songs" && request.method === "POST") {
+    return json({ error: "Streaming music uploads are temporarily paused during the launch promotion." }, 403, cors);
     const body = await readJson(request);
     const title = cleanText(body.title, 160, true);
     const genre = cleanText(body.genre, 80);
@@ -1145,7 +1146,7 @@ async function adminDashboardRoute(request, env, session) {
     return json({ error: "Admin access required" }, 403, cors);
   const [sales, beats, users, orders, recent, music, videos, pictures] = await Promise.all([
     env.DB.prepare("SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount_ngn ELSE 0 END), 0) AS totalSales, COALESCE(SUM(CASE WHEN status = 'paid' THEN platform_fee_ngn ELSE 0 END), 0) AS platformCommission, COALESCE(SUM(CASE WHEN status = 'paid' THEN producer_payout_ngn ELSE 0 END), 0) AS producerPayouts, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paidOrders, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingOrders, COUNT(*) AS totalOrders FROM marketplace_orders").first(),
-    env.DB.prepare("SELECT COUNT(*) AS publishedBeats, COUNT(DISTINCT producer_name) AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
+    env.DB.prepare("SELECT COUNT(*) AS publishedBeats, (SELECT COUNT(*) FROM marketplace_producer_payouts WHERE status = 'active') AS connectedProducers FROM marketplace_beats WHERE status = 'published'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalUsers FROM app_users WHERE status = 'active'").first(),
     env.DB.prepare("SELECT COUNT(*) AS totalOrders FROM marketplace_orders").first(),
     env.DB.prepare("SELECT beat_title, producer_name, amount_ngn, platform_fee_ngn, producer_payout_ngn, paid_at, paystack_reference FROM marketplace_orders WHERE status = 'paid' ORDER BY paid_at DESC LIMIT 10").all(),
@@ -1209,7 +1210,7 @@ async function verifyPaystackSignature(rawBody, signature, secret) {
   return paystackHex(digest) === String(signature).toLowerCase();
 }
 __name(verifyPaystackSignature, "verifyPaystackSignature");
-async function initializePaystack(env, { email, amountNgn, reference, metadata, returnUrl }) {
+async function initializePaystack(env, { email, amountNgn, reference, metadata, returnUrl, subaccount }) {
   if (!env.PAYSTACK_SECRET_KEY)
     throw new Error("PAYSTACK_SECRET_KEY is not configured in the Cloudflare Worker.");
   const callback = String(returnUrl || env.APP_PUBLIC_URL || "https://artistlevelup.com.ng");
@@ -1222,7 +1223,8 @@ async function initializePaystack(env, { email, amountNgn, reference, metadata, 
       amount: Math.round(Number(amountNgn) * 100),
       reference,
       callback_url: safeCallback,
-      metadata
+      metadata,
+      ...(subaccount ? { subaccount } : {})
     })
   });
   const payload = await response2.json().catch(() => ({}));
@@ -1469,8 +1471,9 @@ async function courseCheckoutRoute(request, env, userId) {
       email: credentials.email_normalized,
       amountNgn: 15e3,
       reference,
-      metadata,
-      returnUrl: body?.return_url
+      metadata: { ...metadata, producer_user_id: beat.producer_user_id },
+      returnUrl: body?.return_url,
+      subaccount: producerPayout.subaccount_code
     });
     return json({ ok: true, authorization_url: checkout.authorization_url, reference }, 200, cors);
   } catch (error) {
@@ -1515,6 +1518,76 @@ async function courseAccessRoute(request, env, userId) {
   return json({ ok: true, enrolled: !!enrollment, enrollment: enrollment || null, payment: latest || null, published_lessons: publishedLessons, ready: publishedLessons >= 15 }, 200, cors);
 }
 __name(courseAccessRoute, "courseAccessRoute");
+
+async function paystackPayoutApi(env, path, method = "GET", body) {
+  if (!env.PAYSTACK_SECRET_KEY) throw new Error("Paystack is not configured.");
+  const response = await fetch("https://api.paystack.co" + path, {
+    method, headers: { Authorization: "Bearer " + env.PAYSTACK_SECRET_KEY, "Content-Type": "application/json" },
+    body: body == null ? undefined : JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.status !== true) throw new Error(payload.message || "Paystack request failed.");
+  return payload.data;
+}
+async function marketplacePayoutBanksRoute(request, env) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, cors);
+  try {
+    const data = await paystackPayoutApi(env, "/bank?country=nigeria&perPage=200");
+    const banks = (Array.isArray(data) ? data : []).filter(b => b && b.active !== false && (!b.type || b.type === "nuban")).map(b => ({ name: String(b.name || ""), code: String(b.code || "") })).filter(b => b.name && b.code);
+    return json({ ok: true, banks }, 200, cors);
+  } catch (e) { return json({ error: String(e?.message || "Could not load Paystack banks.") }, 503, cors); }
+}
+async function marketplacePayoutResolveRoute(request, env) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  let body; try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  const accountNumber = String(body?.account_number || "").replace(/\D/g, "");
+  const bankCode = cleanText(body?.bank_code, 12, true);
+  if (!/^\d{10}$/.test(accountNumber) || !/^\d{2,8}$/.test(bankCode)) return json({ error: "Enter a valid 10-digit Nigerian account number and choose a bank." }, 400, cors);
+  try {
+    const data = await paystackPayoutApi(env, "/bank/resolve?account_number=" + encodeURIComponent(accountNumber) + "&bank_code=" + encodeURIComponent(bankCode));
+    if (!data?.account_name) return json({ error: "Paystack could not verify this bank account." }, 422, cors);
+    return json({ ok: true, account_name: String(data.account_name), bank_code: bankCode }, 200, cors);
+  } catch (e) { return json({ error: String(e?.message || "Account verification failed.") }, 422, cors); }
+}
+async function marketplacePayoutStatusRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, cors);
+  const payout = await env.DB.prepare("SELECT bank_name, account_name, account_last4, percentage_charge, status, created_at FROM marketplace_producer_payouts WHERE user_id = ? LIMIT 1").bind(userId).first();
+  return json({ ok: true, connected: !!(payout && payout.status === "active"), payout: payout || null, platform_percent: 15, producer_percent: 85 }, 200, cors);
+}
+async function marketplacePayoutConnectRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  let body; try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  const accountNumber = String(body?.account_number || "").replace(/\D/g, "");
+  const bankCode = cleanText(body?.bank_code, 12, true);
+  const expectedName = cleanText(body?.confirmed_account_name, 120, true);
+  if (!/^\d{10}$/.test(accountNumber) || !/^\d{2,8}$/.test(bankCode) || !expectedName) return json({ error: "Verify the bank account and confirm the exact account name first." }, 400, cors);
+  const existing = await env.DB.prepare("SELECT subaccount_code, bank_name, account_name, account_last4, status FROM marketplace_producer_payouts WHERE user_id = ? LIMIT 1").bind(userId).first();
+  if (existing?.subaccount_code && existing.status === "active") return json({ ok: true, connected: true, payout: { bank_name: existing.bank_name, account_name: existing.account_name, account_last4: existing.account_last4 } }, 200, cors);
+  const credentials = await env.DB.prepare("SELECT email_normalized FROM app_credentials WHERE user_id = ? LIMIT 1").bind(userId).first();
+  if (!credentials?.email_normalized) return json({ error: "A verified member email is required." }, 403, cors);
+  try {
+    const resolved = await paystackPayoutApi(env, "/bank/resolve?account_number=" + encodeURIComponent(accountNumber) + "&bank_code=" + encodeURIComponent(bankCode));
+    const normalize = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!resolved?.account_name || normalize(resolved.account_name) !== normalize(expectedName)) return json({ error: "The confirmed account name does not match Paystack's verified bank account name." }, 422, cors);
+    const bankList = await paystackPayoutApi(env, "/bank?country=nigeria&perPage=200");
+    const bank = (Array.isArray(bankList) ? bankList : []).find(b => String(b.code) === bankCode && b.active !== false);
+    if (!bank) return json({ error: "Choose an active bank from Paystack's Nigerian bank list." }, 400, cors);
+    const sub = await paystackPayoutApi(env, "/subaccount", "POST", {
+      business_name: String(resolved.account_name).slice(0, 100), settlement_bank: bankCode, account_number: accountNumber,
+      percentage_charge: 15, primary_contact_email: credentials.email_normalized,
+      metadata: JSON.stringify({ user_id: userId, purpose: "artist_level_up_marketplace_producer" })
+    });
+    if (!sub?.subaccount_code) throw new Error("Paystack did not return a producer subaccount code.");
+    const now = new Date().toISOString();
+    await env.DB.prepare("INSERT INTO marketplace_producer_payouts (user_id,subaccount_code,bank_code,bank_name,account_name,account_last4,percentage_charge,status,created_at,updated_at) VALUES (?,?,?,?,?,?,15,'active',?,?) ON CONFLICT(user_id) DO UPDATE SET subaccount_code=excluded.subaccount_code,bank_code=excluded.bank_code,bank_name=excluded.bank_name,account_name=excluded.account_name,account_last4=excluded.account_last4,percentage_charge=15,status='active',updated_at=excluded.updated_at").bind(userId, sub.subaccount_code, bankCode, String(bank.name), String(resolved.account_name), accountNumber.slice(-4), now, now).run();
+    return json({ ok: true, connected: true, payout: { bank_name: String(bank.name), account_name: String(resolved.account_name), account_last4: accountNumber.slice(-4), percentage_charge: 15 }, producer_percent: 85 }, 201, cors);
+  } catch (e) { return json({ error: String(e?.message || "Could not connect the Paystack payout account.") }, 503, cors); }
+}
+
 async function marketplaceCheckoutRoute(request, env, userId) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST")
@@ -1531,11 +1604,14 @@ async function marketplaceCheckoutRoute(request, env, userId) {
     return json({ error: "Choose a valid beat and licence" }, 400, cors);
   }
   const beat = await env.DB.prepare(
-    "SELECT id, title, producer_name, price_ngn, status, moderation_status FROM marketplace_beats WHERE id = ? LIMIT 1"
+    "SELECT id, title, producer_name, producer_user_id, price_ngn, status, moderation_status FROM marketplace_beats WHERE id = ? LIMIT 1"
   ).bind(beatId).first();
   if (!beat || beat.status !== "published" || beat.moderation_status !== "approved") {
     return json({ error: "This beat is not available for purchase" }, 404, cors);
   }
+  if (!beat.producer_user_id) return json({ error: "This beat is not linked to a producer account." }, 409, cors);
+  const producerPayout = await env.DB.prepare("SELECT subaccount_code FROM marketplace_producer_payouts WHERE user_id = ? AND status = 'active' LIMIT 1").bind(beat.producer_user_id).first();
+  if (!producerPayout?.subaccount_code) return json({ error: "Producer must connect a verified Paystack payout account before this beat can be purchased." }, 409, cors);
   const credentials = await env.DB.prepare(
     "SELECT email_normalized, email_verified_at FROM app_credentials WHERE user_id = ? LIMIT 1"
   ).bind(userId).first();
@@ -1550,12 +1626,12 @@ async function marketplaceCheckoutRoute(request, env, userId) {
     return json({ error: "Paystack is not connected yet. Checkout is safely disabled." }, 503, cors);
   const id = crypto.randomUUID();
   const reference = "ALU-" + crypto.randomUUID();
-  const fee = Math.round(amount * 0.1 * 100) / 100;
+  const fee = Math.round(amount * 0.15 * 100) / 100;
   const payout = Math.round((amount - fee) * 100) / 100;
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const metadata = { order_id: id, beat_id: beat.id, license, purpose: "marketplace_beat" };
   await env.DB.prepare(
-    "INSERT INTO marketplace_orders (id, buyer_user_id, beat_id, beat_title, producer_name, license, amount_ngn, currency, status, platform_fee_percent, platform_fee_ngn, producer_payout_ngn, paystack_reference, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'NGN', 'pending', 10, ?, ?, ?, ?)"
+    "INSERT INTO marketplace_orders (id, buyer_user_id, beat_id, beat_title, producer_name, license, amount_ngn, currency, status, platform_fee_percent, platform_fee_ngn, producer_payout_ngn, paystack_reference, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'NGN', 'pending', 15, ?, ?, ?, ?)"
   ).bind(id, userId, beat.id, beat.title, beat.producer_name, license, amount, fee, payout, reference, now).run();
   await env.DB.prepare(
     "INSERT INTO payment_transactions (id, reference, user_id, purpose, amount_ngn, currency, status, metadata_json, created_at) VALUES (?, ?, ?, 'marketplace_beat', ?, 'NGN', 'pending', ?, ?)"
@@ -1566,7 +1642,8 @@ async function marketplaceCheckoutRoute(request, env, userId) {
       amountNgn: amount,
       reference,
       metadata,
-      returnUrl: body?.return_url
+      returnUrl: body?.return_url,
+      subaccount: producerPayout.subaccount_code
     });
     return json({ ok: true, authorization_url: checkout.authorization_url, reference, order_id: id }, 200, cors);
   } catch (error) {
@@ -1576,6 +1653,32 @@ async function marketplaceCheckoutRoute(request, env, userId) {
   }
 }
 __name(marketplaceCheckoutRoute, "marketplaceCheckoutRoute");
+async function marketplaceVerifyRoute(request, env, userId) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  let body;
+  try { body = await readJson(request); } catch { return json({ error: "Invalid JSON body" }, 400, cors); }
+  const reference = cleanText(body?.reference, 120, true);
+  if (!reference || !/^ALU-[A-Za-z0-9-]{8,100}$/.test(reference)) return json({ error: "A valid Paystack reference is required." }, 400, cors);
+  const order = await env.DB.prepare("SELECT id, amount_ngn, currency, status FROM marketplace_orders WHERE paystack_reference = ? AND buyer_user_id = ? LIMIT 1").bind(reference, userId).first();
+  if (!order) return json({ error: "Marketplace order not found for this account." }, 404, cors);
+  if (order.status === "paid") return json({ ok: true, paid: true, order_id: order.id, reference }, 200, cors);
+  const payment = await env.DB.prepare("SELECT amount_ngn, currency, status FROM payment_transactions WHERE reference = ? AND user_id = ? AND purpose = 'marketplace_beat' LIMIT 1").bind(reference, userId).first();
+  if (!payment) return json({ error: "Marketplace payment record not found." }, 404, cors);
+  if (!env.PAYSTACK_SECRET_KEY) return json({ error: "Paystack is not configured. Payment verification is unavailable." }, 503, cors);
+  const expectedKobo = Math.round(Number(order.amount_ngn) * 100);
+  if (!Number.isFinite(expectedKobo) || expectedKobo < 1 || Number(payment.amount_ngn) !== Number(order.amount_ngn) || String(payment.currency) !== String(order.currency) || String(order.currency) !== "NGN") return json({ error: "Marketplace order amount or currency does not match its payment record." }, 409, cors);
+  const response = await fetch("https://api.paystack.co/transaction/verify/" + encodeURIComponent(reference), { headers: { Authorization: "Bearer " + env.PAYSTACK_SECRET_KEY } });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || result.status !== true || result.data?.status !== "success" || String(result.data?.reference || "") !== reference || Number(result.data?.amount) !== expectedKobo || String(result.data?.currency) !== "NGN") return json({ error: "Paystack has not confirmed this marketplace payment yet." }, 409, cors);
+  const paidAt = new Date().toISOString();
+  await env.DB.batch([
+   env.DB.prepare("UPDATE payment_transactions SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE reference = ? AND user_id = ? AND purpose = 'marketplace_beat'").bind(paidAt, reference, userId),
+   env.DB.prepare("UPDATE marketplace_orders SET status = 'paid', paid_at = COALESCE(paid_at, ?) WHERE id = ? AND buyer_user_id = ? AND paystack_reference = ?").bind(paidAt, order.id, userId, reference)
+  ]);
+  return json({ ok: true, paid: true, order_id: order.id, reference }, 200, cors);
+}
+__name(marketplaceVerifyRoute, "marketplaceVerifyRoute");
 async function marketplaceDownloadRoute(request, env, userId, url) {
   if (request.method !== "GET")
     return null;
@@ -1677,6 +1780,8 @@ async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
     return json({ beats: rows.results || [] }, 200, cors);
   }
   if (!admin && request.method === "POST" && url.pathname === "/api/me/marketplace/beats") {
+    const sub = await env.DB.prepare("SELECT status, expires_at FROM artist_pro_subscriptions WHERE user_id = ? LIMIT 1").bind(userId).first();
+    if (!sub || sub.status !== "active" || Date.parse(sub.expires_at) <= Date.now()) return json({ error: "An active Artist Pro subscription is required to upload marketplace beats during the launch promotion." }, 403, cors);
     const artist = await env.DB.prepare("SELECT id, artist_name FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1").bind(userId).first();
     if (!artist)
       return json({ error: "Active artist account required" }, 403, cors);
@@ -1953,6 +2058,11 @@ async function videoUploadIntentRoute(request, env, userId) {
     return json({ error: "Active artist account required" }, 403, cors);
   const body = await readJson(request);
   const purpose = body.purpose == null ? "video" : cleanText(body.purpose, 16, true);
+  if (purpose === "audio") return json({ error: "Streaming music uploads are temporarily paused during the launch promotion." }, 403, cors);
+  if (purpose === "beat") {
+    const sub = await env.DB.prepare("SELECT status, expires_at FROM artist_pro_subscriptions WHERE user_id = ? LIMIT 1").bind(userId).first();
+    if (!sub || sub.status !== "active" || Date.parse(sub.expires_at) <= Date.now()) return json({ error: "An active Artist Pro subscription is required to upload marketplace beats during the launch promotion." }, 403, cors);
+  }
   if (!["video", "thumbnail", "audio", "beat", "picture"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const filename = cleanText(body.filename, 180, true);
@@ -2057,6 +2167,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   ).bind(userId).first();
   if (!artist)
     return json({ error: "Active artist account required" }, 403, cors);
+  if (purpose === "audio") return json({ error: "Streaming music uploads are temporarily paused during the launch promotion." }, 403, cors);
   const allowed = purpose === "audio" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
   if (!allowed.has(contentType))
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
@@ -3005,6 +3116,31 @@ var worker_default = {
           return json({ error: "Invalid or expired session" }, 401, cors);
         return await courseAccessRoute(request, env, session.user_id);
       }
+      if (url.pathname === "/api/me/marketplace/payout/banks") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await marketplacePayoutBanksRoute(request, env);
+      }
+      if (url.pathname === "/api/me/marketplace/payout/resolve") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await marketplacePayoutResolveRoute(request, env);
+      }
+      if (url.pathname === "/api/me/marketplace/payout/connect") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await marketplacePayoutConnectRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/me/marketplace/payout") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await marketplacePayoutStatusRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/me/marketplace/verify") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await marketplaceVerifyRoute(request, env, session.user_id);
+      }
       if (url.pathname === "/api/me/marketplace/checkout") {
         const session = await validateSession(request, env);
         if (!session)
@@ -3083,6 +3219,33 @@ var worker_default = {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return await adminCampaignDeliveriesRoute(request, env, session, url);
+      }
+      if (url.pathname === "/api/admin/paystack/test/initialize" || url.pathname === "/api/admin/paystack/test/verify") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+        if (!env.PAYSTACK_TEST_SECRET_KEY) return json({ error: "Paystack test secret is not configured" }, 503, cors);
+        if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+        if (url.pathname.endsWith("/initialize")) {
+          if (!session.email_normalized) return json({ error: "Admin account email is unavailable" }, 400, cors);
+          const reference = "ALU-TEST-" + crypto.randomUUID();
+          const callback = String(env.APP_PUBLIC_URL || "https://artistlevelup.com.ng") + "/admin-control/?alu_paystack_test=1";
+          const response = await fetch("https://api.paystack.co/transaction/initialize", { method: "POST", headers: { Authorization: "Bearer " + env.PAYSTACK_TEST_SECRET_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ email: session.email_normalized, amount: 10000, currency: "NGN", reference, callback_url: callback, metadata: { purpose: "alu_admin_paystack_test", test_only: true } }) });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.status !== true || !payload.data?.authorization_url) return json({ error: payload.message || "Paystack test checkout could not be initialized" }, 502, cors);
+          return json({ ok: true, test_only: true, amount_ngn: 100, reference, authorization_url: payload.data.authorization_url }, 200, cors);
+        }
+        const body = await readJson(request);
+        const reference = cleanText(body?.reference, 160, true);
+        if (!reference || !reference.startsWith("ALU-TEST-")) return json({ error: "A valid ALU test reference is required" }, 400, cors);
+        const response = await fetch("https://api.paystack.co/transaction/verify/" + encodeURIComponent(reference), { headers: { Authorization: "Bearer " + env.PAYSTACK_TEST_SECRET_KEY } });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.status !== true) return json({ error: payload.message || "Paystack test verification failed" }, 502, cors);
+        const verified = payload.data || {};
+        if (verified.reference !== reference || verified.status !== "success" || Number(verified.amount) !== 10000 || verified.currency !== "NGN") {
+          return json({ ok: false, test_only: true, reference, status: verified.status || "unknown", amount_kobo: Number(verified.amount || 0), currency: verified.currency || null, error: "Sandbox payment must be successful, exactly NGN 100.00, and match the requested reference." }, 409, cors);
+        }
+        return json({ ok: true, test_only: true, reference, status: verified.status, amount_kobo: Number(verified.amount), currency: verified.currency }, 200, cors);
       }
       if (url.pathname === "/api/admin/distribution") {
         const session = await validateSession(request, env);

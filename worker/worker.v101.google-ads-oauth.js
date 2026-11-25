@@ -757,7 +757,7 @@ async function adminCloseStreamingRoyaltiesRoute(request, env, session) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start || !/^[A-Z]{3}$/.test(currency)) return json({ error: "A valid monthly period and currency are required." }, 400, cors);
   const existing = await env.DB.prepare("SELECT id,status FROM streaming_royalty_periods WHERE period_start=? AND period_end=? AND currency=? LIMIT 1").bind(start, end, currency).first();
   if (existing) return json({ error: "This royalty period has already been created.", period_id: existing.id, status: existing.status }, 409, cors);
-  const receipts = await env.DB.prepare("SELECT COALESCE(SUM(net_minor),0) AS net_minor FROM streaming_revenue_receipts WHERE currency=? AND period_start<=? AND period_end>=?").bind(currency, end, start).first();
+  const receipts = await env.DB.prepare("SELECT COALESCE(SUM(net_minor),0) AS net_minor FROM streaming_revenue_receipts WHERE currency=? AND period_start=? AND period_end=?").bind(currency, start, end).first();
   const net = Math.max(0, Number(receipts?.net_minor || 0));
   const pool = Math.floor(net * 0.60);
   const platform = net - pool;

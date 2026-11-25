@@ -2205,6 +2205,51 @@ document.addEventListener('click',function(e){
 const aluAudioUrlCache=new Map();
 async function aluWarmAudioCache(){try{for(const s of (state.songs||[])){if(!s.audioKey||aluAudioUrlCache.has(String(s.audioKey)))continue;const blob=await aluGetAudio(s.audioKey);if(blob)aluAudioUrlCache.set(String(s.audioKey),URL.createObjectURL(blob));}}catch(e){console.warn('Audio cache warm failed',e)}}
 aluWarmAudioCache();
+window.ALU_STREAM_TRACKER_V101=window.ALU_STREAM_TRACKER_V101||(()=>{
+  let active=null;
+  function listenerToken(){
+    try{
+      let token=localStorage.getItem('alu_stream_listener_v101');
+      if(!token){token=crypto.randomUUID();localStorage.setItem('alu_stream_listener_v101',token);}
+      return token;
+    }catch(e){return crypto.randomUUID();}
+  }
+  function apiBase(){return String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\\/$/,'');}
+  async function begin(song){
+    const songId=String(song?.remoteSongId||'');
+    if(!songId)return;
+    if(active?.songId===songId)return;
+    active={songId,eventPromise:null,eventId:null,qualified:false,lastAttemptAt:0};
+    const currentEvent=active;
+    currentEvent.eventPromise=(async()=>{
+      const base=apiBase();if(!base)return null;
+      const response=await fetch(base+'/api/public/streams/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({song_id:songId,listener_token:listenerToken()}),cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||'Stream start failed');
+      if(data.already_qualified)currentEvent.qualified=true;
+      currentEvent.eventId=data.event_id||null;
+      return data;
+    })().catch(error=>{console.warn('ALU stream start deferred:',error);return null;});
+    await currentEvent.eventPromise;
+  }
+  async function progress(song,audio){
+    if(!song||!audio||!active||active.songId!==String(song.remoteSongId||'')||active.qualified)return;
+    const duration=Number(audio.duration||0);
+    const threshold=duration>0?Math.max(1,Math.min(30,Math.ceil(duration*.5))):30;
+    if(Number(audio.currentTime||0)<threshold||Date.now()-active.lastAttemptAt<10000)return;
+    active.lastAttemptAt=Date.now();
+    const currentEvent=active;
+    try{
+      await currentEvent.eventPromise;
+      if(!currentEvent.eventId)return;
+      const base=apiBase();if(!base)return;
+      const response=await fetch(base+'/api/public/streams/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:currentEvent.eventId,listener_token:listenerToken(),listened_seconds:Math.floor(audio.currentTime||0)}),cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(response.ok&&data.qualified)currentEvent.qualified=true;
+    }catch(error){console.warn('ALU stream qualification deferred:',error);}
+  }
+  return {begin,progress};
+})();
 function fmtTime(v){if(!isFinite(v)||v<0)return '0:00';const m=Math.floor(v/60),sec=Math.floor(v%60).toString().padStart(2,'0');return m+':'+sec}
 function syncFullPlayer(){if(!current)return;const miniPlayer=document.getElementById('player');if(miniPlayer)miniPlayer.classList.toggle('show',!!current&&!playerClosed&&window.ALU_ACTIVE_PAGE==='discover');document.getElementById('fullTitle').textContent=current.title;document.getElementById('fullArtist').textContent=(current.artist||'Artist Level Up')+' · '+(current.genre||'Music');const art=current.coverArt||current.coverUrl||current.coverImage||'';const cover=document.getElementById('fullCover');cover.innerHTML='';if(art){const img=document.createElement('img');img.src=art;cover.appendChild(img)}else cover.textContent='🎵';const mini=document.getElementById('playerCover');if(mini){mini.innerHTML='';if(art){const img2=document.createElement('img');img2.src=art;img2.style.width='100%';img2.style.height='100%';img2.style.objectFit='cover';img2.style.borderRadius='11px';mini.appendChild(img2)}else mini.textContent='🎵'}document.getElementById('fullPlay').textContent=playing?'⏸':'▶';document.getElementById('fullLike').textContent=current.liked?'♥':'♡'}
 function showFullPlayer(){document.getElementById('fullPlayer').classList.add('show');document.getElementById('fullPlayer').setAttribute('aria-hidden','false');syncFullPlayer()}
@@ -2225,7 +2270,7 @@ document.getElementById('player').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{const fa=e.target.closest('[data-full-action]');if(fa){const a=fa.dataset.fullAction;if(a==='close')closeFull();else if(a==='minimize')minimizeFull();else if(a==='toggle')fullToggle();else if(a==='like'){if(current)toggleLike(current.id);syncFullPlayer()}else if(a==='next'||a==='prev'){const arr=state.songs;let i=Math.max(0,arr.findIndex(x=>x.id===current?.id));let ni=a==='next'?(i+1)%arr.length:(i-1+arr.length)%arr.length;play(arr[ni].id)}return}const row=e.target.closest('.song');if(row&&!e.target.closest('button')){const b=row.querySelector('[data-play]');if(b)play(b.dataset.play)}});
 document.getElementById('closeMoneyBreakdown')?.addEventListener('click',()=>{const box=document.getElementById('moneyBreakdown');if(box)box.style.display='none';});document.getElementById('campaignDuration')?.addEventListener('change',()=>renderAll());document.getElementById('campaignBudget')?.addEventListener('change',()=>renderAll());
-const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
+const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('play',()=>{try{window.ALU_STREAM_TRACKER_V101?.begin(current)}catch(e){console.warn('ALU stream tracking skipped:',e)}});audio.addEventListener('timeupdate',()=>{try{window.ALU_STREAM_TRACKER_V101?.progress(current,audio)}catch(e){}});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
 const oldPublish=publishUploadedSong; publishUploadedSong=async function(){
  const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');
  const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];

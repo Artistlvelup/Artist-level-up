@@ -3402,7 +3402,7 @@ var worker_default = {
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
         return await memberStreamingRoyaltiesRoute(request, env, session.user_id);
       }
-      if (url.pathname === "/api/public/streams/start" || url.pathname === "/api/public/streams/complete") {
+      if (url.pathname === "/api/public/streams/start" || url.pathname === "/api/public/streams/heartbeat" || url.pathname === "/api/public/streams/complete") {
         return await streamingListenRoute(request, env, url);
       }
       if (url.pathname.startsWith("/api/public/songs")) {

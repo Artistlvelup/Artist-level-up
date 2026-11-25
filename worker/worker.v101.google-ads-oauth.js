@@ -672,6 +672,8 @@ __name(songsRoute, "songsRoute");
 async function streamingListenRoute(request, env, url) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  const origin = request.headers.get("Origin") || "";
+  if (!origin || !allowedOrigins(env).has(origin)) return json({ error: "Listening must start inside Artist Level Up." }, 403, cors);
   if (!env.SESSION_PEPPER) return json({ error: "Streaming service is temporarily unavailable" }, 503, cors);
   const body = await readJson(request);
   const listenerToken = cleanText(body?.listener_token, 128, true);
@@ -681,104 +683,88 @@ async function streamingListenRoute(request, env, url) {
   if (url.pathname === "/api/public/streams/start") {
     const songId = cleanText(body?.song_id, 80, true);
     if (!songId) return json({ error: "Song is required" }, 400, cors);
-    const song = await env.DB.prepare("SELECT s.id, s.artist_id FROM songs s JOIN artists a ON a.id = s.artist_id WHERE s.id = ? AND s.status IN ('published','approved') AND a.suspended = 0 LIMIT 1").bind(songId).first();
+    const song = await env.DB.prepare("SELECT s.id,s.artist_id,a.user_id FROM songs s JOIN artists a ON a.id=s.artist_id WHERE s.id=? AND s.status IN ('published','approved') AND a.suspended=0 LIMIT 1").bind(songId).first();
     if (!song) return json({ error: "Published song not found" }, 404, cors);
-    const prior = await env.DB.prepare("SELECT id FROM stream_listen_events WHERE song_id = ? AND listener_hash = ? AND qualified_at >= datetime('now','-24 hours') LIMIT 1").bind(songId, listenerHash).first();
+    const subscription = await env.DB.prepare("SELECT plan,status,starts_at,expires_at FROM artist_pro_subscriptions WHERE user_id=? LIMIT 1").bind(song.user_id).first();
+    if (!subscription || subscription.status !== "active" || subscription.plan !== "Monthly" || Date.parse(subscription.starts_at) > Date.now() || Date.parse(subscription.expires_at) <= Date.now()) return json({ error: "An active monthly Artist Pro subscription is required for this song to qualify." }, 403, cors);
+    const prior = await env.DB.prepare("SELECT id FROM stream_listen_events WHERE song_id=? AND listener_hash=? AND qualified_day=date('now') LIMIT 1").bind(songId,listenerHash).first();
     if (prior) return json({ ok: true, already_qualified: true }, 200, cors);
-    const id = crypto.randomUUID();
-    await env.DB.prepare("INSERT INTO stream_listen_events (id,song_id,artist_id,listener_hash,started_at,created_at) VALUES (?,?,?,?,?,?)").bind(id, song.id, song.artist_id, listenerHash, now, now).run();
-    return json({ ok: true, event_id: id, started_at: now }, 201, cors);
+    const pending = await env.DB.prepare("SELECT id,started_at FROM stream_listen_events WHERE song_id=? AND listener_hash=? AND qualified_at IS NULL AND started_at>=datetime('now','-10 minutes') ORDER BY started_at DESC LIMIT 1").bind(songId,listenerHash).first();
+    if (pending) return json({ ok: true, event_id: pending.id, started_at: pending.started_at, resumed: true }, 200, cors);
+    const id=crypto.randomUUID();
+    await env.DB.prepare("INSERT INTO stream_listen_events (id,song_id,artist_id,listener_hash,started_at,last_heartbeat_at,created_at) VALUES (?,?,?,?,?,?,?)").bind(id,song.id,song.artist_id,listenerHash,now,now,now).run();
+    return json({ok:true,event_id:id,started_at:now},201,cors);
+  }
+  if (url.pathname === "/api/public/streams/heartbeat") {
+    const eventId=cleanText(body?.event_id,80,true);
+    if(!eventId)return json({error:"Listening session is required."},400,cors);
+    const event=await env.DB.prepare("SELECT id,last_heartbeat_at,server_played_seconds,qualified_at FROM stream_listen_events WHERE id=? AND listener_hash=? LIMIT 1").bind(eventId,listenerHash).first();
+    if(!event)return json({error:"Listening session not found."},404,cors);
+    if(event.qualified_at)return json({ok:true,qualified:true,played_seconds:Number(event.server_played_seconds||0)},200,cors);
+    const lastMs=Date.parse(event.last_heartbeat_at||""), elapsed=Number.isFinite(lastMs)?Math.floor((Date.now()-lastMs)/1000):0;
+    if(elapsed<8)return json({ok:true,accepted:false,played_seconds:Number(event.server_played_seconds||0),retry_after:8-elapsed},200,cors);
+    const credit=elapsed<=20?Math.min(12,elapsed):0;
+    const result=await env.DB.prepare("UPDATE stream_listen_events SET last_heartbeat_at=?,heartbeat_count=heartbeat_count+1,server_played_seconds=server_played_seconds+? WHERE id=? AND listener_hash=? AND qualified_at IS NULL AND last_heartbeat_at=?").bind(now,credit,eventId,listenerHash,event.last_heartbeat_at).run();
+    if(!result.meta?.changes)return json({ok:true,accepted:false,played_seconds:Number(event.server_played_seconds||0)},200,cors);
+    return json({ok:true,accepted:credit>0,played_seconds:Number(event.server_played_seconds||0)+credit},200,cors);
   }
   if (url.pathname === "/api/public/streams/complete") {
-    const eventId = cleanText(body?.event_id, 80, true);
-    const listenedSeconds = Number(body?.listened_seconds);
-    if (!eventId || !Number.isInteger(listenedSeconds) || listenedSeconds < 1 || listenedSeconds > 86400) return json({ error: "Invalid listening completion" }, 400, cors);
-    const event = await env.DB.prepare("SELECT e.id,e.song_id,e.started_at,e.qualified_at,s.duration_seconds FROM stream_listen_events e JOIN songs s ON s.id=e.song_id WHERE e.id=? AND e.listener_hash=? LIMIT 1").bind(eventId, listenerHash).first();
-    if (!event) return json({ error: "Listening session not found" }, 404, cors);
-    if (event.qualified_at) return json({ ok: true, qualified: true, already_qualified: true }, 200, cors);
-    const elapsed = Math.floor((Date.now() - Date.parse(event.started_at)) / 1000);
-    const duration = Number(event.duration_seconds || 0);
-    const requiredSeconds = duration > 0 ? Math.max(1, Math.min(30, Math.ceil(duration * 0.5))) : 30;
-    if (!Number.isFinite(elapsed) || elapsed < requiredSeconds - 2 || listenedSeconds < requiredSeconds || listenedSeconds > elapsed + 3) {
-      return json({ ok: true, qualified: false, required_seconds: requiredSeconds }, 200, cors);
-    }
-    const day = now.slice(0, 10);
-    try {
-      const result = await env.DB.prepare("UPDATE stream_listen_events SET completed_at=?,listened_seconds=?,qualified_day=?,qualified_at=? WHERE id=? AND listener_hash=? AND qualified_at IS NULL").bind(now, listenedSeconds, day, now, eventId, listenerHash).run();
-      if (!result.meta?.changes) return json({ ok: true, qualified: false }, 200, cors);
-    } catch (error) {
-      if (String(error?.message || "").toLowerCase().includes("unique")) return json({ ok: true, qualified: false, already_qualified: true }, 200, cors);
+    const eventId=cleanText(body?.event_id,80,true);
+    if(!eventId)return json({error:"Invalid listening completion"},400,cors);
+    const event=await env.DB.prepare("SELECT e.id,e.song_id,e.started_at,e.qualified_at,e.server_played_seconds,s.duration_seconds FROM stream_listen_events e JOIN songs s ON s.id=e.song_id WHERE e.id=? AND e.listener_hash=? LIMIT 1").bind(eventId,listenerHash).first();
+    if(!event)return json({error:"Listening session not found"},404,cors);
+    if(event.qualified_at)return json({ok:true,qualified:true,already_qualified:true},200,cors);
+    const elapsed=Math.floor((Date.now()-Date.parse(event.started_at))/1000), duration=Number(event.duration_seconds||0);
+    const requiredSeconds=duration>0?Math.max(1,Math.min(30,Math.ceil(duration*0.5))):30;
+    const serverPlayed=Number(event.server_played_seconds||0);
+    if(!Number.isFinite(elapsed)||elapsed<requiredSeconds-2||serverPlayed<requiredSeconds)return json({ok:true,qualified:false,required_seconds:requiredSeconds,verified_played_seconds:serverPlayed},200,cors);
+    const day=now.slice(0,10);
+    try{
+      const result=await env.DB.prepare("UPDATE stream_listen_events SET completed_at=?,listened_seconds=?,qualified_day=?,qualified_at=? WHERE id=? AND listener_hash=? AND qualified_at IS NULL").bind(now,serverPlayed,day,now,eventId,listenerHash).run();
+      if(!result.meta?.changes)return json({ok:true,qualified:false},200,cors);
+    }catch(error){
+      if(String(error?.message||"").toLowerCase().includes("unique"))return json({ok:true,qualified:false,already_qualified:true},200,cors);
       throw error;
     }
-    return json({ ok: true, qualified: true, required_seconds: requiredSeconds }, 200, cors);
+    return json({ok:true,qualified:true,required_seconds:requiredSeconds},200,cors);
   }
   return null;
 }
 __name(streamingListenRoute, "streamingListenRoute");
 async function adminStreamingRevenueRoute(request, env, session) {
-  const cors = corsHeaders(request, env);
-  if (session?.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
-  if (request.method === "GET") {
-    const rows = await env.DB.prepare("SELECT id,source,external_reference,period_start,period_end,gross_minor,deductions_minor,net_minor,currency,received_at,verification_note,created_at FROM streaming_revenue_receipts ORDER BY received_at DESC LIMIT 100").all();
-    return json({ receipts: rows.results || [] }, 200, cors);
+  const cors=corsHeaders(request,env);
+  if(session?.role!=="admin")return json({error:"Admin access required"},403,cors);
+  if(request.method==="GET"){
+    const rows=await env.DB.prepare("SELECT id,source,external_reference,period_start,period_end,gross_minor,deductions_minor,net_minor,currency,received_at,verification_note,created_at FROM streaming_revenue_receipts ORDER BY received_at DESC LIMIT 100").all();
+    return json({receipts:rows.results||[]},200,cors);
   }
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  const body = await readJson(request);
-  const source = String(body?.source || "").trim().toLowerCase();
-  const reference = cleanText(body?.external_reference, 160, true);
-  const periodStart = String(body?.period_start || "");
-  const periodEnd = String(body?.period_end || "");
-  const gross = Number(body?.gross_minor);
-  const deductions = Number(body?.deductions_minor || 0);
-  const currency = String(body?.currency || "NGN").trim().toUpperCase();
-  if (source !== "advertising" || !reference || !/^\d{4}-\d{2}-\d{2}$/.test(periodStart) || !/^\d{4}-\d{2}-\d{2}$/.test(periodEnd) || periodEnd < periodStart || !Number.isSafeInteger(gross) || !Number.isSafeInteger(deductions) || gross < 0 || deductions < 0 || deductions > gross || !/^[A-Z]{3}$/.test(currency)) {
-    return json({ error: "Enter a valid advertising receipt, date range, currency, gross amount and deductions. Amounts must be in minor currency units." }, 400, cors);
-  }
-  const now = new Date().toISOString();
-  const id = crypto.randomUUID();
-  const net = gross - deductions;
-  try {
-    await env.DB.prepare("INSERT INTO streaming_revenue_receipts (id,source,external_reference,period_start,period_end,gross_minor,deductions_minor,net_minor,currency,received_at,verification_note,created_at) VALUES (?,'advertising',?,?,?,?,?,?,?,?,?,?)").bind(id, reference, periodStart, periodEnd, gross, deductions, net, currency, now, cleanText(body?.verification_note, 1000), now).run();
-  } catch (error) {
-    if (String(error?.message || "").toLowerCase().includes("unique")) return json({ error: "This advertising receipt reference has already been recorded." }, 409, cors);
-    throw error;
-  }
-  return json({ ok: true, receipt: { id, source, external_reference: reference, period_start: periodStart, period_end: periodEnd, gross_minor: gross, deductions_minor: deductions, net_minor: net, currency, received_at: now } }, 201, cors);
+  if(request.method==="POST")return json({error:"Advertising receipts can only be recorded through a verified advertising-provider integration. Manual revenue entries are disabled."},503,cors);
+  return json({error:"Method not allowed"},405,cors);
 }
 __name(adminStreamingRevenueRoute, "adminStreamingRevenueRoute");
 async function adminCloseStreamingRoyaltiesRoute(request, env, session) {
-  const cors = corsHeaders(request, env);
-  if (session?.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
-  const body = await readJson(request);
-  const start = String(body?.period_start || "");
-  const end = String(body?.period_end || "");
-  const currency = String(body?.currency || "NGN").trim().toUpperCase();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start || !/^[A-Z]{3}$/.test(currency)) return json({ error: "A valid monthly period and currency are required." }, 400, cors);
-  const existing = await env.DB.prepare("SELECT id,status FROM streaming_royalty_periods WHERE period_start=? AND period_end=? AND currency=? LIMIT 1").bind(start, end, currency).first();
-  if (existing) return json({ error: "This royalty period has already been created.", period_id: existing.id, status: existing.status }, 409, cors);
-  const receipts = await env.DB.prepare("SELECT COALESCE(SUM(net_minor),0) AS net_minor FROM streaming_revenue_receipts WHERE currency=? AND period_start=? AND period_end=?").bind(currency, start, end).first();
-  const net = Math.max(0, Number(receipts?.net_minor || 0));
-  const pool = Math.floor(net * 0.60);
-  const platform = net - pool;
-  const streams = await env.DB.prepare("SELECT artist_id,COUNT(*) AS qualified_streams FROM stream_listen_events WHERE qualified_at IS NOT NULL AND substr(qualified_at,1,10)>=? AND substr(qualified_at,1,10)<=? GROUP BY artist_id ORDER BY artist_id").bind(start, end).all();
-  const rows = streams.results || [];
-  const total = rows.reduce((sum, row) => sum + Number(row.qualified_streams || 0), 0);
-  const allocations = rows.map(row => {
-    const raw = total ? pool * Number(row.qualified_streams || 0) / total : 0;
-    return { artist_id: row.artist_id, qualified_streams: Number(row.qualified_streams || 0), share_minor: Math.floor(raw), remainder: raw - Math.floor(raw) };
-  });
-  let remaining = total ? pool - allocations.reduce((sum, row) => sum + row.share_minor, 0) : 0;
-  allocations.sort((a,b) => b.remainder - a.remainder || a.artist_id.localeCompare(b.artist_id));
-  for (let i = 0; i < allocations.length && remaining > 0; i++, remaining--) allocations[i].share_minor++;
-  const periodId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const statements = [
-    env.DB.prepare("INSERT INTO streaming_royalty_periods (id,period_start,period_end,currency,eligible_net_minor,artist_pool_minor,platform_share_minor,artist_share_percent,status,created_at) VALUES (?,?,?,?,?,?,?,60,'draft',?)").bind(periodId, start, end, currency, net, pool, platform, now)
-  ];
-  for (const row of allocations) statements.push(env.DB.prepare("INSERT INTO streaming_royalties (id,period_id,artist_id,qualified_streams,total_qualified_streams,share_minor,currency,status,created_at) VALUES (?,?,?,?,?,?,?,'pending',?)").bind(crypto.randomUUID(), periodId, row.artist_id, row.qualified_streams, total, row.share_minor, currency, now));
+  const cors=corsHeaders(request,env);
+  if(session?.role!=="admin")return json({error:"Admin access required"},403,cors);
+  if(request.method!=="POST")return json({error:"Method not allowed"},405,cors);
+  const body=await readJson(request), start=String(body?.period_start||""), end=String(body?.period_end||""), currency=String(body?.currency||"NGN").trim().toUpperCase();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start||! /^[A-Z]{3}$/.test(currency))return json({error:"A valid monthly period and currency are required."},400,cors);
+  const existing=await env.DB.prepare("SELECT id,status FROM streaming_royalty_periods WHERE period_start=? AND period_end=? AND currency=? LIMIT 1").bind(start,end,currency).first();
+  if(existing)return json({error:"This royalty period has already been created.",period_id:existing.id,status:existing.status},409,cors);
+  const receipts=await env.DB.prepare("SELECT COALESCE(SUM(net_minor),0) AS net_minor FROM streaming_revenue_receipts WHERE currency=? AND period_start=? AND period_end=?").bind(currency,start,end).first();
+  const net=Math.max(0,Number(receipts?.net_minor||0));
+  if(!net)return json({error:"No verified advertising revenue has been recorded for this period. Royalties cannot be calculated."},409,cors);
+  const pool=Math.floor(net*0.30), platform=net-pool;
+  const streams=await env.DB.prepare("WITH eligible_songs AS (SELECT song_id,artist_id FROM stream_listen_events WHERE qualified_at IS NOT NULL AND substr(qualified_at,1,10)>=date(?,'-29 days') AND substr(qualified_at,1,10)<=? GROUP BY song_id,artist_id HAVING COUNT(*)>=5000) SELECT e.artist_id,COUNT(*) AS qualified_streams FROM stream_listen_events e JOIN eligible_songs s ON s.song_id=e.song_id AND s.artist_id=e.artist_id WHERE e.qualified_at IS NOT NULL AND substr(e.qualified_at,1,10)>=? AND substr(e.qualified_at,1,10)<=? GROUP BY e.artist_id ORDER BY e.artist_id").bind(end,end,start,end).all();
+  const rows=streams.results||[], total=rows.reduce((sum,row)=>sum+Number(row.qualified_streams||0),0);
+  const allocations=rows.map(row=>{const raw=total?pool*Number(row.qualified_streams||0)/total:0;return{artist_id:row.artist_id,qualified_streams:Number(row.qualified_streams||0),share_minor:Math.floor(raw),remainder:raw-Math.floor(raw)};});
+  let remaining=total?pool-allocations.reduce((sum,row)=>sum+row.share_minor,0):0;
+  allocations.sort((a,b)=>b.remainder-a.remainder||a.artist_id.localeCompare(b.artist_id));
+  for(let i=0;i<allocations.length&&remaining>0;i++,remaining--)allocations[i].share_minor++;
+  const periodId=crypto.randomUUID(), now=new Date().toISOString();
+  const statements=[env.DB.prepare("INSERT INTO streaming_royalty_periods (id,period_start,period_end,currency,eligible_net_minor,artist_pool_minor,platform_share_minor,artist_share_percent,status,created_at) VALUES (?,?,?,?,?,?,?,30,'draft',?)").bind(periodId,start,end,currency,net,pool,platform,now)];
+  for(const row of allocations)statements.push(env.DB.prepare("INSERT INTO streaming_royalties (id,period_id,artist_id,qualified_streams,total_qualified_streams,share_minor,currency,status,created_at) VALUES (?,?,?,?,?,?,?,'pending',?)").bind(crypto.randomUUID(),periodId,row.artist_id,row.qualified_streams,total,row.share_minor,currency,now));
   await env.DB.batch(statements);
-  return json({ ok: true, period: { id: periodId, period_start: start, period_end: end, currency, eligible_net_minor: net, artist_pool_minor: pool, platform_share_minor: platform, artist_share_percent: 60, total_qualified_streams: total, artists_with_qualified_streams: rows.length, status: "draft" }, allocations: allocations.map(({remainder,...row})=>row), note: "Draft only. No wallet credit or bank transfer has been made." }, 201, cors);
+  return json({ok:true,period:{id:periodId,period_start:start,period_end:end,currency,eligible_net_minor:net,artist_pool_minor:pool,platform_share_minor:platform,artist_share_percent:30,total_qualified_streams:total,artists_with_qualified_songs:rows.length,status:"draft"},allocations:allocations.map(({remainder,...row})=>row),note:"Draft only. No wallet credit or bank transfer has been made."},201,cors);
 }
 __name(adminCloseStreamingRoyaltiesRoute, "adminCloseStreamingRoyaltiesRoute");
 async function memberStreamingRoyaltiesRoute(request, env, userId) {
@@ -786,7 +772,7 @@ async function memberStreamingRoyaltiesRoute(request, env, userId) {
   if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, cors);
   const artist = await env.DB.prepare("SELECT id FROM artists WHERE user_id=? AND suspended=0 LIMIT 1").bind(userId).first();
   if (!artist) return json({ royalties: [] }, 200, cors);
-  const rows = await env.DB.prepare("SELECT r.id,r.qualified_streams,r.total_qualified_streams,r.share_minor,r.currency,r.status,p.period_start,p.period_end,p.status AS period_status FROM streaming_royalties r JOIN streaming_royalty_periods p ON p.id=r.period_id WHERE r.artist_id=? ORDER BY p.period_start DESC LIMIT 36").bind(artist.id).all();
+  const rows = await env.DB.prepare("SELECT r.id,r.qualified_streams,r.total_qualified_streams,r.share_minor,r.currency,r.status,p.period_start,p.period_end,p.status AS period_status FROM streaming_royalties r JOIN streaming_royalty_periods p ON p.id=r.period_id WHERE r.artist_id=? AND p.status IN ('approved','paid') ORDER BY p.period_start DESC LIMIT 36").bind(artist.id).all();
   return json({ royalties: rows.results || [] }, 200, cors);
 }
 __name(memberStreamingRoyaltiesRoute, "memberStreamingRoyaltiesRoute");

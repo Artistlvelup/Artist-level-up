@@ -2043,7 +2043,7 @@ async function presignR2Put(env, objectKey, contentType) {
   const uploadUrl = "https://" + host + path + "?" + canonicalQuery + "&X-Amz-Signature=" + signature;
     const configuredPublicBase = String(env.R2_PUBLIC_BASE_URL || "");
     const publicBase = configuredPublicBase.endsWith("/") ? configuredPublicBase.slice(0, -1) : configuredPublicBase;
-    if (!publicBase.startsWith("https://"))
+    if (!/^https:\/\//i.test(publicBase)) throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
   return { uploadUrl, publicUrl: publicBase + "/" + objectKey.split("/").map(awsEncode).join("/"), objectKey, contentType, expiresIn: 300 };
 }
 __name(presignR2Put, "presignR2Put");

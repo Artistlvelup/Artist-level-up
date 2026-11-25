@@ -748,6 +748,9 @@ async function adminCloseStreamingRoyaltiesRoute(request, env, session) {
   if(request.method!=="POST")return json({error:"Method not allowed"},405,cors);
   const body=await readJson(request), start=String(body?.period_start||""), end=String(body?.period_end||""), currency=String(body?.currency||"NGN").trim().toUpperCase();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start||! /^[A-Z]{3}$/.test(currency))return json({error:"A valid monthly period and currency are required."},400,cors);
+  const startDate=new Date(start+"T00:00:00Z"), endDate=new Date(end+"T00:00:00Z");
+  const nextDay=new Date(endDate.getTime()+86400000);
+  if(!Number.isFinite(startDate.getTime())||!Number.isFinite(endDate.getTime())||start.slice(8,10)!=="01"||start.slice(0,7)!==end.slice(0,7)||nextDay.toISOString().slice(8,10)!=="01")return json({error:"Royalty calculations must cover one complete calendar month."},400,cors);
   const existing=await env.DB.prepare("SELECT id,status FROM streaming_royalty_periods WHERE period_start=? AND period_end=? AND currency=? LIMIT 1").bind(start,end,currency).first();
   if(existing)return json({error:"This royalty period has already been created.",period_id:existing.id,status:existing.status},409,cors);
   const receipts=await env.DB.prepare("SELECT COALESCE(SUM(net_minor),0) AS net_minor FROM streaming_revenue_receipts WHERE currency=? AND period_start=? AND period_end=?").bind(currency,start,end).first();

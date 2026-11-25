@@ -1210,7 +1210,7 @@ async function verifyPaystackSignature(rawBody, signature, secret) {
   return paystackHex(digest) === String(signature).toLowerCase();
 }
 __name(verifyPaystackSignature, "verifyPaystackSignature");
-async function initializePaystack(env, { email, amountNgn, reference, metadata, returnUrl, subaccount }) {
+async function initializePaystack(env, { email, amountNgn, reference, metadata, returnUrl, subaccount, bearer }) {
   if (!env.PAYSTACK_SECRET_KEY)
     throw new Error("PAYSTACK_SECRET_KEY is not configured in the Cloudflare Worker.");
   const callback = String(returnUrl || env.APP_PUBLIC_URL || "https://artistlevelup.com.ng");
@@ -1224,7 +1224,8 @@ async function initializePaystack(env, { email, amountNgn, reference, metadata, 
       reference,
       callback_url: safeCallback,
       metadata,
-      ...(subaccount ? { subaccount } : {})
+      ...(subaccount ? { subaccount } : {}),
+      ...(bearer === "account" || bearer === "subaccount" ? { bearer } : {})
     })
   });
   const payload = await response2.json().catch(() => ({}));
@@ -1473,7 +1474,8 @@ async function courseCheckoutRoute(request, env, userId) {
       reference,
       metadata: { ...metadata, producer_user_id: beat.producer_user_id },
       returnUrl: body?.return_url,
-      subaccount: producerPayout.subaccount_code
+      subaccount: producerPayout.subaccount_code,
+      bearer: "account"
     });
     return json({ ok: true, authorization_url: checkout.authorization_url, reference }, 200, cors);
   } catch (error) {

@@ -669,6 +669,52 @@ async function songsRoute(request, env, userId, url) {
   return null;
 }
 __name(songsRoute, "songsRoute");
+async function streamingListenRoute(request, env, url) {
+  const cors = corsHeaders(request, env);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  if (!env.SESSION_PEPPER) return json({ error: "Streaming service is temporarily unavailable" }, 503, cors);
+  const body = await readJson(request);
+  const listenerToken = cleanText(body?.listener_token, 128, true);
+  if (!listenerToken || listenerToken.length < 20) return json({ error: "A valid listener token is required" }, 400, cors);
+  const listenerHash = await hashToken2("alu-stream-listener:" + listenerToken, env.SESSION_PEPPER);
+  const now = new Date().toISOString();
+  if (url.pathname === "/api/public/streams/start") {
+    const songId = cleanText(body?.song_id, 80, true);
+    if (!songId) return json({ error: "Song is required" }, 400, cors);
+    const song = await env.DB.prepare("SELECT s.id, s.artist_id FROM songs s JOIN artists a ON a.id = s.artist_id WHERE s.id = ? AND s.status IN ('published','approved') AND a.suspended = 0 LIMIT 1").bind(songId).first();
+    if (!song) return json({ error: "Published song not found" }, 404, cors);
+    const prior = await env.DB.prepare("SELECT id FROM stream_listen_events WHERE song_id = ? AND listener_hash = ? AND qualified_at >= datetime('now','-24 hours') LIMIT 1").bind(songId, listenerHash).first();
+    if (prior) return json({ ok: true, already_qualified: true }, 200, cors);
+    const id = crypto.randomUUID();
+    await env.DB.prepare("INSERT INTO stream_listen_events (id,song_id,artist_id,listener_hash,started_at,created_at) VALUES (?,?,?,?,?,?)").bind(id, song.id, song.artist_id, listenerHash, now, now).run();
+    return json({ ok: true, event_id: id, started_at: now }, 201, cors);
+  }
+  if (url.pathname === "/api/public/streams/complete") {
+    const eventId = cleanText(body?.event_id, 80, true);
+    const listenedSeconds = Number(body?.listened_seconds);
+    if (!eventId || !Number.isInteger(listenedSeconds) || listenedSeconds < 1 || listenedSeconds > 86400) return json({ error: "Invalid listening completion" }, 400, cors);
+    const event = await env.DB.prepare("SELECT e.id,e.song_id,e.started_at,e.qualified_at,s.duration_seconds FROM stream_listen_events e JOIN songs s ON s.id=e.song_id WHERE e.id=? AND e.listener_hash=? LIMIT 1").bind(eventId, listenerHash).first();
+    if (!event) return json({ error: "Listening session not found" }, 404, cors);
+    if (event.qualified_at) return json({ ok: true, qualified: true, already_qualified: true }, 200, cors);
+    const elapsed = Math.floor((Date.now() - Date.parse(event.started_at)) / 1000);
+    const duration = Number(event.duration_seconds || 0);
+    const requiredSeconds = duration > 0 ? Math.max(1, Math.min(30, Math.ceil(duration * 0.5))) : 30;
+    if (!Number.isFinite(elapsed) || elapsed < requiredSeconds - 2 || listenedSeconds < requiredSeconds || listenedSeconds > elapsed + 3) {
+      return json({ ok: true, qualified: false, required_seconds: requiredSeconds }, 200, cors);
+    }
+    const day = now.slice(0, 10);
+    try {
+      const result = await env.DB.prepare("UPDATE stream_listen_events SET completed_at=?,listened_seconds=?,qualified_day=?,qualified_at=? WHERE id=? AND listener_hash=? AND qualified_at IS NULL").bind(now, listenedSeconds, day, now, eventId, listenerHash).run();
+      if (!result.meta?.changes) return json({ ok: true, qualified: false }, 200, cors);
+    } catch (error) {
+      if (String(error?.message || "").toLowerCase().includes("unique")) return json({ ok: true, qualified: false, already_qualified: true }, 200, cors);
+      throw error;
+    }
+    return json({ ok: true, qualified: true, required_seconds: requiredSeconds }, 200, cors);
+  }
+  return null;
+}
+__name(streamingListenRoute, "streamingListenRoute");
 async function publicVideosRoute(request, env, url) {
   if (request.method !== "GET" || url.pathname !== "/api/public/videos")
     return null;
@@ -3279,6 +3325,9 @@ var worker_default = {
         const result = await publicVideosRoute(request, env, url);
         if (result)
           return result;
+      }
+      if (url.pathname === "/api/public/streams/start" || url.pathname === "/api/public/streams/complete") {
+        return await streamingListenRoute(request, env, url);
       }
       if (url.pathname.startsWith("/api/public/songs")) {
         const result = await publicSongsRoute(request, env, url);

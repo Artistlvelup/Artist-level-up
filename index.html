@@ -2214,7 +2214,7 @@ window.ALU_STREAM_TRACKER_V101=window.ALU_STREAM_TRACKER_V101||(()=>{
       return token;
     }catch(e){return crypto.randomUUID();}
   }
-  function apiBase(){return String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\\/$/,'');}
+  function apiBase(){return String(window.ALU_CLOUDFLARE_API_BASE||window.ALU_CLOUDFLARE_API||'').replace(/\/$/,'');}
   async function begin(song){
     const songId=String(song?.remoteSongId||'');
     if(!songId)return;

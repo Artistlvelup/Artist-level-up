@@ -1816,6 +1816,51 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
   }
 }
 __name(marketplaceDownloadRoute, "marketplaceDownloadRoute");
+async function adminMigrateMarketplacePrivateMastersRoute(request, env, session) {
+  const cors = corsHeaders(request, env);
+  if (session?.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, cors);
+  if (!env.MEDIA_BUCKET || !env.MARKETPLACE_BUCKET || typeof env.MEDIA_BUCKET.get !== "function" || typeof env.MARKETPLACE_BUCKET.put !== "function") {
+    return json({ error: "Private marketplace storage is not configured." }, 503, cors);
+  }
+  const baseText = String(env.R2_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  let base;
+  try { base = new URL(baseText); } catch { return json({ error: "Public media storage configuration is invalid." }, 503, cors); }
+  const rows = await env.DB.prepare(
+    "SELECT b.id, b.audio_file_url, a.id AS artist_id FROM marketplace_beats b JOIN artists a ON a.user_id = b.producer_user_id WHERE b.audio_file_url LIKE ? ORDER BY b.created_at ASC LIMIT 100"
+  ).bind(baseText + "/%").all();
+  let migrated = 0, skipped = 0, failed = 0;
+  const details = [];
+  for (const row of rows.results || []) {
+    try {
+      const oldUrl = new URL(String(row.audio_file_url || ""));
+      if (oldUrl.origin !== base.origin || oldUrl.search || oldUrl.hash) { skipped++; continue; }
+      const key = decodeURIComponent(oldUrl.pathname.replace(/^\//, ""));
+      if (!key.startsWith(String(row.artist_id) + "/beats/") || !/^[0-9a-f-]{36}\/beats\/[A-Za-z0-9._-]{1,180}$/i.test(key)) { skipped++; continue; }
+      const object = await env.MEDIA_BUCKET.get(key);
+      if (!object) { failed++; details.push({ id: row.id, reason: "source_object_missing" }); continue; }
+      const filename = key.split("/").pop().replace(/[^A-Za-z0-9._-]/g, "_");
+      const privateKey = String(row.artist_id) + "/beats-private/" + crypto.randomUUID() + "-" + filename;
+      await env.MARKETPLACE_BUCKET.put(privateKey, object.body, {
+        httpMetadata: object.httpMetadata,
+        customMetadata: object.customMetadata
+      });
+      const update = await env.DB.prepare("UPDATE marketplace_beats SET audio_file_url = ? WHERE id = ? AND audio_file_url = ?").bind(privateKey, row.id, row.audio_file_url).run();
+      if (!update.meta?.changes) {
+        await env.MARKETPLACE_BUCKET.delete(privateKey);
+        skipped++;
+        continue;
+      }
+      migrated++;
+      details.push({ id: row.id, status: "migrated" });
+    } catch (error) {
+      failed++;
+      details.push({ id: row.id, reason: String(error?.message || "migration_failed").slice(0, 120) });
+    }
+  }
+  return json({ ok: failed === 0, scanned: (rows.results || []).length, migrated, skipped, failed, details }, 200, cors);
+}
+__name(adminMigrateMarketplacePrivateMastersRoute, "adminMigrateMarketplacePrivateMastersRoute");
 async function picturePostsRoute(request, env, userId, url, mode = "member") {
   const cors = corsHeaders(request, env);
   if (mode === "public" && request.method === "GET") {
@@ -3178,6 +3223,12 @@ var worker_default = {
         const result = await adminDashboardRoute(request, env, session);
         if (result)
           return result;
+      }
+      if (url.pathname === "/api/admin/marketplace/migrate-private-masters") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+        return await adminMigrateMarketplacePrivateMastersRoute(request, env, session);
       }
       if (url.pathname === "/api/admin/marketplace/beats" || /^\/api\/admin\/marketplace\/beats\/[0-9a-f-]{36}$/i.test(url.pathname)) {
         const session = await validateSession(request, env);

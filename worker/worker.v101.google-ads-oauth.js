@@ -1808,6 +1808,8 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
   if (!env.MARKETPLACE_BUCKET || typeof env.MARKETPLACE_BUCKET.get !== "function")
     return json({ error: "Secure marketplace storage is temporarily unavailable." }, 503, corsHeaders(request, env));
   try {
+    const storedObject = await env.MARKETPLACE_BUCKET.head(masterKey);
+    if (!storedObject) return json({ error: "The licensed master file is not available in private storage yet." }, 404, corsHeaders(request, env));
     const downloadUrl = await presignR2Object(env, masterKey, "GET", "", String(env.MARKETPLACE_R2_BUCKET || "artist-level-up-marketplace-private"), 60);
     return json({ ok: true, title: order.beat_title, download_url: downloadUrl, expires_in: 60 }, 200, corsHeaders(request, env));
   } catch (error) {

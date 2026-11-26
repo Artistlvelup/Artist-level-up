@@ -1800,9 +1800,20 @@ async function marketplaceDownloadRoute(request, env, userId, url) {
   ).bind(orderId, userId).first();
   if (!order || order.status !== "paid")
     return json({ error: "Paid order not found" }, 404, corsHeaders(request, env));
-  if (!order.audio_file_url)
+  const masterKey = String(order.audio_file_url || "");
+  if (!masterKey)
     return json({ error: "The producer has not uploaded the licensed audio file yet" }, 409, corsHeaders(request, env));
-  return json({ ok: true, title: order.beat_title, download_url: order.audio_file_url }, 200, corsHeaders(request, env));
+  if (!/^[0-9a-f-]{36}\/beats-private\/[A-Za-z0-9._-]{1,180}$/i.test(masterKey))
+    return json({ error: "This beat is awaiting secure master-file migration. Please contact support." }, 409, corsHeaders(request, env));
+  if (!env.MARKETPLACE_BUCKET || typeof env.MARKETPLACE_BUCKET.get !== "function")
+    return json({ error: "Secure marketplace storage is temporarily unavailable." }, 503, corsHeaders(request, env));
+  try {
+    const downloadUrl = await presignR2Object(env, masterKey, "GET", "", String(env.MARKETPLACE_R2_BUCKET || "artist-level-up-marketplace-private"), 60);
+    return json({ ok: true, title: order.beat_title, download_url: downloadUrl, expires_in: 60 }, 200, corsHeaders(request, env));
+  } catch (error) {
+    console.error("MARKETPLACE_PRIVATE_DOWNLOAD_ERROR", error);
+    return json({ error: "Secure download could not be prepared." }, 503, corsHeaders(request, env));
+  }
 }
 __name(marketplaceDownloadRoute, "marketplaceDownloadRoute");
 async function picturePostsRoute(request, env, userId, url, mode = "member") {
@@ -1908,14 +1919,15 @@ async function marketplaceBeatsRoute(request, env, userId, url, admin = false) {
     const mood = cleanText(body?.mood, 80);
     const bpm = body?.bpm == null || body.bpm === "" ? null : Number(body.bpm);
     const price = Number(body?.price_ngn);
-    const audioUrl = cleanText(body?.audio_file_url, 2048, true);
-    const previewUrl = cleanText(body?.audio_preview_url || body?.audio_file_url, 2048, true);
+    const audioUrl = cleanText(body?.audio_file_url, 512, true);
+    const previewUrl = cleanText(body?.audio_preview_url, 2048, true);
     const license = cleanText(body?.default_license || "Premium", 24, true);
     if (!title || !audioUrl || !previewUrl || !Number.isFinite(price) || price <= 0 || bpm != null && (!Number.isInteger(bpm) || bpm < 30 || bpm > 300)) {
       return json({ error: "Enter a title, valid price, and uploaded beat master and preview" }, 400, cors);
     }
-    if (!trustedR2ObjectUrl(audioUrl, env, artist.id, "beats") || !trustedR2ObjectUrl(previewUrl, env, artist.id, "beats")) {
-      return json({ error: "BEAT_AUDIO_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
+    const privateMasterPrefix = artist.id + "/beats-private/";
+    if (!audioUrl.startsWith(privateMasterPrefix) || !/^[0-9a-f-]{36}\/beats-private\/[A-Za-z0-9._-]{1,180}$/i.test(audioUrl) || !trustedR2ObjectUrl(previewUrl, env, artist.id, "beats")) {
+      return json({ error: "BEAT_MASTER_MUST_USE_PRIVATE_STORAGE_AND_PREVIEW_MUST_BE_AN_OWNED_R2_UPLOAD" }, 400, cors);
     }
     if (!(/* @__PURE__ */ new Set(["Basic", "Premium", "Exclusive"])).has(license))
       return json({ error: "Invalid default licence" }, 400, cors);
@@ -2200,11 +2212,11 @@ async function videoUploadIntentRoute(request, env, userId) {
   }
 }
 __name(videoUploadIntentRoute, "videoUploadIntentRoute");
-async function presignR2Object(env, objectKey, method, contentType = "") {
+async function presignR2Object(env, objectKey, method, contentType = "", bucketOverride = "", expiresSeconds = 300) {
   const account = String(env.CLOUDFLARE_ACCOUNT_ID || "");
   const accessKey = String(env.R2_ACCESS_KEY_ID || "");
   const secret = String(env.R2_SECRET_ACCESS_KEY || "");
-  const bucket = String(env.R2_DISTRIBUTION_BUCKET || "");
+  const bucket = String(bucketOverride || env.R2_DISTRIBUTION_BUCKET || "");
   if (!/^[a-f0-9]{32}$/i.test(account) || !accessKey || !secret || !bucket) {
     throw new Error("DISTRIBUTION_R2_NOT_CONFIGURED");
   }
@@ -2218,7 +2230,7 @@ async function presignR2Object(env, objectKey, method, contentType = "") {
     "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
     "X-Amz-Credential": accessKey + "/" + scope,
     "X-Amz-Date": amzDate,
-    "X-Amz-Expires": "300",
+    "X-Amz-Expires": String(Math.max(1, Math.min(604800, Math.floor(Number(expiresSeconds) || 300)))),
     "X-Amz-SignedHeaders": method === "PUT" ? "content-type;host" : "host"
   });
   const headers = method === "PUT" ? "content-type:" + contentType + "\nhost:" + host + "\n" : "host:" + host + "\n";
@@ -2272,7 +2284,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
   const filename = cleanText(url.searchParams.get("filename"), 180, true);
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
-  if (!["audio", "beat", "thumbnail", "picture", "video"].includes(purpose))
+  if (!["audio", "beat", "beat-master", "thumbnail", "picture", "video"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const artist = await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
@@ -2280,29 +2292,31 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   if (!artist)
     return json({ error: "Active artist account required" }, 403, cors);
   if (purpose === "audio") return json({ error: "Streaming music uploads are temporarily paused during the launch promotion." }, 403, cors);
-  if (purpose === "beat") {
+  if (purpose === "beat" || purpose === "beat-master") {
     const sub = await env.DB.prepare("SELECT status, expires_at FROM artist_pro_subscriptions WHERE user_id = ? LIMIT 1").bind(userId).first();
     if (!sub || sub.status !== "active" || Date.parse(sub.expires_at) <= Date.now()) return json({ error: "An active Artist Pro subscription is required to upload marketplace beats during the launch promotion." }, 403, cors);
   }
-  const allowed = purpose === "audio" || purpose === "beat" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
+  const allowed = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
   if (!allowed.has(contentType))
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   const declaredSizeHeader = request.headers.get("Content-Length");
   const declaredSize = declaredSizeHeader === null ? null : Number(declaredSizeHeader);
-  const maxBytes = purpose === "audio" || purpose === "beat" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
+  const maxBytes = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
   if (declaredSize !== null && (!Number.isSafeInteger(declaredSize) || declaredSize < 1 || declaredSize > maxBytes))
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
-  const defaultExtension = purpose === "audio" ? "mp3" : purpose === "video" ? "mp4" : "jpg";
+  const defaultExtension = purpose === "audio" || purpose === "beat-master" || purpose === "beat" ? "mp3" : purpose === "video" ? "mp4" : "jpg";
   const extension = (filename.includes(".") ? filename.split(".").pop() : defaultExtension).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-  const folder = purpose === "audio" ? "audio" : purpose === "beat" ? "beats" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
+  const privateMaster = purpose === "beat-master";
+  const folder = purpose === "audio" ? "audio" : privateMaster ? "beats-private" : purpose === "beat" ? "beats" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
   const key = artist.id + "/" + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
-    if (!env.MEDIA_BUCKET || typeof env.MEDIA_BUCKET.put !== "function")
-      throw new Error("R2_BINDING_NOT_CONFIGURED");
+    const targetBucket = privateMaster ? env.MARKETPLACE_BUCKET : env.MEDIA_BUCKET;
+    if (!targetBucket || typeof targetBucket.put !== "function")
+      throw new Error(privateMaster ? "MARKETPLACE_PRIVATE_BUCKET_NOT_CONFIGURED" : "R2_BINDING_NOT_CONFIGURED");
     const configuredPublicBase = String(env.R2_PUBLIC_BASE_URL || "");
     const publicBase = configuredPublicBase.endsWith("/") ? configuredPublicBase.slice(0, -1) : configuredPublicBase;
-    if (!publicBase.startsWith("https://"))
+    if (!privateMaster && !publicBase.startsWith("https://"))
       throw new Error("R2_PUBLIC_URL_NOT_CONFIGURED");
     if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
     let uploadBody;
@@ -2317,7 +2331,8 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
       if (!request.body) throw new Error("UPLOAD_BODY_MISSING");
       uploadBody = request.body;
     }
-    await env.MEDIA_BUCKET.put(key, uploadBody, { httpMetadata: { contentType } });
+    await targetBucket.put(key, uploadBody, { httpMetadata: { contentType } });
+    if (privateMaster) return json({ remote: true, path: key, private: true, contentType }, 200, cors);
     const publicUrl = publicBase + "/" + key.split("/").map(awsEncode).join("/");
     return json({ remote: true, path: key, url: publicUrl, contentType }, 200, cors);
   } catch (error) {

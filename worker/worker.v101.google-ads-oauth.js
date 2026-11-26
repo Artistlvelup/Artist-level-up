@@ -1829,8 +1829,8 @@ async function adminMigrateMarketplacePrivateMastersRoute(request, env, session)
   let base;
   try { base = new URL(baseText); } catch { return json({ error: "Public media storage configuration is invalid." }, 503, cors); }
   const rows = await env.DB.prepare(
-    "SELECT b.id, b.audio_file_url, b.audio_preview_url, a.id AS artist_id FROM marketplace_beats b JOIN artists a ON a.user_id = b.producer_user_id WHERE b.audio_file_url LIKE ? ORDER BY b.created_at ASC LIMIT 100"
-  ).bind(baseText + "/%").all();
+    "SELECT b.id, b.audio_file_url, b.audio_preview_url, a.id AS artist_id FROM marketplace_beats b JOIN artists a ON a.user_id = b.producer_user_id WHERE substr(b.audio_file_url, 1, length(?)) = ? ORDER BY b.created_at ASC LIMIT 100"
+  ).bind(baseText + "/", baseText + "/").all();
   let migrated = 0, skipped = 0, failed = 0;
   const details = [];
   for (const row of rows.results || []) {

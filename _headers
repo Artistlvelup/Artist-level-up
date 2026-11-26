@@ -1,3 +1,4 @@
+# Baseline security headers for Artist Level Up V101
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

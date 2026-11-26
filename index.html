@@ -18,6 +18,17 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-2LNL5LZCCJ');
+  // Privacy-conscious V101 analytics: never send names, emails, or other personal data.
+  window.ALU_TRACK_EVENT_V101 = function(eventName, params){
+    try {
+      if(typeof window.gtag!=='function') return;
+      var allowed = ['artist_registration_complete','music_playback_started','content_share_completed'];
+      if(!allowed.includes(String(eventName))) return;
+      var safe = {};
+      if(params && params.content_type) safe.content_type = String(params.content_type).slice(0,40);
+      window.gtag('event', eventName, safe);
+    } catch(e) {}
+  };
 </script>
 
 <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
@@ -2301,7 +2312,7 @@ document.getElementById('player').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{const fa=e.target.closest('[data-full-action]');if(fa){const a=fa.dataset.fullAction;if(a==='close')closeFull();else if(a==='minimize')minimizeFull();else if(a==='toggle')fullToggle();else if(a==='like'){if(current)toggleLike(current.id);syncFullPlayer()}else if(a==='next'||a==='prev'){const arr=state.songs;let i=Math.max(0,arr.findIndex(x=>x.id===current?.id));let ni=a==='next'?(i+1)%arr.length:(i-1+arr.length)%arr.length;play(arr[ni].id)}return}const row=e.target.closest('.song');if(row&&!e.target.closest('button')){const b=row.querySelector('[data-play]');if(b)play(b.dataset.play)}});
 document.getElementById('closeMoneyBreakdown')?.addEventListener('click',()=>{const box=document.getElementById('moneyBreakdown');if(box)box.style.display='none';});document.getElementById('campaignDuration')?.addEventListener('change',()=>renderAll());document.getElementById('campaignBudget')?.addEventListener('change',()=>renderAll());
-const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('play',()=>{try{window.ALU_STREAM_TRACKER_V101?.begin(current)}catch(e){console.warn('ALU stream tracking skipped:',e)}});audio.addEventListener('timeupdate',()=>{try{window.ALU_STREAM_TRACKER_V101?.progress(current,audio)}catch(e){}});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
+const seek=document.getElementById('fullSeek');seek.addEventListener('input',()=>{const a=document.getElementById('audioEngine');if(a.duration){a.currentTime=(Number(seek.value)/100)*a.duration}});const vol=document.getElementById('fullVolume');vol.addEventListener('input',()=>document.getElementById('audioEngine').volume=Number(vol.value));const audio=document.getElementById('audioEngine');audio.addEventListener('loadedmetadata',()=>{document.getElementById('fullDuration').textContent=fmtTime(audio.duration)});audio.addEventListener('timeupdate',()=>{if(audio.duration){const p=(audio.currentTime/audio.duration)*100;seek.value=p;document.getElementById('playerProgress').style.width=p+'%';document.getElementById('fullCurrent').textContent=fmtTime(audio.currentTime)}});audio.addEventListener('play',()=>{playing=true;syncFullPlayer()});audio.addEventListener('play',()=>{try{if(current&&!current.offlineOnly)window.ALU_TRACK_EVENT_V101?.('music_playback_started',{content_type:'music'})}catch(e){}});audio.addEventListener('play',()=>{try{window.ALU_STREAM_TRACKER_V101?.begin(current)}catch(e){console.warn('ALU stream tracking skipped:',e)}});audio.addEventListener('timeupdate',()=>{try{window.ALU_STREAM_TRACKER_V101?.progress(current,audio)}catch(e){}});audio.addEventListener('pause',()=>{playing=false;syncFullPlayer()});/* Queue controller owns the audio ended event. */
 const oldPublish=publishUploadedSong; publishUploadedSong=async function(){
  const btn=document.querySelector('#uploadModal button[onclick*="publishUploadedSong"]');
  const t=document.getElementById('upTitle')?.value.trim(),g=document.getElementById('upGenre')?.value.trim()||'Music',a=document.getElementById('upAudio')?.files?.[0],c=document.getElementById('upCover')?.files?.[0];
@@ -2989,6 +3000,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
       if(artist?.id){
         window.ALU_CLOUD.artistId=artist.id;
         state.artistRegistered=true;
+      try{window.ALU_TRACK_EVENT_V101?.('artist_registration_complete',{content_type:'artist_profile'})}catch(e){}
         state.profile=state.profile||{};
         state.profile.name=artist.artist_name||state.profile.name||'';
         state.profile.country=artist.country||state.profile.country||'Nigeria';
@@ -3896,7 +3908,7 @@ const oldCourseRenderAll=window.renderAll;window.renderAll=function(){oldCourseR
 (function(){
   function esc2(v){return typeof window.esc==='function'?window.esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function publishedVideos(){const st=typeof getState==='function'?getState():state;return (st?.videos||[]).filter(v=>v.cloudSaved===true&&!!v.remoteVideoId&&['Published','published'].includes(String(v.status||''))&&mediaSrc(v)).sort((a,b)=>Number(b.createdAtTs||0)-Number(a.createdAtTs||0));}
-  function shareVideo(v){const url=mediaSrc(v),text=`${v.title||'Artist Level Up video'} — Artist Level Up`;if(navigator.share){navigator.share({title:v.title||'Artist Level Up',text,url}).catch(()=>{})}else{navigator.clipboard?.writeText(url).then(()=>toastMsg('Video link copied ✓')).catch(()=>toastMsg('Share is not available on this device'))}}
+  function shareVideo(v){const url=mediaSrc(v),text=`${v.title||'Artist Level Up video'} — Artist Level Up`;const tracked=()=>{try{window.ALU_TRACK_EVENT_V101?.('content_share_completed',{content_type:'video'})}catch(e){}};if(navigator.share){navigator.share({title:v.title||'Artist Level Up',text,url}).then(tracked).catch(()=>{})}else{navigator.clipboard?.writeText(url).then(()=>{tracked();toastMsg('Video link copied ✓')}).catch(()=>toastMsg('Share is not available on this device'))}}
   function renderGlobalVideoDiscovery(){
     const vids=publishedVideos(),home=document.getElementById('globalVideoDiscovery'),strip=document.getElementById('globalVideoDiscoveryFeed'),full=document.getElementById('globalVideoFullFeed');
     if(home){home.classList.toggle('empty',!vids.length);if(strip)strip.innerHTML=vids.slice(0,8).map(v=>miniCard(v)).join('')}

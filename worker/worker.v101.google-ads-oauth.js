@@ -430,7 +430,7 @@ async function verifyPasswordlessLogin(request, env, cors, createSession) {
 __name(verifyPasswordlessLogin, "verifyPasswordlessLogin");
 
 // workers/auth/worker.js
-var SESSION_TTL_SECONDS = 60 * 60 * 24 * 365;
+var SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 function allowedOrigins(env) {
   return new Set(String(env.ALLOWED_ORIGINS || "").split(",").map((x) => x.trim()).filter(Boolean));
 }
@@ -2658,8 +2658,8 @@ async function validateSession(request, env) {
   const tokenHash = await hashToken2(token, env.SESSION_PEPPER);
   const now = Math.floor(Date.now() / 1e3);
   await env.DB.prepare(
-    "UPDATE app_sessions SET expires_at = ? WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
-  ).bind(now + SESSION_TTL_SECONDS, tokenHash, now).run();
+    "UPDATE app_sessions SET expires_at = MIN(expires_at, created_at + ?) WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?"
+  ).bind(SESSION_TTL_SECONDS, tokenHash, now).run();
   const row = await env.DB.prepare(
     "SELECT s.user_id, s.expires_at, c.email_normalized, c.email_verified_at, CASE WHEN EXISTS (SELECT 1 FROM platform_admins pa WHERE pa.user_id = s.user_id AND pa.active = 1) THEN 'admin' ELSE 'user' END AS role FROM app_sessions s JOIN app_users u ON u.user_id = s.user_id JOIN app_session_families f ON f.family_id = s.family_id LEFT JOIN app_credentials c ON c.user_id = s.user_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ? AND u.status = 'active' AND f.revoked_at IS NULL LIMIT 1"
   ).bind(tokenHash, now).first();

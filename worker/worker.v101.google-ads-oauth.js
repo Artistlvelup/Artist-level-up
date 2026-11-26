@@ -1827,12 +1827,17 @@ async function adminMigrateMarketplacePrivateMastersRoute(request, env, session)
   let base;
   try { base = new URL(baseText); } catch { return json({ error: "Public media storage configuration is invalid." }, 503, cors); }
   const rows = await env.DB.prepare(
-    "SELECT b.id, b.audio_file_url, a.id AS artist_id FROM marketplace_beats b JOIN artists a ON a.user_id = b.producer_user_id WHERE b.audio_file_url LIKE ? ORDER BY b.created_at ASC LIMIT 100"
+    "SELECT b.id, b.audio_file_url, b.audio_preview_url, a.id AS artist_id FROM marketplace_beats b JOIN artists a ON a.user_id = b.producer_user_id WHERE b.audio_file_url LIKE ? ORDER BY b.created_at ASC LIMIT 100"
   ).bind(baseText + "/%").all();
   let migrated = 0, skipped = 0, failed = 0;
   const details = [];
   for (const row of rows.results || []) {
     try {
+      if (String(row.audio_preview_url || "") === String(row.audio_file_url || "")) {
+        skipped++;
+        details.push({ id: row.id, reason: "preview_is_full_master_upload_a_separate_preview_first" });
+        continue;
+      }
       const oldUrl = new URL(String(row.audio_file_url || ""));
       if (oldUrl.origin !== base.origin || oldUrl.search || oldUrl.hash) { skipped++; continue; }
       const key = decodeURIComponent(oldUrl.pathname.replace(/^\//, ""));
@@ -1851,6 +1856,7 @@ async function adminMigrateMarketplacePrivateMastersRoute(request, env, session)
         skipped++;
         continue;
       }
+      await env.MEDIA_BUCKET.delete(key);
       migrated++;
       details.push({ id: row.id, status: "migrated" });
     } catch (error) {

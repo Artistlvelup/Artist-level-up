@@ -1,0 +1,1 @@
+mkdir -p dist/admin-control && cp index.html dist/index.html && cp admin-control/index.html dist/admin-control/index.html && cp privacy-policy.html dist/privacy-policy.html && cp terms.html dist/terms.html && cp sitemap.xml dist/sitemap.xml && cp robots.txt dist/robots.txt && cp _headers dist/_headers && mkdir -p dist/about && cp about/index.html dist/about/index.html

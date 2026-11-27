@@ -221,6 +221,19 @@
 .alu-public-cta .muted{margin-bottom:0}
 @media(max-width:360px){.alu-public-feature-grid{grid-template-columns:1fr}.alu-public-info{padding:15px 12px}}
 
+
+/* V101 About page entry — keep the main discovery screen focused */
+.alu-about-entry{display:flex;align-items:center;gap:10px;margin:22px 14px 28px;padding:13px;border:1px solid #373943;border-radius:14px;background:#171920}
+.alu-about-entry>span{font-size:22px}
+.alu-about-entry div{flex:1;min-width:0}
+.alu-about-entry strong,.alu-about-entry small{display:block}
+.alu-about-entry strong{font-size:13px}
+.alu-about-entry small{font-size:11px;color:#aeb0bb;line-height:1.4;margin-top:3px}
+.alu-about-entry button{border:0;background:transparent;color:#ffdf55;font-weight:700;font-size:12px;white-space:nowrap}
+#about .alu-public-info{margin:12px 14px 18px}
+#about .listener-discover-top{margin-bottom:8px}
+.alu-about-back{padding:0 14px 28px}
+
 </style>
 <style id="coverUploadBoxFix">
 .cover-upload-box{position:relative;display:flex;align-items:center;gap:12px;padding:16px;border:2px dashed #665b18;border-radius:16px;background:linear-gradient(135deg,#19170b,#15161c);cursor:pointer;margin:5px 0 10px;min-height:76px;}
@@ -1183,6 +1196,16 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
   <div class="listener-tools"><div class="listener-section-head"><h2>Artist Level Up Tools</h2></div><div class="listener-tools-grid"><button data-go="create">＋<small>Create</small></button><button data-go="videos">🌍<small>Global Feed</small></button><button data-action="openStudioV101">🎛️<small>Studio</small></button><button data-go="marketplace">🛒<small>Market</small></button><button data-go="promote">🚀<small>Promote</small></button><button data-go="growthCenter">📈<small>Growth</small></button></div></div>
   
 
+  
+  <div class="card" id="artistRegistrationHomeCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
+    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Create your Artist Level Up artist account once. After registration, this registration form disappears and your Artist Profile becomes your home.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="name" id="regName" placeholder="e.g. Solovibes"/><label>Email</label><input autocomplete="email" id="regEmail" placeholder="you@example.com" type="email"/><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><p class="muted tiny">Your member login secures your account. Artist registration creates a separate artist profile under the same member login.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create Artist Account</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Already a member? Log In / Restore Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
+  </div>
+  <div id="homeSongs" style="display:none"></div>
+
+  <div class="alu-about-entry"><span>ℹ️</span><div><strong>Learn about Artist Level Up</strong><small>What we offer, who it is for and how it helps artists</small></div><button type="button" data-go="about">Explore About ›</button></div>
+</section>
+<section class="page listener-page" id="about">
+  <div class="listener-discover-top"><button type="button" data-go="home" class="listener-back">‹</button><h1>About Artist Level Up</h1><span></span></div>
   <section class="alu-public-info" aria-labelledby="alu-about-heading">
     <div class="alu-public-intro">
       <span class="pill">ABOUT ARTIST LEVEL UP</span>
@@ -1230,10 +1253,7 @@ body{background:#080a0f!important}.app{max-width:none!important}.nav.listener-bo
       <p class="muted tiny">Artist Level Up is preparing for wider public launch. Some features and services may be introduced or expanded during the rollout.</p>
     </div>
   </section>
-  <div class="card" id="artistRegistrationHomeCard" style="border:2px solid var(--gold);background:linear-gradient(135deg,#211b05,#15161c);box-shadow:0 8px 24px rgba(255,210,28,.12);margin:18px 0">
-    <span class="pill">ARTIST REGISTRATION</span><h1 id="registerHeading">Register as an Artist 🎤</h1><p class="muted" id="registerIntro">Create your Artist Level Up artist account once. After registration, this registration form disappears and your Artist Profile becomes your home.</p><div class="card" id="registerFormCard"><label>Artist / Stage Name</label><input autocomplete="name" id="regName" placeholder="e.g. Solovibes"/><label>Email</label><input autocomplete="email" id="regEmail" placeholder="you@example.com" type="email"/><label>Profile picture <span class="tiny">(optional)</span></label><input id="regAvatar" type="file" accept="image/*" aria-label="Choose artist profile picture"/><div class="row" style="margin:8px 0 12px"><img id="regAvatarPreview" class="profile-avatar" alt="Profile picture preview" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover"/></div><label>Country</label><select id="regCountry"><option>Nigeria</option><option>Ghana</option><option>South Africa</option><option>Kenya</option><option>United Kingdom</option><option>United States</option><option>France</option><option>Canada</option></select><p class="muted tiny">Your member login secures your account. Artist registration creates a separate artist profile under the same member login.</p><label style="display:flex;align-items:flex-start;gap:9px;margin:8px 0 12px;color:#fff;line-height:1.4"><input id="regAgreement" type="checkbox" style="width:18px;height:18px;margin:2px 0 0;flex:none"><span>I agree to the <button type="button" class="btn" data-legal="terms" style="padding:2px 0;margin:0;background:none;color:var(--gold);text-decoration:underline;font-size:inherit">Terms &amp; Conditions</button> and Artist Agreement.</span></label><button class="btn primary full" data-action="registerArtist">🎤 Create Artist Account</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Already a member? Log In / Restore Account</button></div><div class="card" id="registerAlreadyCard" style="display:none;border-color:#665b18;background:linear-gradient(135deg,#211b05,#15161c)"><span class="pill">ARTIST ACCOUNT ACTIVE ✓</span><h2 id="registerAlreadyTitle" style="margin:12px 0 6px">Your artist account is already created.</h2><p class="muted">Registration is finished. Your Artist Profile is now your home for your name, photo, country, music and growth tools.</p><button class="btn primary full" data-go="profile">👤 Open My Artist Profile</button><button class="btn full" type="button" data-action="openMemberLogin" style="margin-top:8px">🔐 Reconnect Member Account</button></div>
-  </div>
-  <div id="homeSongs" style="display:none"></div>
+  <div class="alu-about-back"><button type="button" class="btn full" data-go="home">Back to Home</button></div>
 </section>
 <section class="page listener-page" id="discover">
   <div class="listener-discover-top"><button type="button" data-go="home" class="listener-back">‹</button><h1>Discover Music</h1><button type="button" class="listener-filter">☷</button></div>

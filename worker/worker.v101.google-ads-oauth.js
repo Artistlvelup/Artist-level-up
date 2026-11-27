@@ -3233,10 +3233,16 @@ var worker_default = {
           return result;
       }
       if (url.pathname === "/api/admin/marketplace/migrate-private-masters") {
-        const session = await validateSession(request, env);
-        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
-        if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
-        return await adminMigrateMarketplacePrivateMastersRoute(request, env, session);
+        try {
+          const session = await validateSession(request, env);
+          if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+          if (session.role !== "admin") return json({ error: "Admin access required" }, 403, cors);
+          return await adminMigrateMarketplacePrivateMastersRoute(request, env, session);
+        } catch (error) {
+          console.error("V101_MARKETPLACE_PRIVATE_MIGRATION_ROUTE_ERROR", error);
+          const detail = String(error?.message || "Unknown migration error").replace(/[\r\n]+/g, " ").slice(0, 180);
+          return json({ error: "Private master migration failed: " + detail }, 500, cors);
+        }
       }
       if (url.pathname === "/api/admin/marketplace/beats" || /^\/api\/admin\/marketplace\/beats\/[0-9a-f-]{36}$/i.test(url.pathname)) {
         const session = await validateSession(request, env);

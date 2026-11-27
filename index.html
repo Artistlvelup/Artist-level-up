@@ -5163,25 +5163,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   window.addEventListener('load',()=>setTimeout(()=>{if(location.hash==='#ownerDashboard')loadOwnerDashboard();},300));
 })();
 </script><script id="avatarSocialViewerV101">
+/* V101 FIX: profile photos must not open an image lightbox.
+   The header profile button's existing data-go="profile" navigation
+   now receives the tap normally. */
 (function(){
 'use strict';
-function initAvatarViewer(){
- if(document.getElementById('avatarViewerV101'))return;
- const wrap=document.createElement('div');wrap.id='avatarViewerV101';wrap.className='avatar-viewer';
- wrap.innerHTML='<div class="avatar-viewer-panel" role="dialog" aria-modal="true" aria-label="Profile picture"><button class="avatar-viewer-close" type="button" aria-label="Close">×</button><img class="avatar-viewer-image" alt="Profile picture"></div>';
- document.body.appendChild(wrap);
- const img=wrap.querySelector('.avatar-viewer-image');
- const close=()=>{wrap.classList.remove('show');img.removeAttribute('src');};
- wrap.querySelector('.avatar-viewer-close').addEventListener('click',close);
- wrap.addEventListener('click',e=>{if(e.target===wrap)close()});
- document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
- document.addEventListener('click',e=>{
-  const photo=e.target.closest?.('.profile-avatar,.header-profile-avatar');
-  if(!photo||!photo.src||photo.src.endsWith('/'))return;
-  e.preventDefault();e.stopPropagation();img.src=photo.currentSrc||photo.src;wrap.classList.add('show');
- },true);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAvatarViewer,{once:true});else initAvatarViewer();
+const oldViewer=document.getElementById('avatarViewerV101');
+if(oldViewer)oldViewer.remove();
 })();
 </script>
 

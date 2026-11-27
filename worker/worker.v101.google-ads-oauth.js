@@ -602,11 +602,10 @@ async function artistRoute(request, env, userId) {
 __name(artistRoute, "artistRoute");
 async function songsRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
-  const communityUpload = purpose === "community-picture" || purpose === "community-video";
-  const artist = communityUpload ? null : await env.DB.prepare(
+  const artist = await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
   ).bind(userId).first();
-  if (!communityUpload && !artist)
+  if (!artist)
     return json({ error: "Active artist account required" }, 403, cors);
   if (url.pathname === "/api/me/songs" && request.method === "GET") {
     const rows = await env.DB.prepare(
@@ -2364,10 +2363,11 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
   if (!["audio", "beat", "beat-master", "thumbnail", "picture", "video", "community-picture", "community-video"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
-  const artist = await env.DB.prepare(
+  const communityUpload = purpose === "community-picture" || purpose === "community-video";
+  const artist = communityUpload ? null : await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
   ).bind(userId).first();
-  if (!artist)
+  if (!communityUpload && !artist)
     return json({ error: "Active artist account required" }, 403, cors);
   if (purpose === "audio") return json({ error: "Streaming music uploads are temporarily paused during the launch promotion." }, 403, cors);
   if (purpose === "beat" || purpose === "beat-master") {

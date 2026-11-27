@@ -6799,10 +6799,10 @@ async function uploadMediaToCloudflare(file,purpose){
  if(!file||!Number(file.size))throw new Error('Choose a file to upload.');
  var safe=String(file.name||'upload.bin').replace(/[^a-zA-Z0-9._-]+/g,'_').slice(-120);
  var raw=String(file.type||'').toLowerCase(),ext=(safe.match(/\.([a-zA-Z0-9]+)$/)?.[1]||'').toLowerCase();
- var byExt={mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',opus:'audio/opus',mp4:'video/mp4',mov:'video/quicktime',webm:purpose==='video'?'video/webm':'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
- var fallback=purpose==='video'?'video/mp4':(purpose==='thumbnail'||purpose==='picture')?'image/jpeg':'audio/mpeg';
+ var byExt={mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',aac:'audio/aac',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',opus:'audio/opus',mp4:'video/mp4',mov:'video/quicktime',webm:(purpose==='video'||purpose==='community-video')?'video/webm':'image/webp',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+ var fallback=(purpose==='video'||purpose==='community-video')?'video/mp4':(purpose==='thumbnail'||purpose==='picture'||purpose==='community-picture')?'image/jpeg':'audio/mpeg';
  var contentType=raw&&raw!=='application/octet-stream'?raw:(byExt[ext]||fallback);
- if(purpose==='audio'||purpose==='beat'||purpose==='beat-master'||purpose==='thumbnail'||purpose==='picture'||purpose==='video'){
+ if(purpose==='audio'||purpose==='beat'||purpose==='beat-master'||purpose==='thumbnail'||purpose==='picture'||purpose==='video'||purpose==='community-picture'||purpose==='community-video'){
   var response=await fetch(API+'/api/me/media/upload?purpose='+encodeURIComponent(purpose)+'&filename='+encodeURIComponent(safe),{method:'POST',headers:{'Content-Type':contentType,Authorization:'Bearer '+t},body:file,cache:'no-store',credentials:'omit'});
   var result=await response.json().catch(function(){return {error:'Invalid Cloudflare upload response'}});
   if(!response.ok)throw new Error(result.error||('Cloudflare upload failed ('+response.status+')'));

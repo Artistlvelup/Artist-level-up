@@ -6687,7 +6687,7 @@ async function resumeCloudMember(){
  }
 }
 async function createMemberAccount(email,name,password,accountDetails){
- var result=await api('/auth/register','POST',{email:email,password:password});
+ var result=await api('/auth/register','POST',{email:email,password:password,account_type:accountDetails?.accountType==='artist'?'artist':'member',artist_name:accountDetails?.accountType==='artist'?String(accountDetails?.artistName||'').trim():null,artist_country:accountDetails?.accountType==='artist'?String(accountDetails?.artistCountry||'Nigeria').trim():'Nigeria'});
  setPending({email:email,name:name,accountType:accountDetails?.accountType||'member',artistName:accountDetails?.artistName||'',artistCountry:accountDetails?.artistCountry||'Nigeria',createdAt:new Date().toISOString()});
  return result;
 }

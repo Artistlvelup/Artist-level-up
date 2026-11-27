@@ -2358,7 +2358,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
   if (request.method !== "POST")
     return json({ error: "Method not allowed" }, 405, cors);
-  const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
+  const purpose = cleanText(url.searchParams.get("purpose"), 24, true);
   const filename = cleanText(url.searchParams.get("filename"), 180, true);
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
   if (!["audio", "beat", "beat-master", "thumbnail", "picture", "video", "community-picture", "community-video"].includes(purpose))

@@ -810,10 +810,18 @@ async function publicVideosRoute(request, env, url) {
   if (!Number.isInteger(rawLimit) || rawLimit < 1)
     return json({ error: "Invalid limit" }, 400, corsHeaders(request, env));
   const limit = Math.min(50, rawLimit);
-  const rows = await env.DB.prepare(
-    "SELECT v.id, v.artist_id, a.artist_name, v.title, v.description, v.video_url, v.thumbnail_url, v.status, v.tiktok_url, v.instagram_url, v.facebook_url, v.youtube_url, v.views, v.likes, v.created_at, v.song_id, s.title AS song_title, s.audio_url AS song_audio_url, s.cover_url AS song_cover_url, s.status AS song_status FROM artist_videos v LEFT JOIN artists a ON a.id = v.artist_id LEFT JOIN songs s ON s.id = v.song_id WHERE v.status IN ('approved', 'published') ORDER BY v.created_at DESC LIMIT ?"
-  ).bind(limit).all();
-  return json({ videos: rows.results || [] }, 200, corsHeaders(request, env));
+  const [rows, community] = await Promise.all([
+    env.DB.prepare(
+      "SELECT v.id, v.artist_id, a.artist_name, v.title, v.description, v.video_url, v.thumbnail_url, v.status, v.tiktok_url, v.instagram_url, v.facebook_url, v.youtube_url, v.views, v.likes, v.created_at, v.song_id, s.title AS song_title, s.audio_url AS song_audio_url, s.cover_url AS song_cover_url, s.status AS song_status FROM artist_videos v LEFT JOIN artists a ON a.id = v.artist_id LEFT JOIN songs s ON s.id = v.song_id WHERE v.status IN ('approved', 'published') ORDER BY v.created_at DESC LIMIT ?"
+    ).bind(limit).all(),
+    env.DB.prepare(
+      "SELECT 'community_' || id AS id, NULL AS artist_id, 'ALU Member' AS artist_name, 'Community Video' AS title, caption AS description, media_url AS video_url, NULL AS thumbnail_url, 'published' AS status, NULL AS tiktok_url, NULL AS instagram_url, NULL AS facebook_url, NULL AS youtube_url, 0 AS views, 0 AS likes, created_at, NULL AS song_id, NULL AS song_title, NULL AS song_audio_url, NULL AS song_cover_url, NULL AS song_status FROM community_posts WHERE status='published' AND media_type='video' ORDER BY created_at DESC LIMIT ?"
+    ).bind(limit).all()
+  ]);
+  const videos = [...(rows.results || []), ...(community.results || [])]
+    .sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
+    .slice(0, limit);
+  return json({ videos }, 200, corsHeaders(request, env));
 }
 __name(publicVideosRoute, "publicVideosRoute");
 async function publicSongsRoute(request, env, url) {
@@ -1896,10 +1904,18 @@ __name(adminMigrateMarketplacePrivateMastersRoute, "adminMigrateMarketplacePriva
 async function picturePostsRoute(request, env, userId, url, mode = "member") {
   const cors = corsHeaders(request, env);
   if (mode === "public" && request.method === "GET") {
-    const rows = await env.DB.prepare(
-      "SELECT p.id, p.image_url, p.caption, p.artist_name, p.created_at, p.sound_title, p.sound_audio_url FROM picture_posts p WHERE p.status IN ('approved','published') ORDER BY p.created_at DESC LIMIT 50"
-    ).all();
-    return json({ pictures: rows.results || [] }, 200, cors);
+    const [rows, community] = await Promise.all([
+      env.DB.prepare(
+        "SELECT p.id, p.image_url, p.caption, p.artist_name, p.created_at, p.sound_title, p.sound_audio_url FROM picture_posts p WHERE p.status IN ('approved','published') ORDER BY p.created_at DESC LIMIT 50"
+      ).all(),
+      env.DB.prepare(
+        "SELECT 'community_' || id AS id, media_url AS image_url, caption, 'ALU Member' AS artist_name, created_at, NULL AS sound_title, NULL AS sound_audio_url FROM community_posts WHERE status='published' AND media_type='picture' ORDER BY created_at DESC LIMIT 50"
+      ).all()
+    ]);
+    const pictures = [...(rows.results || []), ...(community.results || [])]
+      .sort((a,b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
+      .slice(0, 50);
+    return json({ pictures }, 200, cors);
   }
   if (mode === "admin") {
     if (request.method === "GET") {

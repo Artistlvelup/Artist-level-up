@@ -132,6 +132,10 @@ async function registerPasswordAccount(request, env, cors) {
     return response({ error: "INVALID_JSON" }, 400, cors);
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = body.password;
+  const accountType = body.account_type === "artist" ? "artist" : "member";
+  const artistName = accountType === "artist" && typeof body.artist_name === "string" ? body.artist_name.trim().slice(0, 100) : "";
+  const artistCountry = accountType === "artist" && typeof body.artist_country === "string" ? body.artist_country.trim().slice(0, 80) : "Nigeria";
+  if (accountType === "artist" && !artistName) return response({ error: "Artist or stage name is required." }, 400, cors);
   if (!validEmail(email) || !validPassword(password)) {
     return response({ error: "Use a valid email and a password of at least 12 characters." }, 400, cors);
   }
@@ -166,7 +170,10 @@ async function registerPasswordAccount(request, env, cors) {
       ).bind(userId, email, passwordHash, saltText, PASSWORD_ITERATIONS, now),
       env.DB.prepare(
         "INSERT INTO app_email_verification_tokens (token_hash, user_id, email_normalized, created_at, expires_at, consumed_at) VALUES (?, ?, ?, ?, ?, NULL)"
-      ).bind(tokenHash, userId, email, now, expiresAt)
+      ).bind(tokenHash, userId, email, now, expiresAt),
+      env.DB.prepare(
+        "INSERT INTO user_account_types (user_id, account_type, artist_name, artist_country, created_at) VALUES (?, ?, ?, ?, ?)"
+      ).bind(userId, accountType, accountType === "artist" ? artistName : null, artistCountry, now)
     ]);
     await sendVerificationEmail(env, email, token);
   } catch (error) {
@@ -534,9 +541,24 @@ async function profileRoute(request, env, userId) {
 __name(profileRoute, "profileRoute");
 async function artistRoute(request, env, userId) {
   if (request.method === "GET") {
-    const row2 = await env.DB.prepare(
+    let row2 = await env.DB.prepare(
       "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE user_id = ? LIMIT 1"
     ).bind(userId).first();
+    if (!row2) {
+      const account = await env.DB.prepare(
+        "SELECT account_type, artist_name, artist_country FROM user_account_types WHERE user_id = ? LIMIT 1"
+      ).bind(userId).first();
+      if (account?.account_type === "artist" && account.artist_name) {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        await env.DB.prepare(
+          "INSERT INTO artists (id, user_id, artist_name, bio, genre, country, status, created_at, updated_at, suspended) VALUES (?, ?, ?, '', '', ?, 'pending', ?, ?, 0) ON CONFLICT(user_id) DO NOTHING"
+        ).bind(id, userId, account.artist_name, account.artist_country || "Nigeria", now, now).run();
+        row2 = await env.DB.prepare(
+          "SELECT id, user_id, artist_name, bio, genre, country, status, created_at, updated_at FROM artists WHERE user_id = ? LIMIT 1"
+        ).bind(userId).first();
+      }
+    }
     return json({ artist: row2 || null }, 200, corsHeaders(request, env));
   }
   if (request.method === "PUT") {

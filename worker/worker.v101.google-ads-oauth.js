@@ -2379,7 +2379,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   const declaredSizeHeader = request.headers.get("Content-Length");
   const declaredSize = declaredSizeHeader === null ? null : Number(declaredSizeHeader);
-  const maxBytes = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? MAX_AUDIO_BYTES : purpose === "community-video" ? 100 * 1024 * 1024 : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
+  const maxBytes = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? MAX_AUDIO_BYTES : purpose === "community-video" ? 50 * 1024 * 1024 : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
   if (declaredSize !== null && (!Number.isSafeInteger(declaredSize) || declaredSize < 1 || declaredSize > maxBytes))
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
   const defaultExtension = purpose === "audio" || purpose === "beat-master" || purpose === "beat" ? "mp3" : purpose === "video" ? "mp4" : "jpg";

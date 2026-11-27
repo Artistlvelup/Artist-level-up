@@ -602,10 +602,11 @@ async function artistRoute(request, env, userId) {
 __name(artistRoute, "artistRoute");
 async function songsRoute(request, env, userId, url) {
   const cors = corsHeaders(request, env);
-  const artist = await env.DB.prepare(
+  const communityUpload = purpose === "community-picture" || purpose === "community-video";
+  const artist = communityUpload ? null : await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
   ).bind(userId).first();
-  if (!artist)
+  if (!communityUpload && !artist)
     return json({ error: "Active artist account required" }, 403, cors);
   if (url.pathname === "/api/me/songs" && request.method === "GET") {
     const rows = await env.DB.prepare(
@@ -801,6 +802,8 @@ async function memberStreamingRoyaltiesRoute(request, env, userId) {
   return json({ royalties: rows.results || [] }, 200, cors);
 }
 __name(memberStreamingRoyaltiesRoute, "memberStreamingRoyaltiesRoute");
+async function communityPostsRoute(request,env,userId){const cors=corsHeaders(request,env);if(request.method==="GET"){const rows=await env.DB.prepare("SELECT id,user_id,media_type,media_url,caption,created_at FROM community_posts WHERE status='published' ORDER BY created_at DESC LIMIT 50").all();return json({posts:rows.results||[]},200,cors)}if(request.method==="POST"){const b=await readJson(request),t=cleanText(b.media_type,12,true),u=cleanText(b.media_url,2048,true),c=cleanText(b.caption,500),ct=cleanText(b.content_type,100,true).toLowerCase();if(!["picture","video"].includes(t))return json({error:"Choose picture or video."},400,cors);const prefix=String(env.R2_PUBLIC_BASE_URL||"").replace(/\/$/,"")+"/community/"+userId+"/";let p;try{p=new URL(u)}catch{return json({error:"Invalid uploaded media URL."},400,cors)}if(!prefix.startsWith("https://")||!u.startsWith(prefix)||p.origin!==new URL(prefix).origin||p.search||p.hash)return json({error:"Upload must belong to your signed-in account."},400,cors);if(!(t==="video"?VIDEO_TYPES:IMAGE_TYPES).has(ct))return json({error:"Unsupported media type."},415,cors);const id=crypto.randomUUID(),now=new Date().toISOString();await env.DB.prepare("INSERT INTO community_posts(id,user_id,media_type,media_url,content_type,caption,status,created_at) VALUES(?,?,?,?,?,?,'published',?)").bind(id,userId,t,u,ct,c,now).run();return json({ok:true,post:{id,media_type:t,media_url:u,caption:c,created_at:now}},201,cors)}if(request.method==="DELETE"){const b=await readJson(request),id=cleanText(b.id,64,true);if(!/^[0-9a-f-]{36}$/i.test(id))return json({error:"Invalid post."},400,cors);const r=await env.DB.prepare("DELETE FROM community_posts WHERE id=? AND user_id=?").bind(id,userId).run();if(!r.meta?.changes)return json({error:"Post not found or not yours."},404,cors);return json({ok:true},200,cors)}return json({error:"Method not allowed"},405,cors)}
+__name(communityPostsRoute,"communityPostsRoute");
 async function publicVideosRoute(request, env, url) {
   if (request.method !== "GET" || url.pathname !== "/api/public/videos")
     return null;
@@ -2359,7 +2362,7 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
   const purpose = cleanText(url.searchParams.get("purpose"), 16, true);
   const filename = cleanText(url.searchParams.get("filename"), 180, true);
   const contentType = cleanText(request.headers.get("Content-Type"), 100, true).toLowerCase();
-  if (!["audio", "beat", "beat-master", "thumbnail", "picture", "video"].includes(purpose))
+  if (!["audio", "beat", "beat-master", "thumbnail", "picture", "video", "community-picture", "community-video"].includes(purpose))
     return json({ error: "INVALID_PURPOSE" }, 400, cors);
   const artist = await env.DB.prepare(
     "SELECT id FROM artists WHERE user_id = ? AND suspended = 0 LIMIT 1"
@@ -2371,20 +2374,20 @@ async function mediaUploadProxyRoute(request, env, userId, url) {
     const sub = await env.DB.prepare("SELECT status, expires_at FROM artist_pro_subscriptions WHERE user_id = ? LIMIT 1").bind(userId).first();
     if (!sub || sub.status !== "active" || Date.parse(sub.expires_at) <= Date.now()) return json({ error: "An active Artist Pro subscription is required to upload marketplace beats during the launch promotion." }, 403, cors);
   }
-  const allowed = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? AUDIO_TYPES : purpose === "video" ? VIDEO_TYPES : IMAGE_TYPES;
+  const allowed = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? AUDIO_TYPES : purpose === "video" || purpose === "community-video" ? VIDEO_TYPES : IMAGE_TYPES;
   if (!allowed.has(contentType))
     return json({ error: "UNSUPPORTED_CONTENT_TYPE" }, 415, cors);
   const declaredSizeHeader = request.headers.get("Content-Length");
   const declaredSize = declaredSizeHeader === null ? null : Number(declaredSizeHeader);
-  const maxBytes = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? MAX_AUDIO_BYTES : purpose === "video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
+  const maxBytes = purpose === "audio" || purpose === "beat" || purpose === "beat-master" ? MAX_AUDIO_BYTES : purpose === "video" || purpose === "community-video" ? MAX_VIDEO_BYTES : 10 * 1024 * 1024;
   if (declaredSize !== null && (!Number.isSafeInteger(declaredSize) || declaredSize < 1 || declaredSize > maxBytes))
     return json({ error: "INVALID_FILE_SIZE" }, 413, cors);
   const defaultExtension = purpose === "audio" || purpose === "beat-master" || purpose === "beat" ? "mp3" : purpose === "video" ? "mp4" : "jpg";
   const extension = (filename.includes(".") ? filename.split(".").pop() : defaultExtension).toLowerCase();
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
   const privateMaster = purpose === "beat-master";
-  const folder = purpose === "audio" ? "audio" : privateMaster ? "beats-private" : purpose === "beat" ? "beats" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
-  const key = artist.id + "/" + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
+  const folder = communityUpload ? "community/" + userId : purpose === "audio" ? "audio" : privateMaster ? "beats-private" : purpose === "beat" ? "beats" : purpose === "thumbnail" ? "thumbnails" : purpose === "picture" ? "pictures" : "videos";
+  const key = (communityUpload ? "" : artist.id + "/") + folder + "/" + crypto.randomUUID() + "-" + (safeName || ("upload." + extension));
   try {
     const targetBucket = privateMaster ? env.MARKETPLACE_BUCKET : env.MEDIA_BUCKET;
     if (!targetBucket || typeof targetBucket.put !== "function")
@@ -3397,6 +3400,7 @@ var worker_default = {
           return result;
         return json({ error: "Method not allowed" }, 405, cors);
       }
+      if (url.pathname === "/api/community/posts") { const session=await validateSession(request,env); if(!session)return json({error:"Invalid or expired session"},401,cors); return await communityPostsRoute(request,env,session.user_id); }
       if (url.pathname === "/api/me/media/upload") {
         const session = await validateSession(request, env);
         if (!session)

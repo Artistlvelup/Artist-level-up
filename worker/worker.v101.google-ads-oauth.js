@@ -1517,11 +1517,6 @@ async function adCampaignEventRoute(request,env) {
   if(!campaignId||!eventType) return json({error:"Invalid advertising event."},400,cors);
   const botScore=Number(request.cf?.botManagement?.score);
   if(Number.isFinite(botScore)&&botScore>0&&botScore<30) return json({ok:true,recorded:false,filtered:true},200,cors);
-  if(eventType==="click") {
-    const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-    const rateNow=Math.floor(Date.now()/1000);
-    if(!await rateAllowed(env,"ad-click:ip:"+ip,rateNow)) return response({error:"Too many advertising clicks. Please try again shortly."},429,cors);
-  }
   const campaign=await env.DB.prepare("SELECT id,status,total_budget_ngn,spent_ngn,starts_at,ends_at FROM ad_campaigns WHERE id=? LIMIT 1").bind(campaignId).first();
   const now=new Date().toISOString();
   if(!campaign||campaign.status!=="approved"||Number(campaign.spent_ngn)>=Number(campaign.total_budget_ngn)||(campaign.starts_at&&campaign.starts_at>now)||(campaign.ends_at&&campaign.ends_at<=now)) return json({ok:true,recorded:false},200,cors);
@@ -1532,6 +1527,11 @@ async function adCampaignEventRoute(request,env) {
     const prerequisite=eventType==="click"?"impression":"click";
     const priorAction=await env.DB.prepare("SELECT id FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=? LIMIT 1").bind(campaignId,prerequisite,visitorHash,new Date(Date.now()-24*60*60*1000).toISOString()).first();
     if(!priorAction) return json({ok:true,recorded:false,reason:"prior_engagement_required"},200,cors);
+  }
+  if(eventType==="click") {
+    const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+    const rateNow=Math.floor(Date.now()/1000);
+    if(!await rateAllowed(env,"ad-click:ip:"+ip,rateNow)) return response({error:"Too many advertising clicks. Please try again shortly."},429,cors);
   }
   const insert=await env.DB.prepare("INSERT INTO ad_campaign_events (id,campaign_id,event_type,placement,visitor_hash,created_at) SELECT ?,?,?,'global_video',?,? WHERE NOT EXISTS (SELECT 1 FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=?)").bind(crypto.randomUUID(),campaignId,eventType,visitorHash,now,campaignId,eventType,visitorHash,since).run();
   const changed=Number(insert?.meta?.changes||0)>0;

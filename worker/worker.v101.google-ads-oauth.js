@@ -1520,7 +1520,7 @@ async function adCampaignsRoute(request,env,userId) {
   const now=new Date().toISOString(), id=crypto.randomUUID();
   const starts=body?.starts_at?new Date(body.starts_at):null, ends=body?.ends_at?new Date(body.ends_at):null;
   if((starts&&!Number.isFinite(starts.getTime()))||(ends&&!Number.isFinite(ends.getTime()))||(starts&&ends&&ends<=starts)) return json({error:"Campaign dates are invalid."},400,cors);
-  await env.DB.prepare("INSERT INTO ad_campaigns (id,user_id,campaign_type,title,description,creative_url,thumbnail_url,destination_url,call_to_action,target_countries_json,target_audience_json,total_budget_ngn,status,starts_at,ends_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,?,?,?)").bind(id,userId,type,title,description,creativeUrl,thumbnailUrl,destinationUrl,cta,JSON.stringify(countries),JSON.stringify(audience),budget,starts?starts.toISOString():null,ends?ends.toISOString():null,now,now).run();
+  await env.DB.prepare("INSERT INTO ad_campaigns (id,user_id,campaign_type,title,description,creative_url,thumbnail_url,destination_url,call_to_action,target_countries_json,target_audience_json,total_budget_ngn,status,starts_at,ends_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,?,?,?)").bind(id,userId,type,title,description,creativeUrl,thumbnailUrl,destinationUrl,cta,JSON.stringify(countries),JSON.stringify(audience),budget,starts?starts.toISOString():null,ends?ends.toISOString():null,now,now).run();
   return json({ok:true,campaign:{id,campaign_type:type,title,total_budget_ngn:budget,currency:"NGN",status:"draft"}},201,cors);
 }
 async function adCampaignCheckoutRoute(request,env,userId) {

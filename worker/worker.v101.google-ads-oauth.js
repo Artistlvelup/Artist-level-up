@@ -1488,6 +1488,42 @@ async function musicUploadFeeVerifyRoute(request,env,userId) {
 __name(musicUploadFeeVerifyRoute, "musicUploadFeeVerifyRoute");
 
 
+
+async function publicAdFeedRoute(request,env) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="GET") return json({error:"Method not allowed"},405,cors);
+  const country=String(request.cf?.country||"NG").toUpperCase().slice(0,2);
+  const now=new Date().toISOString();
+  const rows=await env.DB.prepare("SELECT c.id,c.campaign_type,c.title,c.description,c.creative_url,c.thumbnail_url,c.destination_url,c.call_to_action FROM ad_campaigns c WHERE c.status='approved' AND c.spent_ngn<c.total_budget_ngn AND (c.starts_at IS NULL OR c.starts_at<=?) AND (c.ends_at IS NULL OR c.ends_at>?) AND EXISTS (SELECT 1 FROM ad_campaign_payments p WHERE p.campaign_id=c.id AND p.status='paid') AND (EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value=?) OR EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value='ALL')) ORDER BY c.created_at ASC LIMIT 12").bind(now,now,country).all();
+  return json({ok:true,placement:"global_video",ads:rows.results||[]},200,cors);
+}
+async function adCampaignEventRoute(request,env) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="POST") return json({error:"Method not allowed"},405,cors);
+  const body=await readJson(request), campaignId=cleanText(body?.campaign_id,64,true);
+  const eventType=["impression","click","landing_visit"].includes(body?.event_type)?body.event_type:"";
+  if(!campaignId||!eventType) return json({error:"Invalid advertising event."},400,cors);
+  const campaign=await env.DB.prepare("SELECT id,status,total_budget_ngn,spent_ngn,starts_at,ends_at FROM ad_campaigns WHERE id=? LIMIT 1").bind(campaignId).first();
+  const now=new Date().toISOString();
+  if(!campaign||campaign.status!=="approved"||Number(campaign.spent_ngn)>=Number(campaign.total_budget_ngn)||(campaign.starts_at&&campaign.starts_at>now)||(campaign.ends_at&&campaign.ends_at<=now)) return json({ok:true,recorded:false},200,cors);
+  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+  const ua=(request.headers.get("User-Agent")||"").slice(0,300);
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(ip+"|"+ua+"|"+campaignId));
+  const visitorHash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
+  const since=new Date(Date.now()-(eventType==="impression"?24:1)*60*60*1000).toISOString();
+  const prior=await env.DB.prepare("SELECT id FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=? LIMIT 1").bind(campaignId,eventType,visitorHash,since).first();
+  if(prior) return json({ok:true,recorded:false,deduplicated:true},200,cors);
+  await env.DB.prepare("INSERT INTO ad_campaign_events (id,campaign_id,event_type,placement,visitor_hash,created_at) VALUES (?,?,?,'global_video',?,?)").bind(crypto.randomUUID(),campaignId,eventType,visitorHash,now).run();
+  return json({ok:true,recorded:true},201,cors);
+}
+async function adCampaignReportRoute(request,env,userId) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="GET") return json({error:"Method not allowed"},405,cors);
+  const rows=await env.DB.prepare("SELECT c.id,c.title,c.status,c.total_budget_ngn,c.spent_ngn,c.created_at,COALESCE(SUM(CASE WHEN e.event_type='impression' THEN 1 ELSE 0 END),0) AS impressions,COALESCE(SUM(CASE WHEN e.event_type='click' THEN 1 ELSE 0 END),0) AS clicks,COALESCE(SUM(CASE WHEN e.event_type='landing_visit' THEN 1 ELSE 0 END),0) AS landing_visits FROM ad_campaigns c LEFT JOIN ad_campaign_events e ON e.campaign_id=c.id WHERE c.user_id=? GROUP BY c.id ORDER BY c.created_at DESC LIMIT 100").bind(userId).all();
+  const campaigns=(rows.results||[]).map(x=>({...x,ctr:Number(x.impressions)>0?Number((Number(x.clicks)/Number(x.impressions)*100).toFixed(2)):0}));
+  return json({ok:true,campaigns},200,cors);
+}
+
 async function adCampaignsRoute(request,env,userId) {
   const cors=corsHeaders(request,env);
   if(request.method==="GET") {
@@ -3456,6 +3492,13 @@ var worker_default = {
         if (!session)
           return json({ error: "Invalid or expired session" }, 401, cors);
         return await courseCheckoutRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/public/advertising/feed" && request.method === "GET") return await publicAdFeedRoute(request,env);
+      if (url.pathname === "/api/public/advertising/event" && request.method === "POST") return await adCampaignEventRoute(request,env);
+      if (url.pathname === "/api/me/advertising/report") {
+        const session=await validateSession(request,env);
+        if(!session) return json({error:"Invalid or expired session"},401,cors);
+        return await adCampaignReportRoute(request,env,session.user_id);
       }
       if (url.pathname === "/api/me/advertising/campaigns" || url.pathname === "/api/me/advertising/checkout" || url.pathname === "/api/me/advertising/verify") {
         const session = await validateSession(request, env);

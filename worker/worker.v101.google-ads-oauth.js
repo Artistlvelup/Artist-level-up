@@ -1487,6 +1487,111 @@ async function musicUploadFeeVerifyRoute(request,env,userId) {
 }
 __name(musicUploadFeeVerifyRoute, "musicUploadFeeVerifyRoute");
 
+
+async function adCampaignsRoute(request,env,userId) {
+  const cors=corsHeaders(request,env);
+  if(request.method==="GET") {
+    const rows=await env.DB.prepare("SELECT id,campaign_type,title,description,creative_url,thumbnail_url,destination_url,call_to_action,target_countries_json,target_audience_json,currency,total_budget_ngn,spent_ngn,status,review_note,starts_at,ends_at,created_at,updated_at FROM ad_campaigns WHERE user_id=? ORDER BY created_at DESC LIMIT 100").bind(userId).all();
+    return json({ok:true,campaigns:rows.results||[]},200,cors);
+  }
+  if(request.method!=="POST") return json({error:"Method not allowed"},405,cors);
+  const credentials=await env.DB.prepare("SELECT email_normalized,email_verified_at FROM app_credentials WHERE user_id=? LIMIT 1").bind(userId).first();
+  if(!credentials?.email_normalized||!credentials.email_verified_at) return json({error:"Verify your email before creating an advertising campaign."},403,cors);
+  const body=await readJson(request);
+  const type=["video","website","product","service","business"].includes(body?.campaign_type)?body.campaign_type:"";
+  const title=cleanText(body?.title,100,true);
+  const description=cleanText(body?.description||"",500,false)||"";
+  const creativeUrl=cleanText(body?.creative_url,2048,false);
+  const thumbnailUrl=cleanText(body?.thumbnail_url,2048,false);
+  const destinationUrl=cleanText(body?.destination_url,2048,false);
+  const cta=["LEARN_MORE","VISIT_WEBSITE","SHOP_NOW","WATCH_NOW","JOIN_NOW","SIGN_UP","CONTACT_US"].includes(body?.call_to_action)?body.call_to_action:"LEARN_MORE";
+  const safeUrl=(value)=>{if(!value)return true;try{const u=new URL(value);return (u.protocol==="https:"||u.protocol==="http:")&&!u.username&&!u.password;}catch{return false;}};
+  if(!type) return json({error:"Choose a valid campaign type."},400,cors);
+  if(!safeUrl(creativeUrl)||!safeUrl(thumbnailUrl)||!safeUrl(destinationUrl)) return json({error:"Campaign links must be valid HTTP or HTTPS URLs."},400,cors);
+  if(type==="video"&&!creativeUrl) return json({error:"A video URL is required for a video campaign."},400,cors);
+  if(["website","product","service","business"].includes(type)&&!destinationUrl) return json({error:"A destination website URL is required."},400,cors);
+  const budget=Number(body?.total_budget_ngn);
+  if(!Number.isSafeInteger(budget)||budget<1000||budget>100000000) return json({error:"Set a campaign budget between ₦1,000 and ₦100,000,000."},400,cors);
+  let countries=Array.isArray(body?.target_countries)?body.target_countries:["NG"];
+  countries=[...new Set(countries.filter(x=>typeof x==="string"&&/^[A-Z]{2}$/.test(x)).slice(0,10))];
+  if(!countries.length) countries=["NG"];
+  const audience=body?.target_audience&&typeof body.target_audience==="object"&&!Array.isArray(body.target_audience)?body.target_audience:{};
+  if(JSON.stringify(audience).length>3000) return json({error:"Audience settings are too large."},400,cors);
+  const now=new Date().toISOString(), id=crypto.randomUUID();
+  const starts=body?.starts_at?new Date(body.starts_at):null, ends=body?.ends_at?new Date(body.ends_at):null;
+  if((starts&&!Number.isFinite(starts.getTime()))||(ends&&!Number.isFinite(ends.getTime()))||(starts&&ends&&ends<=starts)) return json({error:"Campaign dates are invalid."},400,cors);
+  await env.DB.prepare("INSERT INTO ad_campaigns (id,user_id,campaign_type,title,description,creative_url,thumbnail_url,destination_url,call_to_action,target_countries_json,target_audience_json,total_budget_ngn,status,starts_at,ends_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,?,?,?)").bind(id,userId,type,title,description,creativeUrl,thumbnailUrl,destinationUrl,cta,JSON.stringify(countries),JSON.stringify(audience),budget,starts?starts.toISOString():null,ends?ends.toISOString():null,now,now).run();
+  return json({ok:true,campaign:{id,campaign_type:type,title,total_budget_ngn:budget,currency:"NGN",status:"draft"}},201,cors);
+}
+async function adCampaignCheckoutRoute(request,env,userId) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="POST") return json({error:"Method not allowed"},405,cors);
+  if(!env.PAYSTACK_SECRET_KEY) return json({error:"Paystack is not configured."},503,cors);
+  const body=await readJson(request), id=cleanText(body?.campaign_id,64,true);
+  const campaign=await env.DB.prepare("SELECT id,user_id,total_budget_ngn,status FROM ad_campaigns WHERE id=? AND user_id=? LIMIT 1").bind(id,userId).first();
+  if(!campaign) return json({error:"Advertising campaign not found."},404,cors);
+  if(!["draft","pending_payment"].includes(campaign.status)) return json({error:"This campaign is not awaiting payment."},409,cors);
+  const c=await env.DB.prepare("SELECT email_normalized,email_verified_at FROM app_credentials WHERE user_id=? LIMIT 1").bind(userId).first();
+  if(!c?.email_normalized||!c.email_verified_at) return json({error:"Verify your email before checkout."},403,cors);
+  const amount=Number(campaign.total_budget_ngn);
+  if(!Number.isSafeInteger(amount)||amount<1000) return json({error:"Campaign budget is invalid."},409,cors);
+  const reference="ALU-AD-"+crypto.randomUUID(), now=new Date().toISOString();
+  await env.DB.prepare("INSERT INTO ad_campaign_payments (id,campaign_id,user_id,reference,amount_ngn,currency,status,provider,created_at) VALUES (?,?,?,?,?,'NGN','pending','paystack',?)").bind(crypto.randomUUID(),id,userId,reference,amount,now).run();
+  await env.DB.prepare("UPDATE ad_campaigns SET status='pending_payment',updated_at=? WHERE id=? AND user_id=?").bind(now,id,userId).run();
+  try {
+    const checkout=await initializePaystack(env,{email:c.email_normalized,amountNgn:amount,reference,metadata:{purpose:"advertising_campaign",campaign_id:id,user_id:userId},returnUrl:String(env.APP_PUBLIC_URL||"https://artistlevelup.com.ng")+"/?alu_ad_payment=1"});
+    return json({ok:true,authorization_url:checkout.authorization_url,reference,campaign_id:id,amount_ngn:amount,currency:"NGN"},200,cors);
+  } catch(e) {
+    await env.DB.batch([
+      env.DB.prepare("UPDATE ad_campaign_payments SET status='failed' WHERE reference=? AND status='pending'").bind(reference),
+      env.DB.prepare("UPDATE ad_campaigns SET status='draft',updated_at=? WHERE id=? AND status='pending_payment'").bind(new Date().toISOString(),id)
+    ]);
+    return json({error:String(e?.message||"Advertising checkout failed.")},503,cors);
+  }
+}
+async function adCampaignVerifyRoute(request,env,userId) {
+  const cors=corsHeaders(request,env);
+  if(request.method!=="POST") return json({error:"Method not allowed"},405,cors);
+  if(!env.PAYSTACK_SECRET_KEY) return json({error:"Paystack is not configured."},503,cors);
+  const body=await readJson(request), reference=cleanText(body?.reference,120,true);
+  const payment=await env.DB.prepare("SELECT id,campaign_id,user_id,reference,amount_ngn,currency,status FROM ad_campaign_payments WHERE reference=? AND user_id=? LIMIT 1").bind(reference,userId).first();
+  if(!payment) return json({error:"Advertising payment reference not found."},404,cors);
+  if(payment.status==="paid") {
+    const campaign=await env.DB.prepare("SELECT id,status FROM ad_campaigns WHERE id=? AND user_id=?").bind(payment.campaign_id,userId).first();
+    return json({ok:true,paid:true,campaign},200,cors);
+  }
+  const response=await fetch("https://api.paystack.co/transaction/verify/"+encodeURIComponent(reference),{headers:{Authorization:"Bearer "+env.PAYSTACK_SECRET_KEY}});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||result.status!==true||result.data?.status!=="success"||String(result.data?.reference)!==reference||Number(result.data?.amount)!==Number(payment.amount_ngn)*100||String(result.data?.currency)!=="NGN"||payment.currency!=="NGN") return json({error:"Paystack has not confirmed this advertising payment yet."},409,cors);
+  const paidAt=new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE ad_campaign_payments SET status='paid',provider_transaction_id=?,paid_at=COALESCE(paid_at,?) WHERE reference=? AND user_id=? AND status='pending'").bind(String(result.data?.id||""),paidAt,reference,userId),
+    env.DB.prepare("UPDATE ad_campaigns SET status='pending_review',updated_at=? WHERE id=? AND user_id=? AND status IN ('draft','pending_payment')").bind(paidAt,payment.campaign_id,userId)
+  ]);
+  return json({ok:true,paid:true,status:"pending_review",message:"Payment confirmed. Your advert is waiting for review."},200,cors);
+}
+async function adminAdCampaignsRoute(request,env,session,url) {
+  const cors=corsHeaders(request,env);
+  if(session?.role!=="admin") return json({error:"Admin access required"},403,cors);
+  if(request.method==="GET") {
+    const rows=await env.DB.prepare("SELECT c.id,c.user_id,c.campaign_type,c.title,c.description,c.creative_url,c.thumbnail_url,c.destination_url,c.call_to_action,c.target_countries_json,c.total_budget_ngn,c.spent_ngn,c.status,c.created_at,p.reference,p.amount_ngn,p.status AS payment_status,p.paid_at FROM ad_campaigns c LEFT JOIN ad_campaign_payments p ON p.campaign_id=c.id AND p.status='paid' WHERE c.status='pending_review' ORDER BY c.created_at ASC LIMIT 100").all();
+    return json({ok:true,campaigns:rows.results||[]},200,cors);
+  }
+  const match=/^\/api\/admin\/advertising\/campaigns\/([0-9a-f-]{36})\/review$/i.exec(url.pathname);
+  if(request.method!=="POST"||!match) return json({error:"Method not allowed"},405,cors);
+  const body=await readJson(request), decision=body?.decision;
+  if(!["approve","reject"].includes(decision)) return json({error:"Choose approve or reject."},400,cors);
+  const note=cleanText(body?.review_note||"",500,false)||"";
+  const campaign=await env.DB.prepare("SELECT id,status FROM ad_campaigns WHERE id=? LIMIT 1").bind(match[1]).first();
+  if(!campaign) return json({error:"Campaign not found."},404,cors);
+  if(campaign.status!=="pending_review") return json({error:"Only paid campaigns awaiting review can be reviewed."},409,cors);
+  const paid=await env.DB.prepare("SELECT id FROM ad_campaign_payments WHERE campaign_id=? AND status='paid' LIMIT 1").bind(match[1]).first();
+  if(!paid) return json({error:"A verified payment is required before approval."},409,cors);
+  const status=decision==="approve"?"approved":"rejected", now=new Date().toISOString();
+  await env.DB.prepare("UPDATE ad_campaigns SET status=?,review_note=?,updated_at=? WHERE id=? AND status='pending_review'").bind(status,note,now,match[1]).run();
+  return json({ok:true,campaign_id:match[1],status,review_note:note},200,cors);
+}
+
 async function paystackWebhookRoute(request, env) {
   if (request.method !== "POST")
     return json({ error: "Method not allowed" }, 405);
@@ -1508,6 +1613,18 @@ async function paystackWebhookRoute(request, env) {
   const reference = String(event?.data?.reference || "").trim();
   if (!reference)
     return json({ error: "Missing payment reference" }, 400);
+  const advertisingPayment = await env.DB.prepare("SELECT id,campaign_id,user_id,amount_ngn,currency,status FROM ad_campaign_payments WHERE reference=? LIMIT 1").bind(reference).first();
+  if (advertisingPayment) {
+    if (Number(event?.data?.amount || 0) !== Number(advertisingPayment.amount_ngn) * 100 || String(event?.data?.currency || "") !== "NGN" || advertisingPayment.currency !== "NGN") return json({ error: "Advertising payment amount or currency does not match" }, 400);
+    if (advertisingPayment.status !== "paid") {
+      const paidAtAd = new Date().toISOString();
+      await env.DB.batch([
+        env.DB.prepare("UPDATE ad_campaign_payments SET status='paid',provider_transaction_id=?,paid_at=COALESCE(paid_at,?) WHERE reference=? AND status='pending'").bind(String(event?.data?.id || ""),paidAtAd,reference),
+        env.DB.prepare("UPDATE ad_campaigns SET status='pending_review',updated_at=? WHERE id=? AND status IN ('draft','pending_payment')").bind(paidAtAd,advertisingPayment.campaign_id)
+      ]);
+    }
+    return json({ received:true, advertising_campaign_paid:true, review_status:"pending_review" },200);
+  }
   const distributionPayment = await env.DB.prepare(
     "SELECT request_id, user_id, amount_ngn, currency, status FROM music_distribution_payments WHERE reference = ? LIMIT 1"
   ).bind(reference).first();
@@ -3339,6 +3456,18 @@ var worker_default = {
         if (!session)
           return json({ error: "Invalid or expired session" }, 401, cors);
         return await courseCheckoutRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/me/advertising/campaigns" || url.pathname === "/api/me/advertising/checkout" || url.pathname === "/api/me/advertising/verify") {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        if (url.pathname.endsWith("/checkout")) return await adCampaignCheckoutRoute(request, env, session.user_id);
+        if (url.pathname.endsWith("/verify")) return await adCampaignVerifyRoute(request, env, session.user_id);
+        return await adCampaignsRoute(request, env, session.user_id);
+      }
+      if (url.pathname === "/api/admin/advertising/campaigns" || /^\/api\/admin\/advertising\/campaigns\/[0-9a-f-]{36}\/review$/i.test(url.pathname)) {
+        const session = await validateSession(request, env);
+        if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
+        return await adminAdCampaignsRoute(request, env, session, url);
       }
       if (url.pathname === "/api/me/artist-pro/checkout" || url.pathname === "/api/me/artist-pro/verify" || url.pathname === "/api/me/artist-pro/status") {
         const session = await validateSession(request, env);

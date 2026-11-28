@@ -1489,13 +1489,25 @@ __name(musicUploadFeeVerifyRoute, "musicUploadFeeVerifyRoute");
 
 
 
+async function adVisitorHash(request,campaignId) {
+  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+  const ua=(request.headers.get("User-Agent")||"").slice(0,300);
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(ip+"|"+ua+"|"+campaignId));
+  return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
 async function publicAdFeedRoute(request,env) {
   const cors=corsHeaders(request,env);
   if(request.method!=="GET") return json({error:"Method not allowed"},405,cors);
   const country=String(request.cf?.country||"NG").toUpperCase().slice(0,2);
   const now=new Date().toISOString();
-  const rows=await env.DB.prepare("SELECT c.id,c.campaign_type,c.title,c.description,c.creative_url,c.thumbnail_url,c.destination_url,c.call_to_action FROM ad_campaigns c WHERE c.status='approved' AND c.spent_ngn<c.total_budget_ngn AND (c.starts_at IS NULL OR c.starts_at<=?) AND (c.ends_at IS NULL OR c.ends_at>?) AND EXISTS (SELECT 1 FROM ad_campaign_payments p WHERE p.campaign_id=c.id AND p.status='paid') AND (EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value=?) OR EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value='ALL')) ORDER BY c.created_at ASC LIMIT 12").bind(now,now,country).all();
-  return json({ok:true,placement:"global_video",ads:rows.results||[]},200,cors);
+  const rows=await env.DB.prepare("SELECT c.id,c.campaign_type,c.title,c.description,c.creative_url,c.thumbnail_url,c.destination_url,c.call_to_action FROM ad_campaigns c WHERE c.status='approved' AND c.spent_ngn<c.total_budget_ngn AND (c.starts_at IS NULL OR c.starts_at<=?) AND (c.ends_at IS NULL OR c.ends_at>?) AND EXISTS (SELECT 1 FROM ad_campaign_payments p WHERE p.campaign_id=c.id AND p.status='paid') AND (EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value=?) OR EXISTS (SELECT 1 FROM json_each(c.target_countries_json) j WHERE j.value='ALL')) ORDER BY RANDOM() LIMIT 60").bind(now,now,country).all();
+  const candidates=rows.results||[];
+  const eligible=await Promise.all(candidates.map(async ad=>{
+    const hash=await adVisitorHash(request,ad.id);
+    const prior=await env.DB.prepare("SELECT id FROM ad_campaign_events WHERE campaign_id=? AND event_type='impression' AND visitor_hash=? AND created_at>=? LIMIT 1").bind(ad.id,hash,new Date(Date.now()-24*60*60*1000).toISOString()).first();
+    return prior?null:ad;
+  }));
+  return json({ok:true,placement:"global_video",ads:eligible.filter(Boolean).slice(0,12)},200,cors);
 }
 async function adCampaignEventRoute(request,env) {
   const cors=corsHeaders(request,env);
@@ -1503,18 +1515,22 @@ async function adCampaignEventRoute(request,env) {
   const body=await readJson(request), campaignId=cleanText(body?.campaign_id,64,true);
   const eventType=["impression","click","landing_visit"].includes(body?.event_type)?body.event_type:"";
   if(!campaignId||!eventType) return json({error:"Invalid advertising event."},400,cors);
+  const botScore=Number(request.cf?.botManagement?.score);
+  if(Number.isFinite(botScore)&&botScore>0&&botScore<30) return json({ok:true,recorded:false,filtered:true},200,cors);
   const campaign=await env.DB.prepare("SELECT id,status,total_budget_ngn,spent_ngn,starts_at,ends_at FROM ad_campaigns WHERE id=? LIMIT 1").bind(campaignId).first();
   const now=new Date().toISOString();
   if(!campaign||campaign.status!=="approved"||Number(campaign.spent_ngn)>=Number(campaign.total_budget_ngn)||(campaign.starts_at&&campaign.starts_at>now)||(campaign.ends_at&&campaign.ends_at<=now)) return json({ok:true,recorded:false},200,cors);
-  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-  const ua=(request.headers.get("User-Agent")||"").slice(0,300);
-  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(ip+"|"+ua+"|"+campaignId));
-  const visitorHash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
-  const since=new Date(Date.now()-(eventType==="impression"?24:1)*60*60*1000).toISOString();
-  const prior=await env.DB.prepare("SELECT id FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=? LIMIT 1").bind(campaignId,eventType,visitorHash,since).first();
-  if(prior) return json({ok:true,recorded:false,deduplicated:true},200,cors);
-  await env.DB.prepare("INSERT INTO ad_campaign_events (id,campaign_id,event_type,placement,visitor_hash,created_at) VALUES (?,?,?,'global_video',?,?)").bind(crypto.randomUUID(),campaignId,eventType,visitorHash,now).run();
-  return json({ok:true,recorded:true},201,cors);
+  const visitorHash=await adVisitorHash(request,campaignId);
+  const dedupeHours=eventType==="impression"?24:1;
+  const since=new Date(Date.now()-dedupeHours*60*60*1000).toISOString();
+  if(eventType==="click"||eventType==="landing_visit") {
+    const prerequisite=eventType==="click"?"impression":"click";
+    const priorAction=await env.DB.prepare("SELECT id FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=? LIMIT 1").bind(campaignId,prerequisite,visitorHash,new Date(Date.now()-24*60*60*1000).toISOString()).first();
+    if(!priorAction) return json({ok:true,recorded:false,reason:"prior_engagement_required"},200,cors);
+  }
+  const insert=await env.DB.prepare("INSERT INTO ad_campaign_events (id,campaign_id,event_type,placement,visitor_hash,created_at) SELECT ?,?,?,'global_video',?,? WHERE NOT EXISTS (SELECT 1 FROM ad_campaign_events WHERE campaign_id=? AND event_type=? AND visitor_hash=? AND created_at>=?)").bind(crypto.randomUUID(),campaignId,eventType,visitorHash,now,campaignId,eventType,visitorHash,since).run();
+  const changed=Number(insert?.meta?.changes||0)>0;
+  return json({ok:true,recorded:changed,deduplicated:!changed},changed?201:200,cors);
 }
 async function adCampaignReportRoute(request,env,userId) {
   const cors=corsHeaders(request,env);

@@ -3524,8 +3524,9 @@ var worker_default = {
       if (url.pathname === "/api/me/advertising/campaigns" || url.pathname === "/api/me/advertising/checkout" || url.pathname === "/api/me/advertising/verify") {
         const session = await validateSession(request, env);
         if (!session) return json({ error: "Invalid or expired session" }, 401, cors);
-        if (url.pathname.endsWith("/checkout")) return await adCampaignCheckoutRoute(request, env, session.user_id);
-        if (url.pathname.endsWith("/verify")) return await adCampaignVerifyRoute(request, env, session.user_id);
+        if (url.pathname.endsWith("/checkout") || url.pathname.endsWith("/verify")) {
+          return json({ error: "Advertising checkout is temporarily unavailable while campaign billing and tracking are being finalized." }, 503, cors);
+        }
         return await adCampaignsRoute(request, env, session.user_id);
       }
       if (url.pathname === "/api/admin/advertising/campaigns" || /^\/api\/admin\/advertising\/campaigns\/[0-9a-f-]{36}\/review$/i.test(url.pathname)) {

@@ -1520,6 +1520,8 @@ async function adCampaignEventRoute(request,env) {
   const campaign=await env.DB.prepare("SELECT id,status,total_budget_ngn,spent_ngn,starts_at,ends_at FROM ad_campaigns WHERE id=? LIMIT 1").bind(campaignId).first();
   const now=new Date().toISOString();
   if(!campaign||campaign.status!=="approved"||Number(campaign.spent_ngn)>=Number(campaign.total_budget_ngn)||(campaign.starts_at&&campaign.starts_at>now)||(campaign.ends_at&&campaign.ends_at<=now)) return json({ok:true,recorded:false},200,cors);
+  const paidPayment=await env.DB.prepare("SELECT id FROM ad_campaign_payments WHERE campaign_id=? AND status='paid' LIMIT 1").bind(campaignId).first();
+  if(!paidPayment) return json({ok:true,recorded:false,reason:"verified_payment_required"},200,cors);
   const visitorHash=await adVisitorHash(request,campaignId);
   const dedupeHours=eventType==="impression"?24:1;
   const since=new Date(Date.now()-dedupeHours*60*60*1000).toISOString();
